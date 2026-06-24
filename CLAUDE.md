@@ -27,8 +27,8 @@ specpowers (入口, 决策模式+路由)
 | `skills/specpowers/SKILL.md` | 入口技能 — 决策树、路由表、全局规则（GitFlow/Checklist/Pitfalls） |
 | `skills/specpowers/refs/` | 入口技能 bundled resources（入门指南、项目模板、UltraPlan 提示词等） |
 | `skills/specpowers-plan/SKILL.md` | Phase 0-2: brainstorming → 格式转换+对照验证 → writing-plans 衔接 |
-| `skills/specpowers-apply/SKILL.md` | Phase 3: TDD 纪律 + 双重审查（code-review + spec-compliance-check） |
-| `skills/specpowers-review/SKILL.md` | UltraReview（5-agent 审查团队）+ 多模型渐进式审查（Skill/Spec 文档） |
+| `skills/specpowers-apply/SKILL.md` | Phase 3: TDD 实现 + Gate 3 审查（code-review + spec-compliance-check） |
+| `skills/specpowers-review/SKILL.md` | 审查决策树 + 多模型渐进式（文档类）/ UltraReview（代码≥10文件）/ 最终通读 Gate |
 | `skills/specpowers-archive/SKILL.md` | Phase 4: 全量测试 → openspec validate → /opsx:archive → 完整性验证 → finishing |
 | `.claude/skills/openspec-*/` | Claude Code 自动发现路径 — OpenSpec 五个子技能 |
 | `.claude/commands/opsx/` | `/opsx:*` 斜杠命令定义（apply/archive/explore/propose/sync） |
