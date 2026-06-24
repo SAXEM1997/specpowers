@@ -126,7 +126,7 @@ description: Use when the user says "plan the implementation", "write the design
 - 审批通过 → 进入 Phase 1
 
 **审批通过后，执行 Gate 0 审查**：
-`Skill({skill: "specpowers-review"})` — 对齐检查：design.md vs clarifications/<name>.md。Gate 0 通过后进入 Phase 1。
+`Skill({skill: "specpowers-review"})` — 对齐检查：design.md vs clarifications/<name>.md。Gate 0 通过后进入 Phase 1。如 Gate 未通过（存在 P0），阻塞当前 Phase，等待 specpowers-review 修复循环完成且 P0 清零后继续。
 
 ---
 
@@ -186,7 +186,7 @@ description: Use when the user says "plan the implementation", "write the design
 ```
 
 **人工审核通过后，执行 Gate 1 审查**：
-`Skill({skill: "specpowers-review"})` — 对齐检查：OpenSpec 四件套（proposal/design/specs/tasks）vs Phase 0 design.md + clarifications。Gate 1 通过后进入 Phase 2。
+`Skill({skill: "specpowers-review"})` — 对齐检查：OpenSpec 四件套（proposal/design/specs/tasks）vs Phase 0 design.md + clarifications。Gate 1 通过后进入 Phase 2。如 Gate 未通过（存在 P0），阻塞当前 Phase，等待 specpowers-review 修复循环完成且 P0 清零后继续。
 
 ---
 
@@ -234,7 +234,7 @@ description: Use when the user says "plan the implementation", "write the design
 
 `Skill({skill: "specpowers-review"})` — 对齐检查：plan vs Phase 1 OpenSpec specs + Phase 0 design。
 
-Gate 2 由 specpowers-review 承载（多模型渐进式审查）。Gate 2 通过后进入 Phase 3。
+Gate 2 由 specpowers-review 承载（多模型渐进式审查）。Gate 2 通过后进入 Phase 3。如 Gate 未通过（存在 P0），阻塞当前 Phase，等待 specpowers-review 修复循环完成且 P0 清零后继续。
 
 ### 场景→测试转换
 

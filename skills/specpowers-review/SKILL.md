@@ -20,7 +20,7 @@ description: >-
 
 - **主 Agent**：指 specpowers-review 技能内部的协调 Agent，负责调度子 Agent、合并审查结果、执行修复。与入口技能 specpowers 的 Agent 区分
 - **用户**：指人类开发者，负责审批结构性修改和 P0 问题的修复方案
-- **微小任务**：变更文件数 ≤ 3、单文件局部修改、不涉及接口变更、配置变更或跨文件重构。由入口 skill 决策树判定
+- **微小任务**：变更文件数 ≤ 3（入口 skill 判定）、单文件局部修改、< 50 行变更、单模块、不涉及接口变更、配置变更或跨文件重构。最终判定由入口 skill specpowers 决策树执行
 
 ## 审查决策树
 
@@ -110,7 +110,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 - 每个 Gate 不可跳过（微小任务模式除外：微小任务不触发 specpowers-review，Gate 0-4 全部跳过）
 - Gate 未通过（存在 P0）→ 禁止进入下一 Phase
-- Gate 发现 P1/P2 → 记录后允许通过，但问题清单会写入 `.review-summary.json`，后续 Gate 加载 specpowers-review 时该 JSON 自动注入对齐 Agent 的审查上下文，由对齐 Agent 逐条验证遗留问题是否已修复
+- Gate 发现 P1/P2 → 记录后允许通过，但问题清单会写入 `.review-summary.json`，后续 Gate 加载 specpowers-review 时该 JSON 自动注入对齐 Agent 的审查上下文，由对齐 Agent 逐条验证遗留问题是否已修复。读取时优先从审查对象同级目录读取 `.review-summary.json`，如不存在则从项目根目录 `.specpowers/review-state/<gate_id>.json` 读取（代码类审查场景）。
 - 每个 Gate 审查完成后均输出收敛提醒
 - **微小任务模式**：不触发 specpowers-review，Gate 0/1/2/3/4 全部跳过（见上方 Gate 执行规则第 1 条）。
 - **审查修改与审批的关系**：Gate 审查发现的修改分为两类：

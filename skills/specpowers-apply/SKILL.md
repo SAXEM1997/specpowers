@@ -9,7 +9,7 @@ description: Use when entering the implementation phase of a specpowers workflow
 > 1. 执行 `Skill({skill: "specpowers"})` 加载入口 skill，获取全局规则。等待加载完成后继续。
 > 2. 确认 `docs/superpowers/plans/<name>.md` 存在。如不存在，回 specpowers-plan 生成 plan。
 > 3. 确认 Plan 审查 Gate 已通过（询问已执行，见 specpowers-plan Phase 2 "Plan 审查 Gate"）。如未询问，回 specpowers-plan 完成 Gate 后再进入。
-> 4. 如当前模式为微小任务，跳过 specpowers-review Gate 体系。代码审查由本技能内部的 spec-compliance-check 协议直接执行（不触发 specpowers-review），TDD 纪律按需简化。不加载 specpowers-review。
+> 4. 如当前模式为微小任务，跳过 specpowers-review Gate 体系。代码审查由本技能内部的审查协议（spec-compliance-check）直接执行（不触发 specpowers-review），TDD 纪律按需简化。不加载 specpowers-review。
 
 **REQUIRED SUB-SKILL:** Skill({skill: "superpowers:executing-plans"})
 **REQUIRED BACKGROUND:** Skill({skill: "superpowers:test-driven-development"})
@@ -41,11 +41,21 @@ COMMIT -> git commit
 `Skill({skill: "specpowers-review"})` — 对齐检查：代码 vs Phase 2 plan + Phase 1 specs + Phase 0 design。
 
 审查类型由 specpowers-review 内部决策树自动判定：
-- 微小任务：不触发 specpowers-review，由本技能内部双重审查（见下方 spec-compliance-check 节）执行
+- 微小任务：不触发 specpowers-review，由本技能内部审查协议（spec-compliance-check）执行
 - 中等及以上 + 代码 < 10 文件：加强审查（code-review 由本技能执行 + 对齐检查由 specpowers-review 对齐 Agent 单 Agent 执行）
 - 中等及以上 + 代码 ≥ 10 文件：完整 Gate 3 UltraReview（specpowers-review 的 5-agent 团队审查）
 
 Gate 3 通过后进入 Phase 4。
+
+---
+
+### code-review（加强审查路径）
+
+加强审查路径（代码 <10 文件）中，code-review 由本技能执行：
+1. 使用 `Skill({skill: "superpowers:requesting-code-review"})` 加载代码质量审查
+2. 审查维度：命名、结构、错误处理、代码风格
+3. 通过标准：无 P0 问题
+4. code-review 和 spec-compliance-check（对齐检查）两者均通过方可进入 Phase 4
 
 ---
 
