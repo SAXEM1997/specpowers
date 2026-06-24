@@ -1,0 +1,23 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "specpowers-marketplace",
+  "version": "1.0.0",
+  "description": "SpecPowers — SDD+TDD engineering methodology skill group for Claude Code",
+  "owner": {
+    "name": "SpecPowers Team"
+  },
+  "metadata": {
+    "pluginRoot": "."
+  },
+  "plugins": [
+    {
+      "name": "specpowers",
+      "source": ".",
+      "description": "Fuses OpenSpec (SDD) and Superpowers (TDD) into a complete Phase 0→4 workflow with multi-model progressive review, UltraReview gates, and convergence tracking. Use when starting any non-trivial development task.",
+      "version": "1.0.0",
+      "category": "development",
+      "tags": ["sdd", "tdd", "openspec", "superpowers", "engineering", "workflow", "code-review"],
+      "strict": true
+    }
+  ]
+}

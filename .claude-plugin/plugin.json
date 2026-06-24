@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "specpowers",
+  "displayName": "SpecPowers — SDD+TDD Engineering Methodology",
+  "version": "1.0.0",
+  "description": "A Claude Code skill group that fuses OpenSpec (spec-driven development) and Superpowers (test-driven discipline) into a complete Phase 0→4 engineering workflow. Includes multi-model progressive review, UltraReview gate system, and convergence tracking.",
+  "author": {
+    "name": "SpecPowers Team"
+  },
+  "repository": "http://<internal-host>:<port>/ai/specpowers.git",
+  "license": "MIT",
+  "keywords": ["sdd", "tdd", "openspec", "superpowers", "engineering", "workflow", "code-review", "spec-driven", "test-driven"],
+  "skills": "./skills",
+  "commands": ["./commands/specpowers.md"],
+  "dependencies": []
+}

@@ -123,15 +123,34 @@ Phase 4: 验证 + 归档
 
 ### 安装 specpowers
 
-```bash
-# 克隆技能组
-git clone http://<internal-host>:<port>/ai/specpowers.git
+**方式 1: Plugin Marketplace（推荐）**
 
-# 将技能安装到 Claude Code 可发现路径
-cp -r specpowers/skills/* ~/.claude/skills/
-cp -r specpowers/.claude/commands/ ~/.claude/
-cp -r specpowers/.claude/skills/ ~/.claude/skills/
+```bash
+# 添加 marketplace
+/plugin marketplace add http://<internal-host>:<port>/ai/specpowers.git
+
+# 安装插件
+/plugin install specpowers@specpowers-marketplace
 ```
+
+**方式 2: 手动安装**
+
+```bash
+git clone http://<internal-host>:<port>/ai/specpowers.git
+cp -r specpowers/skills/* ~/.claude/skills/
+cp -r specpowers/commands/* ~/.claude/commands/
+```
+
+### 斜杠命令
+
+| 命令 | 用途 |
+|------|------|
+| `/specpowers` | 启动 specpowers SDD+TDD 完整工作流 |
+| `/opsx:propose <name>` | 创建 OpenSpec 变更提案 |
+| `/opsx:apply` | 应用当前变更 |
+| `/opsx:archive` | 归档变更 + 合并规范 |
+| `/opsx:explore` | 探索代码库上下文 |
+| `/opsx:sync` | 同步规范 |
 
 ### 项目初始化
 
@@ -150,31 +169,28 @@ cp -r specpowers/.claude/skills/ ~/.claude/skills/
 
 ```
 specpowers/
+├── .claude-plugin/
+│   ├── marketplace.json               # Marketplace 注册中心
+│   └── plugin.json                    # 插件清单
 ├── skills/
-│   ├── specpowers/SKILL.md          # 入口技能
-│   │   └── refs/                    # 入门指南、项目模板、UltraPlan 提示词
-│   ├── specpowers-plan/SKILL.md     # Phase 0-2
-│   ├── specpowers-apply/SKILL.md    # Phase 3
-│   ├── specpowers-review/SKILL.md   # 审查体系
-│   └── specpowers-archive/SKILL.md  # Phase 4
+│   ├── specpowers/SKILL.md            # 入口技能
+│   │   └── refs/                      # 入门指南、项目模板、UltraPlan 提示词
+│   ├── specpowers-plan/SKILL.md       # Phase 0-2
+│   ├── specpowers-apply/SKILL.md      # Phase 3
+│   ├── specpowers-review/SKILL.md     # 审查体系
+│   └── specpowers-archive/SKILL.md    # Phase 4
+├── commands/
+│   └── specpowers.md                  # /specpowers 入口命令
 ├── .claude/
-│   ├── skills/openspec-*/           # OpenSpec 技能 (Claude Code 可发现)
-│   └── commands/opsx/               # /opsx:* 斜杠命令
+│   ├── skills/openspec-*/             # OpenSpec 技能 (Claude Code 可发现)
+│   └── commands/opsx/                 # /opsx:* 斜杠命令 (openspec init)
 ├── docs/superpowers/
-│   ├── specs/                       # 设计文档
-│   └── plans/                       # 实施计划
-└── openspec/                        # OpenSpec 规范目录
+│   ├── specs/                         # 设计文档
+│   └── plans/                         # 实施计划
+├── openspec/                          # OpenSpec 规范目录
+├── README.md
+└── CLAUDE.md
 ```
-
-## 斜杠命令
-
-| 命令 | 用途 |
-|------|------|
-| `/opsx:propose <name>` | 创建 OpenSpec 变更提案 |
-| `/opsx:apply` | 应用当前变更 |
-| `/opsx:archive` | 归档变更 + 合并规范 |
-| `/opsx:explore` | 探索代码库上下文 |
-| `/opsx:sync` | 同步规范 |
 
 ## 开发
 
