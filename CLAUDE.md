@@ -39,7 +39,7 @@ specpowers (入口, 决策模式+路由)
 1. **技能拆分策略**: 原为单一庞大 SKILL.md（~2026-06-10 删除），现拆为 1 入口 + 4 子技能，按 Phase 按需加载以减少上下文消耗。
 2. **Phase 0 独立于 OpenSpec**: Phase 0 使用 `superpowers:brainstorming` 完成需求澄清+方案设计，产物为 `docs/superpowers/specs/<name>-design.md`。Phase 1 仅做格式转换+强制对照验证，不重复做需求分析。
 3. **Name 贯穿全流程**: `<name>` 由 Phase 0 定义（格式 `YYYY-MM-DD-<topic>`），贯穿 Phase 0-4，与 OpenSpec change 目录名同一标识符。
-4. **审查级别二维矩阵**: 按 `文件数 × 风险维度` 判定，Spec/Skill 文档无论文件数均采用多模型渐进式审查。
+4. **审查类型由 specpowers-review 内部决策树自动判定**（文档类→多模型渐进式，代码类≥10文件→UltraReview，<10文件→加强审查），用户可手动覆盖。
 5. **硬 Gate 链不可跳过**: Phase 4 的四步 Gate（全量测试 → validate → archive → 完整性验证）任一失败强制终止，不允许降级为手动操作。
 
 ## 开发工作流

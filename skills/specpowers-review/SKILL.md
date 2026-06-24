@@ -112,7 +112,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 - Gate 未通过（存在 P0）→ 禁止进入下一 Phase
 - Gate 发现 P1/P2 → 记录后允许通过，但问题清单会写入 `.review-summary.json`，后续 Gate 加载 specpowers-review 时该 JSON 自动注入对齐 Agent 的审查上下文，由对齐 Agent 逐条验证遗留问题是否已修复
 - 每个 Gate 审查完成后均输出收敛提醒
-- **微小任务模式**：详见上方微小任务模式说明（Gate 执行规则）。
+- **微小任务模式**：不触发 specpowers-review，Gate 0/1/2/3/4 全部跳过（见上方 Gate 执行规则第 1 条）。
 - **审查修改与审批的关系**：Gate 审查发现的修改分为两类：
   - (a) **结构性修改**（改变设计意图/架构/接口/数据模型/核心流程）→ 需重新走用户审批
   - (b) **澄清性修改**（消除歧义、补充遗漏、修正措辞、修复格式，不改变设计意图、接口和数据流）→ 免二次审批，直接修改后由主 Agent 确认
@@ -349,7 +349,7 @@ Step F: 执行修复
 
 ### 收敛状态存储
 
-收敛对比所需的上轮数据（P0/P1/P2 计数 + 问题清单摘要）由 specpowers-review 在每轮审查报告末尾输出为 JSON 摘要块，存储于审查对象同级目录下的 `.review-summary.json`。
+收敛对比所需的上轮数据（P0/P1/P2 计数 + 问题清单摘要）由 specpowers-review 在每轮审查报告末尾输出为 JSON 摘要块，存储于审查对象同级目录下的 `.review-summary.json`。代码类审查时，存储于项目根目录下的 `.specpowers/review-state/<gate_id>.json`。
 
 JSON 摘要结构：
 

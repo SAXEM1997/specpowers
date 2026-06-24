@@ -9,7 +9,7 @@ description: Use when entering the implementation phase of a specpowers workflow
 > 1. 执行 `Skill({skill: "specpowers"})` 加载入口 skill，获取全局规则。等待加载完成后继续。
 > 2. 确认 `docs/superpowers/plans/<name>.md` 存在。如不存在，回 specpowers-plan 生成 plan。
 > 3. 确认 Plan 审查 Gate 已通过（询问已执行，见 specpowers-plan Phase 2 "Plan 审查 Gate"）。如未询问，回 specpowers-plan 完成 Gate 后再进入。
-> 4. 如当前模式为微小任务，跳过 TDD 和双重审查，子代理直接执行。不适用本技能。
+> 4. 如当前模式为微小任务，跳过 specpowers-review Gate 体系。代码审查由本技能内部的 spec-compliance-check 协议直接执行（不触发 specpowers-review），TDD 纪律按需简化。不加载 specpowers-review。
 
 **REQUIRED SUB-SKILL:** Skill({skill: "superpowers:executing-plans"})
 **REQUIRED BACKGROUND:** Skill({skill: "superpowers:test-driven-development"})

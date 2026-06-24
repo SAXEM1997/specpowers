@@ -62,14 +62,14 @@ specpowers 是一个 **1 入口 + 4 子技能（覆盖 Phase 0-4）**的技能�
 Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路由。
 
 ```
-├── 微小任务（1-2 文件，< 50 行变更，单模块）
+├── 微小任务（1-3 文件，< 50 行变更，单模块）
 │   ─ 或: 功能已有现有实现、仅需增量修改
 │   ├── Phase 0: 轻量上下文探索（Read 目标文件确认功能状态）
 │   ├── Phase 1: 跳过
 │   ├── Phase 2: 跳过
 │   ├── Phase 3: 子代理直接执行
 │   ├── Phase 4: 跳过
-│   ⚠ 3-4 文件或跨模块 → 升为中等任务
+│   ⚠ 4+ 文件或跨模块 → 升为中等任务
 │
 ├── 中等任务（5-19 文件）← specpowers 默认
 │   ├── Phase 0: brainstorming 完整流程（需求澄清+方案设计+审批 Gate）
@@ -107,7 +107,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 | Phase 0 | 中等+ | specpowers-plan | `Skill({skill: "specpowers-plan"})` |
 | Phase 1-2 | 中等+ | specpowers-plan | `Skill({skill: "specpowers-plan"})` |
 | Phase 3 | 中等+ | specpowers-apply | `Skill({skill: "specpowers-apply"})` |
-| 审查 | 代码 ≥10 文件 或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers-review"})` |
+| 审查 | 代码（≥10 文件触发 UltraReview，<10 文件由 specpowers-apply 加载做加强审查）或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers-review"})` |
 | Phase 4 | 中等+ | specpowers-archive | `Skill({skill: "specpowers-archive"})` |
 | — | 微小 | 不加载子技能 | 入口 skill 中直接子代理执行。执行完毕后主 Agent 确认产物并输出完成摘要 |
 
@@ -123,7 +123,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 
 | 执行模式 | Phase 0 | Phase 1 | Phase 2 | Phase 3 | Phase 4 | 审查 |
 |---------|---------|---------|---------|---------|---------|------|
-| **微小** | 轻量上下文探索 | 跳过 | 跳过 | 子代理直接执行 | 跳过 | → specpowers-review 内部判定 |
+| **微小** | 轻量上下文探索 | 跳过 | 跳过 | 子代理直接执行 | 跳过 | 跳过 |
 | **中等** | brainstorming | 格式转换+对照 | 衔接+Plan Gate | TDD 逐 task | 硬 Gate 链 | → specpowers-review 内部判定 |
 | **复杂** | brainstorming | 格式转换+对照 | UltraPlan | TDD+子代理 | 硬 Gate 链 | → specpowers-review 内部判定 |
 | **大规模** | brainstorming | 格式转换+对照 | Workflow | Workflow+子代理 | 硬 Gate 链 | → specpowers-review 内部判定 |
