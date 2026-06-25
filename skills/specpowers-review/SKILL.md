@@ -34,7 +34,7 @@ description: >-
     │   ├── 微小任务 → 不触发 specpowers-review，由 specpowers-apply 双重审查执行
     │   └── 中等及以上 →
     │       ├── 变更文件数 ≥ 10 → UltraReview（5-agent 团队审查）
-    │       └── 变更文件数 < 10 → 加强审查（见下方 Gate 3 详细说明）
+    │       └── 变更文件数 < 10 → 加强审查（详见下方"加强审查（代码类，<10 文件）"节 + Gate 3 定义表）
     └── 用户可手动切换审查路径
 ```
 
@@ -185,7 +185,7 @@ Step F: 执行修复
   └── 增量审查: 仅读取变更区域及上下文
 ```
 
-### 加强审查（代码类，<10 文件）
+## 加强审查（代码类，<10 文件）
 
 代码变更 <10 文件时，Gate 3 不启动 5-agent 团队，而是由 specpowers-review 构造对齐 Agent 单 Agent 审查：
 
@@ -287,16 +287,16 @@ Step F: 执行修复
 
 \`\`\`STEP<N>_EXECUTED
 status: complete|degraded|failed
-agents: [<name>(<model>)]
+agents: [<agent_name>(<model>)]
 issues_found: <N>
-degradation: none|<原因>|<影响>|<替代>
+degradation: none|<具体原因>|<影响分析>|<替代措施>
 \`\`\`
 
 字段说明:
 - status: complete（正常完成）/ degraded（降级执行）/ failed（执行失败）
 - agents: 本 Step 使用的 Agent 列表，格式 [名称(模型)]
 - issues_found: 本 Step 新发现的问题数量（P0+P1+P2 合计）
-- degradation: 无降级时填 none；有降级时按"退化声明三要素协议"填写 <原因>|<影响>|<替代>
+- degradation: 无降级时填 none；有降级时按"退化声明三要素协议"填写 <具体原因>|<影响分析>|<替代措施>
 
 > **注意**: `ref: AgentId=<id>, tokens=<N>` 行由**主 Agent 在汇总时追加**（非子 Agent 输出）。子 Agent 看不到自己的 AgentId（Agent 工具返回值对调用方可见，对被调用方不可见），因此子 Agent 只需输出以上四个字段。AgentId 和 tokens 由主 Agent 从 `Agent` 工具返回值中提取后追加到每个标记块末尾。
 

@@ -249,7 +249,7 @@ Gate 2 返回后，执行 Gate 返回后验证协议（参数: Gate=2, Phase=2, 
 
 ## Gate 验证协议
 
-### Gate 返回后验证协议（所有 Gate 通用）
+### Gate 返回后验证协议（Phase 0-2 Gate 通用）
 
 对于 Gate <N>（对应 Phase <N>），specpowers-review 返回后执行以下验证：
 
