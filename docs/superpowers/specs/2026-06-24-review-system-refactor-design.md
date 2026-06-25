@@ -315,4 +315,8 @@ JSON 摘要结构：`{ "gate": "Gate N", "rounds": [{ "round": 1, "p0": X, "p1":
 - spec-compliance-check 的核心检查逻辑（逐条对照 Requirement → [COVERED/MISSING/DRIFT] 输出格式，COVERED 对应 PASS，MISSING/DRIFT 对应 FAIL）注入为对齐 Agent 的 prompt，确保 Gate 3 的对齐检查覆盖原双重审查的规范合规维度
 - 多轮审查循环结束后、进入下一环节前，必须执行最终通读 Gate（详见"最终通读 Gate（横切，全 Gate 适用）"章节），通过后方可继续。单轮审查同样适用（Step 5 完成后立即执行）
 - **审查修改与审批的关系**：见上方 Gate 执行规则中的同名条目，此处不重复
+
+---
+
+> **2026-06-25 后续强化**: 本重构方案中的审查流程（Steps 3-5）已通过 `2026-06-24-review-flow-hardening-design.md` → `docs/specpowers-review-enhancement-v2.md` 进一步强化为双层验证 + 硬阻止 + 会话上下文账本机制。收敛提醒从纯建议升级为 P0 硬阻止分级强制。`.review-summary.json` 已替换为会话上下文账本 + `.specpowers/review-cache.json`。
 - **模型降级策略**：见上方模型多样性规则中的降级策略条目，此处不重复

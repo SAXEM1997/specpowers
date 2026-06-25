@@ -113,3 +113,7 @@ Step 4 — 子 Agent 执行修复 + 主 Agent 校验
 - UltraReview 流程：本次仅修改多模型渐进式审查流程，UltraReview 的 Step A-F 协议不在本次修改范围
 - 收敛提醒机制、最终通读 Gate：不变
 - UltraReview 的 Step A-F 协议存在与多模型渐进式同构的合并偏差和确认偏误风险。本次强化模式（监督 Agent + 子 Agent 修复）将在后续版本中同步应用到 UltraReview。
+
+---
+
+> **2026-06-25 实施完成**: 本设计方案已通过 `docs/specpowers-review-enhancement-v2.md` 扩展为完整修改方案，经 5 轮 specpowers-review 审查 + 监督交叉验证后实施。核心变更: 双层验证、硬阻止、会话上下文账本、review-cache.json、退化声明三要素协议。详见 `skills/specpowers-review/SKILL.md`（781 行）。
