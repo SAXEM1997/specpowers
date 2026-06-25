@@ -47,6 +47,8 @@ COMMIT -> git commit
 
 **Gate 3 返回后，执行以下验证（不可跳过）**:
 
+> **设计说明**: 以下验证 0/1/2 逻辑与 specpowers-plan 的 "Gate 返回后验证协议" 结构一致但独立内联。跨文件 Skill() 引用不可靠（子 skill 加载未必携带父 skill 上下文），因此有意保留此重复（v2 预期内的 MINOR DRIFT）。修改任一处时需同步更新另一处。
+
 **验证 0 — 执行模式检查**:
 读取会话上下文中的 `Plan: <mode>`:
 - mode === "tiny" → 跳过全部验证（specpowers-review 在微小任务模式下不被调用，标记块不存在为预期行为）
@@ -65,6 +67,8 @@ COMMIT -> git commit
 搜索 `[GATE_BLOCKED] p0_count=N`:
 - N > 0 → `[VERIFY_FAIL] Gate 3 未通过（P0=N），阻塞 Phase 3`
 - N = 0 且验证 1 通过 → Gate 3 通过，进入 Phase 4
+
+> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate，非 Phase 0-4 Gate 体系的组成部分。父技能仅验证 STEP1-STEP5（或加强审查的 STEP1-STEP2），不跨边界验证 specpowers-review 的内部 Gate。详见 specpowers-plan "Gate 返回后验证协议" 节的设计说明。
 
 ---
 
