@@ -8,7 +8,7 @@ description: Use when the user says "plan the implementation", "write the design
 > **前置检查（必须执行，不可跳过）**: 
 > 1. 确认 specpowers 入口 skill 的全局规则（GitFlow/Checklist/Pitfalls）已在当前会话上下文中可用。如未加载，先 `Skill({skill: "specpowers"})` 获取决策树和全局规则。等待加载完成后继续。
 > 2. 确认当前任务模式（Plan: <mode>）。如为微小任务，仅做轻量上下文探索后终止本技能，不执行 Phase 0 完整流程。
-> 3. 如为中等任务，必须完成 Phase 0 → Phase 1 → Phase 2（本 skill）。如为复杂/大规模任务，Phase 2 由 UltraPlan/Workflow 外部承载，本 skill 在 Phase 1 完成后交接。
+> 3. 如为中等任务，必须完成 Phase 0 → Phase 1 → Phase 2（本 skill）。如为复杂/大规模任务，Phase 2 由 UltraPlan（本 Skill 绑定的 refs/ultraplan-*.md 资源，非 Claude Code 原生 /ultraplan 命令）/ Workflow 外部承载，本 skill 在 Phase 1 完成后交接。
 
 ---
 

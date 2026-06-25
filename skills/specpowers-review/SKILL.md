@@ -15,8 +15,8 @@ description: >-
 
 ## 术语说明
 
-- **主 Agent**：指 specpowers-review 技能内部的协调 Agent，负责调度子 Agent、合并审查结果、执行修复。与入口技能 specpowers 的 Agent 区分
-- **用户**：指人类开发者，负责审批结构性修改和 P0 问题的修复方案
+- **主 Agent**：specpowers-review 技能内部的协调 Agent，调度子 Agent、合并审查结果、执行修复。与入口技能 specpowers 的 Agent 区分
+- **用户**：人类开发者（审批修复方案），非调用方 Agent。
 - **微小任务**：变更文件数 ≤ 3（入口 skill 判定）、单文件局部修改、< 50 行变更、单模块、不涉及接口变更、配置变更或跨文件重构。最终判定由入口 skill specpowers 决策树执行
 
 ## 审查决策树
@@ -306,8 +306,6 @@ degradation: none|<具体原因>|<影响分析>|<替代措施>
 
 > **注入时注意**: 上述模板中 `\<N>` 需替换为实际 Step 编号（如 `1`、`2`、`FINAL_READTHROUGH`）。模板内的 `\`\`\`` 为 Markdown 转义表示（用于在此外层 fenced code block 中正确渲染），注入子 Agent prompt 时须还原为普通三反引号 `` ``` ``（即去掉反斜杠）。若不还原，子 Agent 将输出带反斜杠的 `\`\`\`STEP<N>_EXECUTED`，导致父技能按 `` ```STEP<N>_EXECUTED `` 搜索 fenced code block 时无法匹配，误判为 Step 未执行。
 
-> **退化声明格式**: degradation 字段含三要素——<缺失能力>|<影响分析>|<替代措施>。完整定义见 `refs/protocols.md`。
-
 **Step 3 — 独立监督 Agent 交叉验证（强制，不可跳过）**
 
 主 Agent 将三路 Agent 的原始审查报告全文 + 最终合并判断表注入监督 Agent prompt。
@@ -323,7 +321,7 @@ degradation: none|<具体原因>|<影响分析>|<替代措施>
 
 主 Agent 根据审核报告调整合并判断表，输出最终版。
 
-降级：仅单一模型可用时，使用与主 Agent 相同模型执行监督，报告中声明"单一模型，缺少独立视角交叉验证"，但不可跳过。合并后问题数 < 5 → 仅执行溯源检查 + 遗漏检测（维度 1-2）；≥ 5 → 完整四维度。降级时 degradation 字段须含退化声明三要素：(a)具体缺失能力+模型名 (b)尝试过的调用方式+失败信息 (c)降级路径选择依据。
+降级：仅单一模型可用时，使用与主 Agent 相同模型执行监督，报告中声明"单一模型，缺少独立视角交叉验证"，但不可跳过。合并后问题数 < 5 → 仅执行溯源检查 + 遗漏检测（维度 1-2）；≥ 5 → 完整四维度。降级时 degradation 字段按标准协议输出退化声明。
 
 监督 Agent 完成后必须输出 `STEP3_EXECUTED` 标记块（格式见"上下文传递机制"中的注入模板）。
 
@@ -345,11 +343,11 @@ degradation: none|<具体原因>|<影响分析>|<替代措施>
 3. 校验不通过 → 标注失败项 → 修复子 Agent 重新修复 → 主 Agent 再次校验（最多重试 3 轮，超过则标注"修复失败"并提请用户裁决）
 4. 全部通过 → 进入 Step 5
 
-降级：子 Agent 工具不可用时（极端环境），退回主 Agent 自行修复，报告中声明限制。环境不支持并行 Agent 时，修复子 Agent 改为串行执行，拆分规则不变，报告中声明"串行执行（环境限制）"。降级时 degradation 字段须含退化声明三要素：(a)具体缺失能力+模型名 (b)尝试过的调用方式+失败信息 (c)降级路径选择依据。
+降级：子 Agent 工具不可用时（极端环境），退回主 Agent 自行修复，报告中声明限制。环境不支持并行 Agent 时，修复子 Agent 改为串行执行，拆分规则不变，报告中声明"串行执行（环境限制）"。降级时 degradation 字段按标准协议输出退化声明。
 
 修复子 Agent 完成后输出 `STEP4_EXECUTED` 标记块。多修复子 Agent 时，主 Agent 收集所有修复子 Agent 的输出后合并为**单个** STEP4_EXECUTED 标记块：issues_found 汇总所有修复子 Agent 发现的新问题数，agents 列表包含所有修复子 Agent 的名称和模型，degradation 取所有修复子 Agent 中最严重的退化状态。
 
-**Step 4 退化补偿规则**：当 Step 4 发生退化（status: degraded 或 failed）时，Step 5 的 Quick Review Agent 将执行两轮独立验证（见 Step 5 退化补偿规则），以补偿修复视角独立性的损失。
+**Step 4 退化补偿规则**：当 Step 4 发生退化时（退化声明按标准协议输出，状态判定见 `refs/protocols.md`），Step 5 的 Quick Review Agent 将执行两轮独立验证（见 Step 5 退化补偿规则），以补偿修复视角独立性的损失。
 
 **Step 5 — Quick Review 收尾**
 

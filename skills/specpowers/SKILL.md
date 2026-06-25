@@ -81,7 +81,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 ├── 复杂任务（20+ 文件，跨模块）
 │   ├── Phase 0: brainstorming 完整流程
 │   ├── Phase 1: propose 格式转换+强制对照验证
-│   ├── Phase 2: UltraPlan 替代
+│   ├── Phase 2: UltraPlan 替代（使用本 Skill 绑定的 refs/ultraplan-*.md 资源，非 Claude Code 原生 /ultraplan 命令）
 │   ├── Phase 3: TDD + 子代理
 │   ├── Phase 4: 硬 Gate 链归档
 │   容错: UltraPlan 不可用 → 降级中等任务
