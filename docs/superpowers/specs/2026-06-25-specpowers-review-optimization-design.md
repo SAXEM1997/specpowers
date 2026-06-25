@@ -187,3 +187,13 @@ Step 0（准备审查经验）之后、Step 1（三 Agent 并行审查）之前�
 - `specpowers-review-deferred-items.md`: 同步搁置表中的 3 个新搁置项
 - `specpowers-review-lessons-learned.md`: 同步本轮新增的 4 条教训（如尚未完成）
 - `MEMORY.md`: 确认所有引用指向最新版本
+
+---
+
+> **2026-06-26 实施完成**: 3 次 commit 实施完毕——
+> 1. `6c43d1f` 提取协议到 refs/protocols.md（SKILL.md 791→552）
+> 2. `54ba69c` 保守语言精简 + UltraPlan 消歧义（SKILL.md 552→550）
+> 3. `95e8c33` 插入审查纪律自检——合理化表 + Red Flags 清单（SKILL.md 550→578）
+> 
+> 实施后 SKILL.md 578 行（原 791 行，净减 213 行 / -27%）。
+> 搁置项（/goal 集成、模板压缩、表格化）已同步至 `specpowers-review-deferred-items.md`。
