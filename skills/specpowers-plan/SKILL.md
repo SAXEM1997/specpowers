@@ -125,8 +125,9 @@ description: Use when the user says "plan the implementation", "write the design
 - 修改 → 回到 Step 0.5
 - 审批通过 → 进入 Phase 1
 
-**审批通过后，执行 Gate 0 审查**：
-`Skill({skill: "specpowers-review"})` — 对齐检查：design.md vs clarifications/<name>.md。Gate 0 通过后进入 Phase 1。如 Gate 未通过（存在 P0），阻塞当前 Phase，等待 specpowers-review 修复循环完成且 P0 清零后继续。
+**审批通过后，执行 Gate 0 审查**:
+`Skill({skill: "specpowers-review"})` — 对齐检查：design.md vs clarifications/<name>.md。
+Gate 0 返回后，执行 Gate 返回后验证协议（参数: Gate=0, Phase=0, 标记块=STEP1-5）。
 
 ---
 
@@ -185,8 +186,9 @@ description: Use when the user says "plan the implementation", "write the design
 □ tasks.md 遗漏了步骤？
 ```
 
-**人工审核通过后，执行 Gate 1 审查**：
-`Skill({skill: "specpowers-review"})` — 对齐检查：OpenSpec 四件套（proposal/design/specs/tasks）vs Phase 0 design.md + clarifications。Gate 1 通过后进入 Phase 2。如 Gate 未通过（存在 P0），阻塞当前 Phase，等待 specpowers-review 修复循环完成且 P0 清零后继续。
+**人工审核通过后，执行 Gate 1 审查**:
+`Skill({skill: "specpowers-review"})` — 对齐检查：OpenSpec 四件套（proposal/design/specs/tasks）vs Phase 0 design.md + clarifications。
+Gate 1 返回后，执行 Gate 返回后验证协议（参数: Gate=1, Phase=1, 标记块=STEP1-5）。
 
 ---
 
@@ -233,8 +235,7 @@ description: Use when the user says "plan the implementation", "write the design
 **衔接阶段完成后，强制执行 Gate 2 审查**：
 
 `Skill({skill: "specpowers-review"})` — 对齐检查：plan vs Phase 1 OpenSpec specs + Phase 0 design。
-
-Gate 2 由 specpowers-review 承载（多模型渐进式审查）。Gate 2 通过后进入 Phase 3。如 Gate 未通过（存在 P0），阻塞当前 Phase，等待 specpowers-review 修复循环完成且 P0 清零后继续。
+Gate 2 返回后，执行 Gate 返回后验证协议（参数: Gate=2, Phase=2, 标记块=STEP1-5）。
 
 ### 场景→测试转换
 
@@ -243,5 +244,37 @@ Gate 2 由 specpowers-review 承载（多模型渐进式审查）。Gate 2 通�
 | 正常路径 | Given 有效输入 When 执行 Then 期望输出 |
 | 错误路径 | Given 异常输入 When 执行 Then 期望错误 |
 | 边界值 | Given 边界条件 When 执行 Then 期望行为 |
+
+---
+
+## Gate 验证协议
+
+### Gate 返回后验证协议（所有 Gate 通用）
+
+对于 Gate <N>（对应 Phase <N>），specpowers-review 返回后执行以下验证：
+
+**验证 0 — 执行模式检查**:
+读取会话上下文中的 `Plan: <mode>`:
+- mode === "tiny" → 跳过全部验证
+- mode !== "tiny" 或 Plan mode 不存在 → 继续验证 1 + 验证 2
+降级: 若 Plan mode 不存在，默认视为非 tiny，输出 `[WARNING] Plan mode 未设置` 后继续完整验证。
+
+**验证 1 — 执行标记完整性检查**:
+在 specpowers-review 返回的审查报告中搜索以 ```STEP<N>_EXECUTED 开头的 fenced code block。
+缺失任一块 → `[VERIFY_FAIL] Gate <N> 审查执行不完整，阻塞 Phase <N>`。
+搜索未命中任何标记块 → `[VERIFY_FAIL] Gate <N> 审查 Agent 未正常执行（无任何执行标记），阻塞 Phase <N>`。
+
+**验证 2 — P0 硬阻止检查**:
+搜索 `[GATE_BLOCKED] p0_count=N`:
+- N > 0 → `[VERIFY_FAIL] Gate <N> 未通过（P0=N），阻塞 Phase <N>`
+- N = 0 且验证 1 通过 → Gate <N> 通过
+
+**各 Gate 特化参数**:
+
+| Gate | Phase | 应存在标记块 |
+|------|-------|-------------|
+| Gate 0 | Phase 0 | STEP1, STEP2, STEP3, STEP4, STEP5 |
+| Gate 1 | Phase 1 | STEP1, STEP2, STEP3, STEP4, STEP5 |
+| Gate 2 | Phase 2 | STEP1, STEP2, STEP3, STEP4, STEP5 |
 
 > **下一步**: 完成后，加载 `specpowers-apply` 进入 Phase 3（实现阶段）。

@@ -45,7 +45,26 @@ COMMIT -> git commit
 - 中等及以上 + 代码 < 10 文件：加强审查（code-review 由本技能执行 + 对齐检查由 specpowers-review 对齐 Agent 单 Agent 执行）
 - 中等及以上 + 代码 ≥ 10 文件：完整 Gate 3 UltraReview（specpowers-review 的 5-agent 团队审查）
 
-Gate 3 通过后进入 Phase 4。
+**Gate 3 返回后，执行以下验证（不可跳过）**:
+
+**验证 0 — 执行模式检查**:
+读取会话上下文中的 `Plan: <mode>`:
+- mode === "tiny" → 跳过全部验证（specpowers-review 在微小任务模式下不被调用，标记块不存在为预期行为）
+- mode !== "tiny" 或 Plan mode 不存在 → 继续验证 1 + 验证 2
+降级: 若 Plan mode 不存在，默认视为非 tiny，输出 `[WARNING] Plan mode 未设置` 后继续完整验证。
+
+**验证 1 — 执行标记完整性检查**:
+根据审查类型检查对应的标记块（搜索以 ```STEP<N>_EXECUTED 开头的 fenced code block）:
+- UltraReview (≥10 文件): STEP1, STEP2, STEP3, STEP4, STEP5
+- 加强审查 (<10 文件): STEP1, STEP2
+
+缺失任一块 → `[VERIFY_FAIL] Gate 3 审查执行不完整，阻塞 Phase 3`。
+搜索未命中任何标记块 → `[VERIFY_FAIL] Gate 3 审查 Agent 未正常执行（无任何执行标记），阻塞 Phase 3`。
+
+**验证 2 — P0 硬阻止检查**:
+搜索 `[GATE_BLOCKED] p0_count=N`:
+- N > 0 → `[VERIFY_FAIL] Gate 3 未通过（P0=N），阻塞 Phase 3`
+- N = 0 且验证 1 通过 → Gate 3 通过，进入 Phase 4
 
 ---
 
