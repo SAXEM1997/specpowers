@@ -9,7 +9,7 @@ description: Use when entering the implementation phase of a specpowers workflow
 > 1. 执行 `Skill({skill: "specpowers"})` 加载入口 skill，获取全局规则。等待加载完成后继续。
 > 2. 确认 `docs/superpowers/plans/<name>.md` 存在。如不存在，回 specpowers-plan 生成 plan。
 > 3. 确认 Plan 审查 Gate 已通过（询问已执行，见 specpowers-plan Phase 2 "Plan 审查 Gate"）。如未询问，回 specpowers-plan 完成 Gate 后再进入。
-> 4. 如当前模式为微小任务，跳过 specpowers-review Gate 体系。代码审查由本技能内部的审查协议（spec-compliance-check）直接执行（不触发 specpowers-review），TDD 纪律按需简化。不加载 specpowers-review。
+> 4. 如当前模式为微小任务，仍须加载 specpowers-review 执行 Gate 3 审查（走 specpowers-review 内部级联判定路径）。
 
 **REQUIRED SUB-SKILL:** Skill({skill: "superpowers:executing-plans"})
 **REQUIRED BACKGROUND:** Skill({skill: "superpowers:test-driven-development"})
@@ -39,11 +39,21 @@ COMMIT -> git commit
 实现完成后，执行 Gate 3 审查：
 
 `Skill({skill: "specpowers-review"})` — 对齐检查：代码 vs Phase 2 plan + Phase 1 specs + Phase 0 design。
+**Step 0 — 计算变更规模**:
+执行以下命令获取文件数和修改总行数：
+```bash
+git diff --shortstat $(git merge-base main HEAD)..HEAD
+```
+输出格式为 `N files changed, A insertions(+), D deletions(-)`。
+计算修改总行数 = additions + deletions：
+```bash
+git diff --shortstat $(git merge-base main HEAD)..HEAD | awk '{print $4+$6}'
+```
+将文件数和修改总行数传入 specpowers-review Skill 调用。
 
-审查类型由 specpowers-review 内部决策树自动判定：
-- 微小任务：不触发 specpowers-review，由本技能内部审查协议（spec-compliance-check）执行
-- 中等及以上 + 代码 < 10 文件：加强审查（code-review 由本技能执行 + 对齐检查由 specpowers-review 对齐 Agent 单 Agent 执行）
-- 中等及以上 + 代码 ≥ 10 文件：完整 Gate 3 UltraReview（specpowers-review 的 5-agent 团队审查）
+审查类型由 specpowers-review 内部决策树按级联条件自动判定（命中即停止）：
+- 条件 1：文件数 ≤ 2 且修改总行数 ≤ 200 → 加强审查（code-review 由本技能执行 + 对齐检查由 specpowers-review 对齐 Agent 单 Agent 执行）
+- 条件 2：其他情况 → UltraReview + 对齐审查（specpowers-review 的 6-agent 团队审查）
 
 **Gate 3 返回后，执行以下验证（不可跳过）**:
 
@@ -51,14 +61,13 @@ COMMIT -> git commit
 
 **验证 0 — 执行模式检查**:
 读取会话上下文中的 `Plan: <mode>`:
-- mode === "tiny" → 跳过全部验证（specpowers-review 在微小任务模式下不被调用，标记块不存在为预期行为）
-- mode !== "tiny" 或 Plan mode 不存在 → 继续验证 1 + 验证 2
-降级: 若 Plan mode 不存在，默认视为非 tiny，输出 `[WARNING] Plan mode 未设置` 后继续完整验证。
+- 所有模式均继续验证 1 + 验证 2
+降级: 若 Plan mode 不存在，输出 `[WARNING] Plan mode 未设置` 后继续完整验证。
 
 **验证 1 — 执行标记完整性检查**:
 根据审查类型检查对应的标记块（搜索以 ```STEP<N>_EXECUTED 开头的 fenced code block）:
-- UltraReview (≥10 文件): STEP1, STEP2, STEP3, STEP4, STEP5
-- 加强审查 (<10 文件): STEP1, STEP2
+- 加强审查（≤2 文件且 ≤200 行）: STEP1, STEP2
+- UltraReview + 对齐审查（其他情况）: STEP1, STEP2, STEP3, STEP4, STEP5
 
 缺失任一块 → `[VERIFY_FAIL] Gate 3 审查执行不完整，阻塞 Phase 3`。
 搜索未命中任何标记块 → `[VERIFY_FAIL] Gate 3 审查 Agent 未正常执行（无任何执行标记），阻塞 Phase 3`。
@@ -74,7 +83,7 @@ COMMIT -> git commit
 
 ### code-review（加强审查路径）
 
-加强审查路径（代码 <10 文件）中，code-review 由本技能执行：
+加强审查路径（代码 ≤2 文件且 ≤200 行）中，code-review 由本技能执行：
 1. 使用 `Skill({skill: "superpowers:requesting-code-review"})` 加载代码质量审查
 2. 审查维度：命名、结构、错误处理、代码风格
 3. 通过标准：无 P0 问题
