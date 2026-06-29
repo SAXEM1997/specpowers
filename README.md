@@ -103,7 +103,7 @@ Phase 4: 验证 + 归档
 
 ### UltraReview
 
-5 Agent 团队审查（build/code/specs/docs/deps），含 Step A-F 逐条分析协议。
+6 Agent 团队审查（build/code/specs/docs/deps/对齐），含 Step A-F 逐条分析协议。
 
 ### 收敛提醒
 
