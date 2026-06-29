@@ -28,7 +28,7 @@ specpowers (入口, 决策模式+路由)
 | `skills/specpowers/refs/` | 入口技能 bundled resources（入门指南、项目模板、UltraPlan 提示词等） |
 | `skills/specpowers-plan/SKILL.md` | Phase 0-2: brainstorming → 格式转换+对照验证 → writing-plans 衔接 |
 | `skills/specpowers-apply/SKILL.md` | Phase 3: TDD 实现 + Gate 3 审查（code-review + spec-compliance-check） |
-| `skills/specpowers-review/SKILL.md` | 审查决策树 + 多模型渐进式（文档类）/ UltraReview（代码≥10文件）/ 最终通读 Gate |
+| `skills/specpowers-review/SKILL.md` | 审查决策树 + 多模型渐进式（文档类）/ UltraReview+对齐审查（其他情况）/ 最终通读 Gate |
 | `skills/specpowers-archive/SKILL.md` | Phase 4: 全量测试 → openspec validate → /opsx:archive → 完整性验证 → finishing |
 | `.claude/skills/openspec-*/` | Claude Code 自动发现路径 — OpenSpec 五个子技能 |
 | `.claude/commands/opsx/` | `/opsx:*` 斜杠命令定义（apply/archive/explore/propose/sync） |
@@ -39,7 +39,7 @@ specpowers (入口, 决策模式+路由)
 1. **技能拆分策略**: 原为单一庞大 SKILL.md（~2026-06-10 删除），现拆为 1 入口 + 4 子技能，按 Phase 按需加载以减少上下文消耗。
 2. **Phase 0 独立于 OpenSpec**: Phase 0 使用 `superpowers:brainstorming` 完成需求澄清+方案设计，产物为 `docs/superpowers/specs/<name>-design.md`。Phase 1 仅做格式转换+强制对照验证，不重复做需求分析。
 3. **Name 贯穿全流程**: `<name>` 由 Phase 0 定义（格式 `YYYY-MM-DD-<topic>`），贯穿 Phase 0-4，与 OpenSpec change 目录名同一标识符。
-4. **审查类型由 specpowers-review 内部决策树自动判定**（文档类→多模型渐进式，代码类≥10文件→UltraReview，<10文件→加强审查），用户可手动覆盖。
+4. **审查类型由 specpowers-review 内部决策树自动判定**（文档类→多模型渐进式，代码类由 specpowers-review 内部按文件数+行数级联判定），用户可手动覆盖。
 5. **硬 Gate 链不可跳过**: Phase 4 的四步 Gate（全量测试 → validate → archive → 完整性验证）任一失败强制终止，不允许降级为手动操作。
 
 ## 开发工作流
