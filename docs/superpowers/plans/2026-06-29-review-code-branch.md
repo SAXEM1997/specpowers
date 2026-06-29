@@ -173,7 +173,7 @@
 
 #### 验证步骤
 
-- [ ] `grep -n ">=10.*文件\|<10.*文件\|微小任务模式\|微小任务.*跳过\|≥10 文件" skills/specpowers-review/SKILL.md` — 预期：0 结果
+- [ ] `grep -n ">=10.*文件\|<10.*文件\|微小任务模式\|微小任务.*跳过\|≥10.*文件" skills/specpowers-review/SKILL.md` — 预期：0 结果
 - [ ] `grep -n "≤2 文件且 ≤200 行\|≤2文件且≤200行\|UltraReview + 对齐审查\|UltraReview+对齐审查" skills/specpowers-review/SKILL.md` — 预期：至少有 10 处匹配
 - [ ] 通读审查决策树（L26-39），确认 2 路径逻辑正确
 - [ ] 通读 UltraReview 章节，确认对齐审查 Agent 描述完整
@@ -325,9 +325,11 @@ git commit -m "refactor: apply-skill Gate 3同步新阈值 + 新增行数计算�
 搜索并替换：
 1. `UltraReview（代码 ≥10 文件）` → `加强审查（≤2 文件且 ≤200 行）/ UltraReview + 对齐审查（其他情况）`
 2. `≥10 文件 → UltraReview (5 Agent 团队)` → `其他情况 → UltraReview + 对齐审查（6 Agent 团队）`
-3. `加强审查` → `加强审查（≤2 文件且 ≤200 行, code-review + 对齐 Agent 单审）`
+3. `加强审查 (code-review + 对齐 Agent 单审)` → `加强审查（≤2 文件且 ≤200 行, code-review + 对齐 Agent 单审）`
 
-**CLAUDE.md — 3 处旧阈值替换**
+**CLAUDE.md — 2 处旧阈值替换**
+
+以下替换无顺序依赖（分别针对 L31 和 L42），可任意顺序执行：
 
 搜索并替换：
 1. `UltraReview（代码≥10文件）` → `UltraReview+对齐审查（其他情况）`（目录结构表 L31，与 L42 的内联文本是不同位置）
@@ -336,7 +338,7 @@ git commit -m "refactor: apply-skill Gate 3同步新阈值 + 新增行数计算�
 **commands/specpowers.md — 1 处旧阈值替换**
 
 搜索并替换：
-- `UltraReview for code ≥10 files` → `UltraReview + 对齐审查 for code (other cases, 级联条件 2)`
+- `UltraReview for code ≥10 files` → `加强审查 (≤2 files ≤200 lines) / UltraReview + 对齐审查 (other cases)`
 
 #### 验证步骤
 
@@ -360,7 +362,7 @@ git add commands/specpowers.md && git commit -m "docs: commands/specpowers.md同
 
 - [ ] **全局 grep 残留检查**:
 ```bash
-grep -rn ">=10.*文件\|<10.*文件" skills/ README.md CLAUDE.md commands/ .claude/
+grep -rn ">=10.*文件\|<10.*文件\|≥10.*文件" skills/ README.md CLAUDE.md commands/ .claude/
 ```
 预期：0 结果
 
