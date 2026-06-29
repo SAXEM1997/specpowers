@@ -16,10 +16,13 @@
 - 修改后每个文件独立验证：grep 确认无旧阈值残留 + 通读确认逻辑自洽
 - 阈值格式统一为 `≤2 文件且 ≤200 行`（带空格）
 - GitLab Flow：在当前 feature 分支操作，每 task 完成后 commit
+- 每个 Task 执行前创建临时保存点。Task 执行中任一步骤失败：执行 `git checkout -- <file>` 回滚该 Task 的所有文件，修复计划后重试。
 
 ---
 
 ### Task 1: 修改 specpowers-review/SKILL.md — 核心审查决策逻辑
+
+> **回滚**: 若任一步骤失败，执行 `git checkout -- skills/specpowers-review/SKILL.md` 恢复原始状态后重试。
 
 **Files:**
 - Modify: `skills/specpowers-review/SKILL.md`
@@ -60,6 +63,8 @@
 
 **#3 L77-78 — 流程图 Gate 3 审查方式标注**
 
+> 注意区分：流程图（L77-78，跨行 ASCII art）和 Gate 定义表（L95，内联 Markdown 表格）。目标为流程图位置。搜索锚文本：`审查方式:\n                                                                     UltraReview`（跨行匹配）。
+
 搜索 `审查方式:` 后紧跟 `UltraReview(≥10文件)` 的行，替换为：
 ```
                                                                     审查方式:
@@ -99,6 +104,10 @@
 **#8 L125-127 — UltraReview 章节标题和条件**
 
 搜索 `## UltraReview（代码类，≥10 文件）`，将整个章节头替换为：
+
+删除范围：从 `## UltraReview（代码类，≥10 文件）` 开始，到 `### 审查规则` 之前的空行结束（含 `**适用条件**` 行、`### 创建审查团队` 子节及该子节下的旧 5-agent 表格）。
+保留：`### 审查规则` 及之后所有内容不变。
+
 ```
 ## UltraReview + 对齐审查（代码类，其他情况）
 
@@ -270,9 +279,10 @@ git commit -m "refactor: 入口skill路由表和映射表同步新审查阈值"
 **Step 0 — 计算变更规模**:
 执行以下命令获取文件数和修改总行数：
 ```bash
-git diff --stat $(git merge-base main HEAD)..HEAD
+git diff --shortstat $(git merge-base main HEAD)..HEAD
 ```
-从输出的最后一行提取 additions 和 deletions，计算修改总行数 = additions + deletions。
+从 `git diff --shortstat $(git merge-base main HEAD)..HEAD` 的输出提取数字。输出格式固定为 `N files changed, A insertions(+), D deletions(-)`（N/A/D 均为阿拉伯数字）。
+使用命令提取：`git diff --shortstat $(git merge-base main HEAD)..HEAD | awk '{print $4+$6}'` 计算 additions + deletions。
 将文件数和修改总行数传入 specpowers-review Skill 调用。
 ```
 
@@ -313,30 +323,32 @@ git commit -m "refactor: apply-skill Gate 3同步新阈值 + 新增行数计算�
 **README.md — 3 处旧阈值替换**
 
 搜索并替换：
-1. `UltraReview（代码 ≥10 文件）` → `加强审查（≤2文件且≤200行）/ UltraReview+对齐审查（其他）`
+1. `UltraReview（代码 ≥10 文件）` → `加强审查（≤2 文件且 ≤200 行）/ UltraReview + 对齐审查（其他情况）`
 2. `≥10 文件 → UltraReview (5 Agent 团队)` → `其他情况 → UltraReview + 对齐审查（6 Agent 团队）`
-3. `<10 文件 → 加强审查 (code-review + 对齐 Agent 单审)` → `≤2 文件且 ≤200 行 → 加强审查 (code-review + 对齐 Agent 单审)`
+3. `加强审查` → `加强审查（≤2 文件且 ≤200 行, code-review + 对齐 Agent 单审）`
 
-**CLAUDE.md — 2 处旧阈值替换**
+**CLAUDE.md — 3 处旧阈值替换**
 
 搜索并替换：
-1. `代码≥10文件→UltraReview，<10文件→加强审查` → `代码≤2文件且≤200行→加强审查，其他→UltraReview+对齐审查`
-2. `代码类≥10文件→UltraReview，<10文件→加强审查` → `代码类≤2文件且≤200行→加强审查，其他→UltraReview+对齐审查`
+1. `UltraReview（代码≥10文件）` → `UltraReview+对齐审查（其他情况）`（目录结构表 L31，与 L42 的内联文本是不同位置）
+2. `代码类≥10文件→UltraReview，<10文件→加强审查` → `代码类由 specpowers-review 内部按文件数+行数级联判定`（内联文本 L42）
 
 **commands/specpowers.md — 1 处旧阈值替换**
 
 搜索并替换：
-- `UltraReview for code ≥10 files` → `加强审查 (≤2 files ≤200 lines) / UltraReview + alignment review (other cases)`
+- `UltraReview for code ≥10 files` → `UltraReview + 对齐审查 for code (other cases, 级联条件 2)`
 
 #### 验证步骤
 
 - [ ] `grep -rn ">=10.*文件\|<10.*文件" README.md CLAUDE.md commands/specpowers.md skills/specpowers-review/refs/protocols.md` — 预期：0 结果
 - [ ] 确认 protocols.md 中 Gate 3 行已更新为新阈值
 
-- [ ] Commit:
+- [ ] Commit（分文件提交）:
 ```bash
-git add skills/specpowers-review/refs/protocols.md README.md CLAUDE.md commands/specpowers.md
-git commit -m "docs: 协议文件和入口文档同步新审查阈值，清除旧引用"
+git add skills/specpowers-review/refs/protocols.md && git commit -m "docs: protocols.md标记块验证规则表同步新审查阈值"
+git add README.md && git commit -m "docs: README同步新审查阈值"
+git add CLAUDE.md && git commit -m "docs: CLAUDE.md同步新审查阈值"
+git add commands/specpowers.md && git commit -m "docs: commands/specpowers.md同步新审查阈值"
 ```
 
 ---
