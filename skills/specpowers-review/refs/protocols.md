@@ -171,8 +171,8 @@ ref: AgentId=<id>, tokens=<N>
 | Gate | 应存在的标记块 |
 |------|-------------|
 | Gate 0/1/2（多模型渐进式） | STEP1, STEP2, STEP3, STEP4, STEP5 |
-| Gate 3（UltraReview, >=10 文件） | STEP1(对应 Step A), STEP2(Step B-C), STEP3(Step D-E), STEP4(Step F), STEP5 |
-| Gate 3（加强审查, <10 文件） | STEP1(对齐 Agent 审查，含 code-review 结果引用), STEP2(主 Agent 判断) |
+| Gate 3（UltraReview+对齐审查, 其他情况） | STEP1(对应 Step A), STEP2(Step B-C), STEP3(Step D-E), STEP4(Step F), STEP5 |
+| Gate 3（加强审查, ≤2 文件且 ≤200 行） | STEP1(对齐 Agent 审查，含 code-review 结果引用), STEP2(主 Agent 判断) |
 | 最终通读 | STEP_FINAL_READTHROUGH |
 
 > **加强审查标记块均在 specpowers-review 内部产出，非跨 skill**: specpowers-apply 的 code-review 结果作为上下文**注入** specpowers-review 的对齐 Agent prompt。对齐 Agent 接收 code-review 结果后执行对齐检查，输出 `STEP1_EXECUTED`（标记块中记录 code-review 结果引用）；主 Agent 综合判断后输出 `STEP2_EXECUTED`。两个标记块均由 specpowers-review 内部 Agent 产出，父技能（specpowers-apply）在 Gate 3 返回后统一检查。
