@@ -17,7 +17,6 @@ description: >-
 
 - **主 Agent**：specpowers-review 技能内部的协调 Agent，调度子 Agent、合并审查结果、执行修复。与入口技能 specpowers 的 Agent 区分
 - **用户**：人类开发者（审批修复方案），非调用方 Agent。
-- **微小任务**：变更文件数 ≤ 3（入口 skill 判定）、单文件局部修改、< 50 行变更、单模块、不涉及接口变更、配置变更或跨文件重构。最终判定由入口 skill specpowers 决策树执行
 
 ## 审查决策树
 
@@ -30,13 +29,14 @@ description: >-
 │       用户可手动选择其他审查方式（UltraReview / 加强审查）
 │
 └── 代码类（实现代码 / 项目结构 / 构建配置 / 项目创建或变更）
-    ├── 任务规模?
-    │   ├── 微小任务 → 不触发 specpowers-review，由 specpowers-apply 双重审查执行
-    │   └── 中等及以上 →
-    │       ├── 变更文件数 ≥ 10 → UltraReview（5-agent 团队审查）
-    │       └── 变更文件数 < 10 → 加强审查（详见下方"加强审查（代码类，<10 文件）"节 + Gate 3 定义表）
+    ├── 条件判定（级联，按顺序评估）：
+    │   ├── 条件 1：文件数 ≤ 2 且 修改总行数 ≤ 200 → 加强审查
+    │   │   （详见下方"加强审查（代码类，≤2 文件且 ≤200 行）"节）
+    │   └── 条件 2：其他情况 → UltraReview + 对齐审查
+    │       （6-agent 团队审查 + 多模型渐进式中的对齐Agent COVERED/MISSING/DRIFT 对照）
     └── 用户可手动切换审查路径
 ```
+> 注：`修改总行数` = `git diff --stat` 的 additions + deletions，由调用方（specpowers-apply）在调用 specpowers-review 前计算（`<base>` = `git merge-base main HEAD`）并传入。
 
 "项目创建或变更"指涉及项目配置文件（package.json / Cargo.toml / go.mod 等）、构建脚本、目录结构调整的变更。判断标准：变更涉及项目基础设施层面（而非仅业务代码），即归入此类。
 
@@ -73,9 +73,9 @@ clarifications ──┬──→ design.md  ──┬──→ proposal.md  ─
                                                                      对齐检查:
                                                                      代码 vs plan
                                                                      + specs + design
-                                                                     审查方式:
-                                                                     UltraReview(≥10文件)
-                                                                     / 加强审查(<10文件)
+                                                                    审查方式:
+                                                                    加强审查（≤2文件且≤200行）
+                                                                    / UltraReview+对齐审查（其他）
                                                                           ↓
                                                                      [Gate 4]
                                                                      归档完整性
@@ -92,7 +92,7 @@ clarifications ──┬──→ design.md  ──┬──→ proposal.md  ─
 | **Gate 0** | Phase 0 用户审批通过后 | `design.md` | `clarifications/<name>.md` | 多模型渐进式 |
 | **Gate 1** | Phase 1 用户审核通过后 | proposal/design/specs/tasks | Phase 0 `design.md` + `clarifications` | 多模型渐进式 |
 | **Gate 2** | Phase 2 plan 生成后 | `plan/<name>.md` | Phase 1 OpenSpec specs + Phase 0 design | 多模型渐进式 |
-| **Gate 3** | Phase 3 代码实现完成后 | 代码变更 | Phase 2 plan + Phase 1 specs + Phase 0 design | UltraReview(≥10 文件) / 加强审查(<10 文件)（微小任务模式不走此 Gate，见执行规则） |
+| **Gate 3** | Phase 3 代码实现完成后 | 代码变更 | Phase 2 plan + Phase 1 specs + Phase 0 design | 加强审查（≤2文件且≤200行） / UltraReview+对齐审查（其他） |
 | **Gate 4** | Phase 4 归档前 | 归档完整性 | —（现有硬 Gate 链不变） | 现有 hard gate 链（specpowers-archive 内部），仅标记为 Gate 节点 |
 
 ### 多文件 Gate 的审查粒度
@@ -105,31 +105,30 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 ### Gate 执行规则
 
-- 每个 Gate 不可跳过（微小任务模式除外：微小任务不触发 specpowers-review，Gate 0-4 全部跳过）
+- 每个 Gate 不可跳过
 - Gate 未通过（存在 P0）→ 禁止进入下一 Phase
 - Gate 发现 P1/P2 → 记录后允许通过。问题清单写入会话上下文账本（主 Agent 内存 dict，见 `refs/protocols.md`），跨 Gate 通过主 Agent 注入对齐 Agent prompt。不再写入任何 .review 开头的文件产物。跨会话场景下，审查教训从 .specpowers/review-cache.json 读取（尽力而为缓存，丢失不影响正确性）。
 - 每个 Gate 审查完成后均输出收敛提醒
-- **微小任务模式**：不触发 specpowers-review，Gate 0/1/2/3/4 全部跳过（见上方 Gate 执行规则第 1 条）。
 - **审查修改与审批的关系**：Gate 审查发现的修改分为两类：
   - (a) **结构性修改**（改变设计意图/架构/接口/数据模型/核心流程）→ 需重新走用户审批
   - (b) **澄清性修改**（消除歧义、补充遗漏、修正措辞、修复格式，不改变设计意图、接口和数据流）→ 免二次审批，直接修改后由主 Agent 确认
   - **判定标准**：如果修改会导致下游产物的内容或结构发生变化，则为结构性修改。对齐 Agent 的审查报告需标注每项修改的类型及判定理由。
   - **P0 问题**：无论修改类型，均须先经用户确认问题判定和修复方案。确认后——澄清性修改免二次审批直接修改，结构性修改需在修改后重新走用户审批流程。
-- **代码 <10 文件时**：Gate 3 拆分为两部分：
+- **加强审查（代码 ≤2 文件且 ≤200 行）时**：Gate 3 拆分为两部分：
   1. specpowers-apply 的 code-review（通过标准：无 P0 问题）
   2. specpowers-review 的对齐 Agent 单 Agent 审查（对齐检查，通过标准：无 MISSING 或 DRIFT 标记为 P0 的项）
   两者均通过方可进入 Phase 4。
+- **UltraReview + 对齐审查（其他情况）时**：执行完整 Gate 3 UltraReview（6-agent 团队审查），并在审查维度中新增对齐审查 Agent，执行 COVERED/MISSING/DRIFT 对照（同多模型渐进式审查中的对齐 Agent 对照方法）。
 
 ---
 
-## UltraReview（代码类，≥10 文件）
+## UltraReview + 对齐审查（代码类，其他情况）
 
-**适用条件**：代码类 + 变更文件数 ≥ 10。
+**适用条件**：代码类 + 不满足条件 1（即文件数 > 2 或修改总行数 > 200）。
 
 ### 创建审查团队
 
-使用 `TeamCreate({team_name: "ultrareview-<change>"})`，
-然后为每个维度创建审查 Agent（只读，禁止修改代码）：
+除现有 5 个审查 Agent 外，新增第 6 个维度——对齐审查 Agent：
 
 | 维度 | prompt 要点 |
 |------|-----------|
@@ -138,6 +137,13 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 | specs-reviewer | 逐条对照 OpenSpec specs/ 检查合规性 |
 | docs-reviewer | 检查文档和记忆一致性 |
 | deps-reviewer | 检查依赖路径和库命名 |
+| **对齐审查 Agent**（新增） | 逐条对照 plan + specs + design，输出 COVERED/MISSING/DRIFT 对照表 |
+
+对齐审查 Agent 的对照方法复用多模型渐进式审查中"对齐 Agent 对照方法"协议（逐条提取→逐一查找→输出对照表）。COVERED=需求点有对应且语义一致；MISSING=完全无对应（P1）；DRIFT=有对应但语义偏离（P0）。
+
+> **STEP 兼容性说明**: 对齐审查 Agent 在 Step A 与其他 5 个审查 Agent 并行启动，产出在 Step B-C 中与其他报告一同去重合并，不产生独立 STEP 标记块。STEP 标记块体系（STEP1-STEP5）不变，STEP1_EXECUTED 的 agents 列表从 5 个扩展为 6 个。
+
+> **术语说明**: 加强审查中的"对齐 Agent 单审"与 UltraReview 中的"对齐审查 Agent"为同一审查维度，区别仅在于部署模式——加强审查中作为独立 Agent 产出 STEP1/STEP2 标记块，UltraReview 中作为 6-agent 团队成员在 Step A 并行产出、融入 Step B-C 去重合并。
 
 ### 审查规则
 
@@ -185,9 +191,9 @@ Step F: 执行修复
   └── 增量审查: 仅读取变更区域及上下文
 ```
 
-## 加强审查（代码类，<10 文件）
+## 加强审查（代码类，≤2 文件且 ≤200 行）
 
-代码变更 <10 文件时，Gate 3 不启动 5-agent 团队，而是由 specpowers-review 构造对齐 Agent 单 Agent 审查：
+代码变更满足文件数 ≤ 2 且修改总行数 ≤ 200 时，Gate 3 不启动 6-agent 团队，而是由 specpowers-review 构造对齐 Agent 单 Agent 审查：
 
 1. **specpowers-apply 内部 code-review**：通过标准为无 P0 问题
 2. **specpowers-review 对齐 Agent 单 Agent 审查**：对齐检查，通过标准为无 MISSING 或 DRIFT 标记为 P0 的项
@@ -393,9 +399,9 @@ degradation: none|<具体原因>|<影响分析>|<替代措施>
 
 | 维度 | 多模型渐进式 | UltraReview |
 |------|------------|-------------|
-| 审查对象 | 文档（设计/规范/计划等） | 代码实现/项目结构/构建配置 |
-| Agent 数量 | 3 | 5 |
-| 对齐检查 | 对齐 Agent 专门负责 | 由 specs-reviewer Agent 承担 |
+| 审查对象 | 文档（设计/规范/计划等） | 大规模代码（其他情况） |
+| Agent 数量 | 3 | 6 |
+| 对齐检查 | 对齐 Agent 专门负责 | 对齐审查 Agent 专门负责（COVERED/MISSING/DRIFT 对照） |
 | 收敛提醒 | 是 | 是 |
 
 ---
@@ -574,6 +580,6 @@ Step 5 检查本轮修复质量（单轮范围），最终通读 Gate 检查跨�
 | **Gate 0** | Phase 0 用户审批通过后 | specpowers-plan 调用 | `design.md` | `clarifications/<name>.md` | 多模型渐进式 | 无 P0 |
 | **Gate 1** | Phase 1 用户审核通过后 | specpowers-plan 调用 | proposal/design/specs/tasks | Phase 0 design + clarifications | 多模型渐进式 | 无 P0 |
 | **Gate 2** | Phase 2 plan 生成后 | specpowers-plan 调用 | `plan/<name>.md` | Phase 1 specs + Phase 0 design | 多模型渐进式 | 无 P0 |
-| **Gate 3** | Phase 3 代码实现完成后 | specpowers-apply 调用 | 代码变更 | Phase 2 plan + Phase 1 specs + Phase 0 design | UltraReview(≥10 文件) / 加强审查(<10 文件) | 无 P0 |
+| **Gate 3** | Phase 3 代码实现完成后 | specpowers-apply 调用 | 代码变更 | Phase 2 plan + Phase 1 specs + Phase 0 design | 加强审查（≤2文件且≤200行） / UltraReview+对齐审查（其他） | 无 P0 |
 | **Gate 4** | Phase 4 归档前 | specpowers-archive 内部 | 归档完整性 | — | 现有 hard gate 链 | 现有标准 |
 | **最终通读** | 每 Gate 审查修复完成后 | specpowers-review 内部 | 审查对象全文 | — | 独立 Agent 通读 | PASS（四条件） |
