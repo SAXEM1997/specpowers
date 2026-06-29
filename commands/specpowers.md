@@ -20,7 +20,7 @@ Start the specpowers Phase 0→4 workflow. The entry skill (`specpowers`) determ
 
 1. Entry skill `specpowers` loads → decision tree classifies task mode
 2. Routes through Phase 0 (brainstorming) → Phase 1 (propose) → Phase 2 (plan) → Phase 3 (implement) → Phase 4 (archive)
-3. Each Phase output triggers a review Gate (multi-model progressive for docs, UltraReview for code ≥10 files)
+3. Each Phase output triggers a review Gate (multi-model progressive for docs, 加强审查 (≤2 files ≤200 lines) / UltraReview + 对齐审查 (other cases))
 4. Convergence reminders ensure reviews iterate until issues settle
 
 For tiny tasks (≤3 files), specpowers degrades to lightweight mode: skip formal Phases, execute directly with internal review.
