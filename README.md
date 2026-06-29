@@ -19,7 +19,7 @@ specpowers (入口 — 决策树 + 路由)
 | **specpowers** | 全局 | 决策模式判定（微小/中等/复杂/大规模）+ 路由 |
 | **specpowers-plan** | 0+1+2 | brainstorming → OpenSpec 格式转换 → writing-plans 衔接 |
 | **specpowers-apply** | 3 | TDD 逐 task 执行 + code-review + spec-compliance-check |
-| **specpowers-review** | 横切 | 多模型渐进式（文档类）/ UltraReview（代码 ≥10 文件）/ 最终通读 |
+| **specpowers-review** | 横切 | 多模型渐进式（文档类）/ 加强审查（≤2 文件且 ≤200 行）/ UltraReview + 对齐审查（其他情况）/ 最终通读 |
 | **specpowers-archive** | 4 | 全量测试 → openspec validate → archive → 完整性验证 |
 
 ## 快速开始
@@ -90,8 +90,8 @@ Phase 4: 验证 + 归档
 │
 └── 代码类
     ├── 微小任务 → 内部审查协议
-    ├── ≥10 文件 → UltraReview (5 Agent 团队)
-    └── <10 文件 → 加强审查 (code-review + 对齐 Agent 单审)
+    ├── 其他情况 → UltraReview + 对齐审查（6 Agent 团队）
+    └── 加强审查（≤2 文件且 ≤200 行, code-review + 对齐 Agent 单审）
 ```
 
 ### 多模型渐进式审查
