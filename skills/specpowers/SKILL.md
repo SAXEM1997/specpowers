@@ -107,7 +107,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 | Phase 0 | 中等+ | specpowers-plan | `Skill({skill: "specpowers-plan"})` |
 | Phase 1-2 | 中等+ | specpowers-plan | `Skill({skill: "specpowers-plan"})` |
 | Phase 3 | 中等+ | specpowers-apply | `Skill({skill: "specpowers-apply"})` |
-| 审查 | 代码（≥10 文件触发 UltraReview，<10 文件由 specpowers-apply 加载（code-review）+ specpowers-review 对齐 Agent 单审）或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers-review"})` |
+| 审查 | 代码类（由 specpowers-review 内部按文件数+行数自动判定）或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers-review"})` |
 | Phase 4 | 中等+ | specpowers-archive | `Skill({skill: "specpowers-archive"})` |
 | — | 微小 | 不加载子技能 | 入口 skill 中直接子代理执行。执行完毕后主 Agent 确认产物并输出完成摘要 |
 
@@ -123,7 +123,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 
 | 执行模式 | Phase 0 | Phase 1 | Phase 2 | Phase 3 | Phase 4 | 审查 |
 |---------|---------|---------|---------|---------|---------|------|
-| **微小** | 轻量上下文探索 | 跳过 | 跳过 | 子代理直接执行 | 跳过 | 跳过 |
+| **微小** | 轻量上下文探索 | 跳过 | 跳过 | 子代理直接执行 | 跳过 | → specpowers-review 内部判定 |
 | **中等** | brainstorming | 格式转换+对照 | 衔接+Plan Gate | TDD 逐 task | 硬 Gate 链 | → specpowers-review 内部判定 |
 | **复杂** | brainstorming | 格式转换+对照 | UltraPlan | TDD+子代理 | 硬 Gate 链 | → specpowers-review 内部判定 |
 | **大规模** | brainstorming | 格式转换+对照 | Workflow | Workflow+子代理 | 硬 Gate 链 | → specpowers-review 内部判定 |
