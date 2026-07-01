@@ -30,16 +30,17 @@ specpowers 融合 OpenSpec（规范驱动开发）+ Superpowers（测试驱动�
 | 回答的问题 | 做什么、为什么做 | 怎么做、按什么标准 | 何时切换、如何衔接 |
 | 核心产物 | proposal/design/specs/tasks | 代码/测试/审查报告 | checklist/hooks/bridge |
 
-> 旧完整单体版本已删除（~2026-06-10）。当前使用拆分版本：1 入口 + 4 子技能（plan/apply/review/archive）。
+> 旧完整单体版本已删除（~2026-06-10）。当前使用拆分版本：1 入口 + 5 子技能（design/plan/apply/review/archive）。
 
 ## 技能组结构
 
-specpowers 是一个 **1 入口 + 4 子技能（覆盖 Phase 0-4）**的技能组，按 Phase 按需加载：
+specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能组，按 Phase 按需加载：
 
 | 技能 | Phase | 加载时机 |
 |------|-------|---------|
 | **specpowers**（本技能） | 全局 | 任务开始时触发，决策模式+路由 |
-| **specpowers-plan** | Phase 0+1+2 | brainstorming 前置+设计+衔接阶段 |
+| **specpowers-design** | Phase 0+1 | brainstorming 前置+设计+propose 阶段 |
+| **specpowers-plan** | Phase 2 | 衔接阶段 |
 | **specpowers-apply** | Phase 3 | 实现阶段 |
 | **specpowers-review** | 审查 | UltraReview 级审查 |
 | **specpowers-archive** | Phase 4 | 验证+归档阶段 |
@@ -100,12 +101,26 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 ## 阶段路由
 
 完成模式选择后，按当前 Phase 加载对应子技能。
+
+### Phase 自动检测（跨会话恢复）
+
+入口技能按以下产物状态自动判定当前 Phase。行按从上到下顺序求值，首次匹配即停止。`<name>` 由当前任务上下文获取。
+
+| 产物状态 | Phase 判定 | 加载技能 |
+|---------|-----------|---------|
+| `docs/superpowers/clarifications/<name>.md` 存在，`docs/superpowers/specs/<name>-design.md` 不存在 | Phase 0 中途 | specpowers-design |
+| `.superpowers/.phase1-skipped` 存在 | Phase 1 已跳过 | specpowers-plan (Phase 2) |
+| `docs/superpowers/clarifications/<name>.md` + `docs/superpowers/specs/<name>-design.md` 存在，`openspec/changes/<name>/` 不存在 | Phase 0 完成 | specpowers-design |
+| `docs/superpowers/plans/<name>.md` 存在 | Phase 2 完成 | specpowers-apply (Phase 3) |
+| `openspec/changes/<name>/` 存在 | Phase 1 完成 | specpowers-plan (Phase 2) |
+
 **微小任务不加载子技能** — 直接在入口 skill 上下文中子代理执行。
 
 | 当前 Phase | 模式 | 加载 | 命令 |
 |-----------|------|------|------|
-| Phase 0 | 中等+ | specpowers-plan | `Skill({skill: "specpowers-plan"})` |
-| Phase 1-2 | 中等+ | specpowers-plan | `Skill({skill: "specpowers-plan"})` |
+| Phase 0 | 中等+ | specpowers-design | `Skill({skill: "specpowers-design"})` |
+| Phase 1 | 中等+ | specpowers-design | `Skill({skill: "specpowers-design"})` |
+| Phase 2 | 中等+ | specpowers-plan | `Skill({skill: "specpowers-plan"})` |
 | Phase 3 | 中等+ | specpowers-apply | `Skill({skill: "specpowers-apply"})` |
 | 审查 | 代码类（由 specpowers-review 内部按文件数+行数自动判定）或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers-review"})` |
 | Phase 4 | 中等+ | specpowers-archive | `Skill({skill: "specpowers-archive"})` |
@@ -231,15 +246,15 @@ master (main) ← 始终可部署
 | 实现中需修改规范 | 暂停 Superpowers，回 OpenSpec 修改 |
 | 多变更并行 | 独立 git worktree |
 | UltraPlan 中途溢出 | `/clear` + 重新加载 openspec 产物 |
-| 跨 session 中断 | 按产物存在性判断恢复点：`clarifications/<name>.md` 存在 → Phase 0 已完成；`specs/<name>-design.md` 存在 → Phase 0.6 已完成；`openspec/changes/<name>/` 存在 → Phase 1 已完成；`plans/<name>.md` 存在 → Phase 2 已完成 |
+| 跨 session 中断 | > 跨会话中断恢复：按上述 Phase 自动检测表判定当前 Phase 和应加载技能。 |
 | refs/ 缺失 | UltraPlan → 降级中等任务 |
 
 ## 快速上手
 
 | 步骤 | 命令 | 详见 |
 |------|------|------|
-| brainstorming | `Skill({skill: "specpowers-plan"})`（Phase 0，需求澄清+方案设计） | specpowers-plan |
-| propose | `/opsx:propose <name>`（Phase 1，格式转换+强制对照） | specpowers-plan |
+| brainstorming | `Skill({skill: "specpowers-design"})`（Phase 0，需求澄清+方案设计） | specpowers-design |
+| propose | `Skill({skill: "specpowers-design"})`（Phase 1，格式转换+强制对照） | specpowers-design |
 | Plan 审查 | 询问用户是否审查 plan（Phase 2 Gate） | specpowers-plan |
 | 衔接 | "读取 openspec changes/, 用 writing-plans 拆 TDD 计划" | specpowers-plan |
 | 实现 | Skill({skill: "superpowers:executing-plans"}) | specpowers-apply |
