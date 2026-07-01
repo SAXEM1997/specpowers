@@ -292,3 +292,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 6. **收敛提醒验证**：原始发现数触发条件（P0>0/P1≥3/总≥5/含P3≥10）正确输出强烈提醒
 7. **旧格式账本兼容验证**：读取仅有 p0/p1/p2（无 _raw 后缀）的旧格式账本，确认系统输出 [DEGRADED] 声明并回退独立判断
 8. **跨会话恢复验证**：specpowers-design 完成 Phase 0+1 后模拟会话重启，确认入口技能正确检测产物并路由到 specpowers-plan Phase 2
+
+---
+
+> **实施状态**: ✅ 已完成（2026-07-01）。提交范围 94c946b→1ebbb4e，推送到 origin/master。见 `docs/superpowers/plans/2026-07-01-specpowers-design-split-review-gate.md`。
