@@ -43,8 +43,6 @@ specpowers (入口, 路由)
 name: specpowers-design
 description: Use when the user says "brainstorm this feature", "write the design doc",
   "explore requirements", or when specpowers entry skill routes to Phase 0 or Phase 1.
-  Handles the full design+propose phase: requirement clarification, brainstorming,
-  design document authoring, OpenSpec format conversion, and Gate 0+1 review.
 ```
 
 **Body 规模估算**: Phase 0+1 原文约 180 行 + OpenSpec 跳过路径 ~10 行 + Gate 验证协议 ~40 行 ≈ **230 行**，远低于 500 行阈值，无需 refs/ bundled resources 分离。
@@ -63,7 +61,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 - Gate 验证协议（双层验证：验证 0/1/2）随 Phase 0/1 移入
 - **OpenSpec 跳过路径**：
   - 触发条件：用户要求跳过 或 `openspec --version` 不可用
-  - 行为：跳过 Phase 1 全部步骤，输出 `[OPENSPEC_SKIPPED] Phase 1 已跳过，design doc 将直接作为 Phase 2 输入`
+  - 行为：跳过 Phase 1 全部步骤，输出 `[OPENSPEC_SKIPPED] Phase 1 已跳过，design doc 将直接作为 Phase 2 输入`，同时写入持久化标记文件 `.superpowers/.phase1-skipped`（内容为 `<name>`），用于跨会话恢复时区分"Phase 1 已跳过"与"Phase 1 尚未开始"
   - specpowers-plan Phase 2 衔接时需适配此场景：无 openspec/ 产物时，只以 design doc + clarifications 为输入
 
 ### specpowers-plan 职责变更
@@ -73,9 +71,29 @@ description: Use when the user says "brainstorm this feature", "write the design
 - 前置检查：确认 Phase 0/1 产物存在（由 specpowers-design 产出），而非假设由本技能产出
 - 衔接指令适配 OpenSpec 跳过场景：无 openspec/changes/ 产物时只读 design doc + clarifications
 - 标题从"设计+衔接阶段"→"衔接阶段"
+- **YAML description 更新**：删除 Phase 0 关键词（"brainstorm this feature"、"write the design doc"、"explore the codebase"），替换为 Phase 2 专属触发词。新 description 草案：
+  ```yaml
+  description: Use when the user says "plan the implementation", "bridge OpenSpec to
+    Superpowers", or when specpowers entry skill routes to Phase 2. Handles writing-plans
+    bridging from design/spec artifacts to TDD implementation plan.
+  ```
 - Gate 验证协议仅保留 Gate 2 行
 
 ### 跨技能过渡协议
+
+**入口技能 Phase 自动检测步骤**（实施时需在 specpowers/SKILL.md 的阶段路由表之前新增）：
+
+当前入口技能（specpowers/SKILL.md L100-101）的"完成模式选择后，按当前 Phase 加载对应子技能"假设 Phase 已知（通常由会话上下文持久化），但跨会话恢复时 Phase 未知。需将故障排查表（L234）的产物存在性判断逻辑提升为正式路由前提：
+
+| 产物状态 | Phase 判定 | 加载技能 |
+|---------|-----------|---------|
+| `clarifications/` 存在，`design.md` 不存在 | Phase 0 中途 | specpowers-design |
+| `clarifications/` + `design.md` 存在，`openspec/` 不存在 | Phase 0 完成（需检查 .phase1-skipped） | specpowers-design |
+| `.phase1-skipped` 存在 | Phase 1 已跳过 | specpowers-plan (Phase 2) |
+| `openspec/changes/<name>/` 存在 | Phase 1 完成 | specpowers-plan (Phase 2) |
+| `plans/<name>.md` 存在 | Phase 2 完成 | specpowers-apply (Phase 3) |
+
+> 此逻辑同时解决中间状态路由问题——如仅 clarifications 存在时（Step 0.3 完成后中断），入口技能应路由到 specpowers-design 继续 Phase 0，而非 specpowers-plan Phase 2。
 
 拆分前，Phase 0→1→2 均在 specpowers-plan 单次 `Skill()` 加载内自然流转。拆分后需定义过渡协议：
 
@@ -202,7 +220,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 | 文件 | 改动类型 | 说明 |
 |------|---------|------|
 | `skills/specpowers-review/SKILL.md` | 修改 | "收敛提醒与硬阻止机制"节重写 4 个场景 |
-| `skills/specpowers-review/refs/protocols.md` | 修改 | 账本结构新增 `p0_raw/p1_raw/p2_raw/p3_raw` 字段 + `p3_raw` |
+| `skills/specpowers-review/refs/protocols.md` | 修改 | (a) 账本结构新增 p0_raw/p1_raw/p2_raw/p3_raw + P3 字段；(b) 读写时机表新增 Step 2 行"写入 rounds（原始发现数）"，原 Step 5 行改为"写入 lessons_learned" |
 
 ### 不改的文件
 
@@ -219,7 +237,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 | `skills/specpowers-plan/SKILL.md` | 删除 Phase 0/1 + 缩窄为 Phase 2 only | — | 1 |
 | `skills/specpowers/SKILL.md` | 路由拆分 + 架构数量 + 映射表 + 快速上手 | — | 1 |
 | `skills/specpowers-review/SKILL.md` | Gate 0/1 触发者列更新 + L411 自检注释 | 收敛提醒节重写 | 1 |
-| `skills/specpowers-review/refs/protocols.md` | — | 账本结构新增 p0-3_raw + P3 字段 | 1 |
+| `skills/specpowers-review/refs/protocols.md` | — | (a) 账本结构新增 p0-3_raw + P3 字段；(b) 读写时机表新增 Step 2 行 + Step 5 行改为 lessons_learned | 1 |
 | `CLAUDE.md` | 目录结构表新增 specpowers-design | — | 1 |
 | `README.md` | 技能组架构描述更新 | — | 1 |
 | **总计** | | | **7 文件** |
@@ -238,6 +256,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 ## 约束条件
 
 - Phase 0/1 内容从 specpowers-plan 迁移到 specpowers-design 时保持原文不变（仅添加 OpenSpec 跳过路径）
+- OpenSpec 跳过路径下需写入持久化标记文件 `.superpowers/.phase1-skipped`，入口技能在 Phase 检测时读取以区分"已跳过"与"未开始"（两者文件系统状态相同：design.md + clarifications 存在但 openspec/ 不存在）
 - specpowers-plan 缩窄后所有引用它的地方（specpowers/SKILL.md 路由表、CLAUDE.md、README.md）必须更新
 - 账本字段新增后，读取旧格式缓存时需兼容处理：缺失 `p0_raw/p1_raw/p2_raw/p3_raw` 时不使用旧 `p0/p1/p2` 伪装（旧格式的 `p0` 是修复后剩余数，用它替代 `p0_raw` 会精确复现需求 2 要修复的漏洞）。回退策略：旧格式轮次的数据视为不可用（unknown），该轮不参与收敛判断条件计算，改用当轮数据做独立判断，输出 `[DEGRADED] 旧格式账本缺少原始发现数，回退独立判断`
 - 审查流程 Step 1-5 不变，仅 Step 5 后的收敛提醒逻辑变更
@@ -245,14 +264,15 @@ description: Use when the user says "brainstorm this feature", "write the design
 
 ## 验证方法
 
-1. 通读新建的 `specpowers-design/SKILL.md`，确认 Phase 0+1 内容完整 + OpenSpec 跳过路径正确
-2. 通读缩窄后的 `specpowers-plan/SKILL.md`，确认仅保留 Phase 2 + Gate 2
-3. 通读入口 skill 路由表，确认 Phase 0→specpowers-design, Phase 2→specpowers-plan
-4. 通读 specpowers-review 收敛提醒节，确认 4 条件逻辑正确、文案区分清晰
-5. grep 确认 specpowers-plan 中无 Phase 0/1 残留引用
-6. grep 确认所有文件中对 specpowers-plan 的"设计+衔接"描述已更新
-7. grep `skills/specpowers-review/SKILL.md` 中的 `specpowers-plan 调用`，确认 Gate 0/1 已改为 specpowers-design，Gate 2 保持 specpowers-plan
-8. grep 活跃技能文件（skills/、CLAUDE.md、README.md，排除 docs/superpowers/specs/ 和 docs/superpowers/plans/ 历史文档）中残留的旧引用
+1. 确认 `skills/specpowers-design/SKILL.md` 文件存在且 YAML frontmatter 的 `name` 字段为 `specpowers-design`
+2. 通读新建的 `specpowers-design/SKILL.md`，确认 Phase 0+1 内容完整 + OpenSpec 跳过路径正确
+3. 通读缩窄后的 `specpowers-plan/SKILL.md`，确认仅保留 Phase 2 + Gate 2
+4. 通读入口 skill 路由表，确认 Phase 0→specpowers-design, Phase 2→specpowers-plan
+5. 通读 specpowers-review 收敛提醒节，确认 4 条件逻辑正确、文案区分清晰
+6. grep `skills/specpowers-plan/SKILL.md` 正文确认无 Phase 0/1 流程步骤残留（如 "Step 0.1"、"Phase 0"、"Step 1.1"）
+7. grep 确认所有文件中对 specpowers-plan 的"设计+衔接"描述已更新
+8. grep `skills/specpowers-review/SKILL.md` 中的 `specpowers-plan 调用`，确认 Gate 0/1 已改为 specpowers-design，Gate 2 保持 specpowers-plan
+9. grep 活跃技能文件（skills/、CLAUDE.md、README.md，排除 docs/superpowers/specs/ 和 docs/superpowers/plans/ 历史文档）中残留的旧引用
 
 ## 测试策略
 
@@ -264,3 +284,5 @@ description: Use when the user says "brainstorm this feature", "write the design
 4. **OpenSpec 跳过路径验证**：`openspec --version` 不可用时 specpowers-design 正确跳过 Phase 1，输出 `[OPENSPEC_SKIPPED]`
 5. **Gate 0/1 审查验证**：specpowers-design 内的 Gate 0（design vs clarifications）和 Gate 1（OpenSpec 四件套 vs design）正常执行，标记块正确输出
 6. **收敛提醒验证**：原始发现数触发条件（P0>0/P1≥3/总≥5/含P3≥10）正确输出强烈提醒
+7. **旧格式账本兼容验证**：读取仅有 p0/p1/p2（无 _raw 后缀）的旧格式账本，确认系统输出 [DEGRADED] 声明并回退独立判断
+8. **跨会话恢复验证**：specpowers-design 完成 Phase 0+1 后模拟会话重启，确认入口技能正确检测产物并路由到 specpowers-plan Phase 2
