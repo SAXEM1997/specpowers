@@ -58,7 +58,7 @@ description: Use when the user says "brainstorm this feature", "write the design
   - Step 1.1: 格式转换（生成 OpenSpec 四件套）
   - Step 1.2: 强制对照验证（逐条 COVERED/MISSING/DRIFT）
   - Step 1.3: 人工审核 + Gate 1 审查
-- Gate 验证协议（双层验证：验证 0/1/2）随 Phase 0/1 移入
+- Gate 验证协议（双层验证：验证 0/1/2 的协议定义和通用验证逻辑随 Phase 0/1 移入。specpowers-design 仅保留 Gate 0/1 的特化参数行，验证 2（Gate 2）保留在 specpowers-plan 中）
 - **OpenSpec 跳过路径**：
   - 触发条件：用户要求跳过 或 `openspec --version` 不可用
   - 行为：跳过 Phase 1 全部步骤，输出 `[OPENSPEC_SKIPPED] Phase 1 已跳过，design doc 将直接作为 Phase 2 输入`，同时写入持久化标记文件 `.superpowers/.phase1-skipped`（内容为 `<name>`），用于跨会话恢复时区分"Phase 1 已跳过"与"Phase 1 尚未开始"
@@ -88,8 +88,8 @@ description: Use when the user says "brainstorm this feature", "write the design
 | 产物状态 | Phase 判定 | 加载技能 |
 |---------|-----------|---------|
 | `clarifications/` 存在，`design.md` 不存在 | Phase 0 中途 | specpowers-design |
-| `clarifications/` + `design.md` 存在，`openspec/` 不存在 | Phase 0 完成（需检查 .phase1-skipped） | specpowers-design |
 | `.phase1-skipped` 存在 | Phase 1 已跳过 | specpowers-plan (Phase 2) |
+| `clarifications/` + `design.md` 存在，`openspec/` 不存在 | Phase 0 完成 | specpowers-design |
 | `openspec/changes/<name>/` 存在 | Phase 1 完成 | specpowers-plan (Phase 2) |
 | `plans/<name>.md` 存在 | Phase 2 完成 | specpowers-apply (Phase 3) |
 
@@ -118,7 +118,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 |------|---------|------|
 | `skills/specpowers-design/SKILL.md` | **新建** | 从 specpowers-plan 提取 Phase 0+1 全部内容 + OpenSpec 跳过路径 |
 | `skills/specpowers-plan/SKILL.md` | 修改 | 删除 Phase 0/1，缩窄为 Phase 2 only |
-| `skills/specpowers/SKILL.md` | 修改 | 技能组结构表、阶段路由表拆分（Phase 0→design, Phase 1→design, Phase 2→plan）、各模式映射表更新、架构数量声明更新（33行→5子技能）、快速上手映射表更新 |
+| `skills/specpowers/SKILL.md` | 修改 | 技能组结构表、阶段路由表拆分（Phase 0→design, Phase 1→design, Phase 2→plan）、各模式映射表更新、架构数量声明更新（4子技能→5子技能）、快速上手映射表更新 |
 | `skills/specpowers-review/SKILL.md` | 修改 | Gate 触发协议汇总表 L580-581 触发者列 Gate 0/1 → specpowers-design，L411 独立调用自检注释追加 specpowers-design |
 | `CLAUDE.md` | 修改 | 目录结构表新增 specpowers-design |
 | `README.md` | 修改 | 技能组架构图/描述更新 |
@@ -176,6 +176,8 @@ description: Use when the user says "brainstorm this feature", "write the design
 > - 趋势：收敛中 ↗ / 持平 → / 恶化 ↘
 >
 > 请确认：是否进行下一轮审查？
+>
+> **[DEGRADED] 模式**（旧格式账本场景）：不展示上轮对比段（数据不可用），仅展示当轮原始发现数 + 声明 "旧格式账本缺少原始发现数，回退独立判断"。
 ```
 
 > **优先级规则**：当多条件同时触发时，按条件编号升序显示（条件 1 > 条件 2 > 条件 3 > 条件 4），列出所有触发条件的编号和描述。
@@ -194,7 +196,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 
 需要在会话上下文账本中区分两类数据：
 
-- `p0/p1/p2`（现有）→ 改名为或新增字段表示**原始发现数**（Step 2 汇总后即时记录）
+- `p0/p1/p2`（现有）→ 新增 _raw 后缀字段表示原始发现数（现有 p0/p1/p2 保留用于向后兼容，但不参与收敛判断条件计算）
 - 新增 `p3` 字段（账本目前未记录 P3）
 
 账本轮次结构更新为：
