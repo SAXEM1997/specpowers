@@ -15,9 +15,13 @@ session_ledger = {
         "rounds": [
             {
                 "round": 1,
-                "p0": 0,
-                "p1": 0,
-                "p2": 0,
+                "p0": 0,            // 保留：修复后剩余 P0（向后兼容，Step 5 写入）
+                "p1": 0,            // 保留：修复后剩余 P1
+                "p2": 0,            // 保留：修复后剩余 P2
+                "p0_raw": 1,        // 新增：原始发现 P0（Step 2 汇总时记录）
+                "p1_raw": 4,        // 新增：原始发现 P1
+                "p2_raw": 3,        // 新增：原始发现 P2
+                "p3_raw": 2,        // 新增：原始发现 P3
                 "issues_summary": ["问题简述1", "问题简述2"],
                 "timestamp": "2026-06-25T10:30:00Z"
             }
@@ -40,11 +44,16 @@ session_ledger = {
 | 操作 | 时机 | 执行者 |
 |------|------|--------|
 | 写入 rounds | 每轮审查 Step 5 完成后 | 主 Agent |
+| 写入 rounds（原始发现数） | 每轮审查 Step 2 汇总完成后 | 主 Agent |
 | 写入 lessons_learned | 每轮审查 Step 5 完成后，追加本轮新教训 | 主 Agent |
 | 读取 rounds | 下一轮审查开始前（Step 0），构建上轮对比数据 | 主 Agent |
 | 读取 lessons_learned | 下一 Gate 加载时，注入对齐 Agent prompt（Step 0） | 主 Agent |
 | 写入 final_readthrough | 最终通读完成后 | 主 Agent |
 | 读取 final_readthrough | 最终通读执行前，判断是否需要执行 | 主 Agent |
+
+> **向后兼容**: 旧格式账本仅有 p0/p1/p2（修复后剩余数），缺失 _raw 后缀字段。
+> 读取旧格式时，该轮数据视为不可用（unknown），不参与收敛判断条件计算，
+> 改用当轮数据做独立判断，输出 `[DEGRADED] 旧格式账本缺少原始发现数，回退独立判断`。
 
 ### 跨 Gate 传递
 
@@ -52,7 +61,7 @@ session_ledger = {
 
 各 Gate 的账本数据以 gate_id 为独立 key 存储，互不覆盖。跨 Gate 传递时，主 Agent 将所有已执行 Gate 的 lessons_learned 合并去重后注入。如因会话压缩导致前 Gate 数据丢失，仅从当前可用的数据注入，不阻塞审查。合并去重规则：相同场景+相同根因+相同结论视为重复，由主 Agent 逐条比对判断（启发式指引，非精确计算）。
 
-> **账本与缓存写入时机差异**: 账本写入时机为每轮 Step 5 后（会话内即时持久化到内存 dict）；review-cache.json 写入时机为每 Gate 退出前（跨会话持久化到文件）。两者存在时间差——如会话在 Step 5 后、Gate 退出前崩溃，缓存可能丢失本轮 lessons_learned。差异总结如下表:
+> **账本与缓存写入时机差异**: 账本写入时机分为两阶段：每轮 Step 2 后写入原始发现数（p0-3_raw），每轮 Step 5 后写入 lessons_learned 和修复后剩余计数（p0/p1/p2）。review-cache.json 写入时机为每 Gate 退出前（跨会话持久化到文件）。存在时间差——如会话在 Step 2 后、Gate 退出前崩溃，缓存可能丢失本轮 lessons_learned。差异总结如下表:
 >
 > | 数据存储 | 写入时机 | 持久化范围 | 崩溃丢失风险 |
 > |---------|---------|-----------|------------|
