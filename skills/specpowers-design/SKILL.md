@@ -229,7 +229,7 @@ specpowers-plan Phase 2 衔接时需适配此场景：无 openspec/ 产物时，
 - N > 0 → `[VERIFY_FAIL] Gate <N> 未通过（P0=N），阻塞 Phase <N>`
 - N = 0 且验证 1 通过 → Gate <N> 通过
 
-> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate（由 specpowers-review 主 Agent 在 Step 5 后自行启动），非 Phase 0-4 Gate 体系的组成部分。父技能（specpowers-plan）仅验证各 Gate 对应的 STEP1-STEP5 标记块，不跨边界验证 specpowers-review 的内部 Gate。specpowers-review 的独立调用自检中已包含 STEP_FINAL_READTHROUGH 的存在性检查（见 specpowers-review SKILL.md "独立调用场景自检" 节），确保其在独立调用场景下不被遗漏。
+> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate（由 specpowers-review 主 Agent 在 Step 5 后自行启动），非 Phase 0-4 Gate 体系的组成部分。调用方技能（specpowers-design）仅验证各 Gate 对应的 STEP1-STEP5 标记块，不跨边界验证 specpowers-review 的内部 Gate。specpowers-review 的独立调用自检中已包含 STEP_FINAL_READTHROUGH 的存在性检查（见 specpowers-review SKILL.md "独立调用场景自检" 节），确保其在独立调用场景下不被遗漏。
 
 **各 Gate 特化参数**:
 

@@ -8,8 +8,8 @@ description: Use when the user says "plan the implementation", "bridge OpenSpec 
 
 > **前置检查（必须执行，不可跳过）**: 
 > 1. 确认 specpowers 入口 skill 的全局规则（GitFlow/Checklist/Pitfalls）已在当前会话上下文中可用。如未加载，先 `Skill({skill: "specpowers"})` 获取决策树和全局规则。等待加载完成后继续。
-> 3. 确认 `docs/superpowers/specs/<name>-design.md` 和 `docs/superpowers/clarifications/<name>.md` 存在（由 specpowers-design 产出）。如不存在，输出 `[PRECHECK_FAILED] Phase 0/1 产物缺失，请先运行 specpowers-design`。
-> 4. 如 `openspec/changes/<name>/` 不存在，OpenSpec 已跳过——以 design doc + clarifications 作为 Phase 2 writing-plans 唯一输入。
+> 2. 确认 `docs/superpowers/specs/<name>-design.md` 和 `docs/superpowers/clarifications/<name>.md` 存在（由 specpowers-design 产出）。如不存在，输出 `[PRECHECK_FAILED] Phase 0/1 产物缺失，请先运行 specpowers-design`。
+> 3. 如 `openspec/changes/<name>/` 不存在，OpenSpec 已跳过——以 design doc + clarifications 作为 Phase 2 writing-plans 唯一输入。
 
 ---
 
@@ -74,7 +74,7 @@ Gate 2 返回后，执行 Gate 返回后验证协议（参数: Gate=2, Phase=2, 
 
 ## Gate 验证协议
 
-### Gate 返回后验证协议（Phase 0-2 Gate 通用）
+### Gate 返回后验证协议（Phase 2 Gate）
 
 对于 Gate <N>（对应 Phase <N>），specpowers-review 返回后执行以下验证：
 
@@ -94,7 +94,7 @@ Gate 2 返回后，执行 Gate 返回后验证协议（参数: Gate=2, Phase=2, 
 - N > 0 → `[VERIFY_FAIL] Gate <N> 未通过（P0=N），阻塞 Phase <N>`
 - N = 0 且验证 1 通过 → Gate <N> 通过
 
-> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate（由 specpowers-review 主 Agent 在 Step 5 后自行启动），非 Phase 0-4 Gate 体系的组成部分。父技能（specpowers-plan / specpowers-apply）仅验证各 Gate 对应的 STEP1-STEP5 标记块，不跨边界验证 specpowers-review 的内部 Gate。specpowers-review 的独立调用自检中已包含 STEP_FINAL_READTHROUGH 的存在性检查（见 specpowers-review SKILL.md "独立调用场景自检" 节），确保其在独立调用场景下不被遗漏。
+> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate（由 specpowers-review 主 Agent 在 Step 5 后自行启动），非 Phase 0-4 Gate 体系的组成部分。父技能（specpowers-design / specpowers-plan / specpowers-apply）仅验证各 Gate 对应的 STEP1-STEP5 标记块，不跨边界验证 specpowers-review 的内部 Gate。specpowers-review 的独立调用自检中已包含 STEP_FINAL_READTHROUGH 的存在性检查（见 specpowers-review SKILL.md "独立调用场景自检" 节），确保其在独立调用场景下不被遗漏。
 
 **各 Gate 特化参数**:
 
@@ -102,6 +102,6 @@ Gate 2 返回后，执行 Gate 返回后验证协议（参数: Gate=2, Phase=2, 
 |------|-------|-------------|
 | Gate 2 | Phase 2 | STEP1, STEP2, STEP3, STEP4, STEP5 |
 
-> **注**: Gate 3 验证由 specpowers-apply 负责（见 specpowers-apply SKILL.md 的 "审查（Gate 3）" 节）。本表仅覆盖 specpowers-plan 管辖的 Phase 0-2 Gate。Gate 4 由 specpowers-archive 内部 hard gate 链处理，不在本验证协议范围内。
+> **注**: Gate 3 验证由 specpowers-apply 负责（见 specpowers-apply SKILL.md 的 "审查（Gate 3）" 节）。本表仅覆盖 specpowers-plan 管辖的 Phase 2 Gate。Phase 0/1 Gate 对应协议见 specpowers-design。
 
 > **下一步**: 完成后，加载 `specpowers-apply` 进入 Phase 3（实现阶段）。
