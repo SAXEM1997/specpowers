@@ -58,7 +58,10 @@ description: Use when the user says "brainstorm this feature", "write the design
   - Step 1.1: 格式转换（生成 OpenSpec 四件套）
   - Step 1.2: 强制对照验证（逐条 COVERED/MISSING/DRIFT）
   - Step 1.3: 人工审核 + Gate 1 审查
-- Gate 验证协议（双层验证：验证 0/1/2 的协议定义和通用验证逻辑随 Phase 0/1 移入。specpowers-design 仅保留 Gate 0/1 的特化参数行，验证 2（Gate 2）保留在 specpowers-plan 中）
+- Gate 验证协议迁移：
+  - 通用验证逻辑 + 协议定义（验证 0/1/2 三步检查流程）→ 随 Phase 0/1 内容移入 specpowers-design
+  - specpowers-design 仅保留 Gate 0/1 的特化参数行
+  - 验证 2（Gate 2）的特化参数行保留在 specpowers-plan 中
 - **OpenSpec 跳过路径**：
   - 触发条件：用户要求跳过 或 `openspec --version` 不可用
   - 行为：跳过 Phase 1 全部步骤，输出 `[OPENSPEC_SKIPPED] Phase 1 已跳过，design doc 将直接作为 Phase 2 输入`，同时写入持久化标记文件 `.superpowers/.phase1-skipped`（内容为 `<name>`），用于跨会话恢复时区分"Phase 1 已跳过"与"Phase 1 尚未开始"
@@ -74,8 +77,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 - **YAML description 更新**：删除 Phase 0 关键词（"brainstorm this feature"、"write the design doc"、"explore the codebase"），替换为 Phase 2 专属触发词。新 description 草案：
   ```yaml
   description: Use when the user says "plan the implementation", "bridge OpenSpec to
-    Superpowers", or when specpowers entry skill routes to Phase 2. Handles writing-plans
-    bridging from design/spec artifacts to TDD implementation plan.
+    Superpowers", or when specpowers entry skill routes to Phase 2.
   ```
 - Gate 验证协议仅保留 Gate 2 行
 
@@ -84,6 +86,8 @@ description: Use when the user says "brainstorm this feature", "write the design
 **入口技能 Phase 自动检测步骤**（实施时需在 specpowers/SKILL.md 的阶段路由表之前新增）：
 
 当前入口技能（specpowers/SKILL.md L100-101）的"完成模式选择后，按当前 Phase 加载对应子技能"假设 Phase 已知（通常由会话上下文持久化），但跨会话恢复时 Phase 未知。需将故障排查表（L234）的产物存在性判断逻辑提升为正式路由前提：
+
+> 行按从上到下顺序求值，首次匹配即停止。
 
 | 产物状态 | Phase 判定 | 加载技能 |
 |---------|-----------|---------|
@@ -248,8 +252,8 @@ description: Use when the user says "brainstorm this feature", "write the design
 
 ## 关键设计决策
 
-1. **Why 合并两个需求到一个 design**：两者独立但在同一轮实施中，合并减少 Gate 审查开销。改动范围无交集（specpowers-design 新建 vs review 内部逻辑修改），互不冲突。
-2. **Why specpowers-design 覆盖 Phase 0+1 而非仅 Phase 0**：用户选择 C 方案。Phase 1 propose 本质是格式转换——将设计文档转为 OpenSpec 结构化格式——与设计紧密相关，单独拆出到 plan 会打断设计→规范的连贯性。
+1. **Why 合并两个需求到一个 design**：两者逻辑独立但合并到此 design 文档中，减少 Gate 审查开销。改动范围无交集（specpowers-design 新建 vs review 内部逻辑修改），互不冲突。
+2. **Why specpowers-design 覆盖 Phase 0+1 而非仅 Phase 0**：备选方案包括仅 Phase 0 的设计子技能（A）和 Phase 0+1 的完整设计子技能（C），选择 C 因为 Phase 1 propose 本质是格式转换——将设计文档转为 OpenSpec 结构化格式——与设计紧密相关，单独拆出到 plan 会打断设计→规范的连贯性。
 3. **Why 原始发现数用独立字段 `p0_raw`**：不复用现有 `p0` 字段，避免与旧逻辑（修复后剩余数）混淆。新增字段语义明确，向后兼容（父技能不读账本字段）。
 4. **Why 条件 4 包含 P3**：P3 是风格问题，大量 P3（≥10）说明代码或文档质量有问题、需要更多轮打磨，即使单个 P3 不阻塞 Gate。4 条件全覆盖（严重→轻微）避免任何维度的遗漏。
 5. **Why specpowers-design 不新增审查步骤**：用户确认 Phase 0 的 Gate 0（多模型渐进式审查 design vs clarifications）和 Phase 1 的 Gate 1（多模型渐进式审查 OpenSpec 四件套 vs design + clarifications）已有完整对齐审查，从 specpowers-plan 搬移到 specpowers-design 即可，无需增强。
@@ -273,7 +277,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 5. 通读 specpowers-review 收敛提醒节，确认 4 条件逻辑正确、文案区分清晰
 6. grep `skills/specpowers-plan/SKILL.md` 正文确认无 Phase 0/1 流程步骤残留（如 "Step 0.1"、"Phase 0"、"Step 1.1"）
 7. grep 确认所有文件中对 specpowers-plan 的"设计+衔接"描述已更新
-8. grep `skills/specpowers-review/SKILL.md` 中的 `specpowers-plan 调用`，确认 Gate 0/1 已改为 specpowers-design，Gate 2 保持 specpowers-plan
+8. 在 `skills/specpowers-review/SKILL.md` 中 grep `specpowers-plan`，确认 Gate 0/1 触发者列已改为 specpowers-design，Gate 2 触发者列保持 specpowers-plan
 9. grep 活跃技能文件（skills/、CLAUDE.md、README.md，排除 docs/superpowers/specs/ 和 docs/superpowers/plans/ 历史文档）中残留的旧引用
 
 ## 测试策略
