@@ -12,7 +12,8 @@ specpowers 是一个 **Claude Code 技能组（Skill Group）**开发项目。�
 
 ```
 specpowers (入口, 决策模式+路由)
-  ├── specpowers-plan   (Phase 0+1+2: brainstorming → propose → 衔接)
+  ├── specpowers-design (Phase 0+1)
+  ├── specpowers-plan   (Phase 2)
   ├── specpowers-apply  (Phase 3: TDD 实现)
   ├── specpowers-review (UltraReview / 多模型渐进式审查)
   └── specpowers-archive(Phase 4: 验证+归档硬 Gate 链)
@@ -26,7 +27,8 @@ specpowers (入口, 决策模式+路由)
 |------|------|
 | `skills/specpowers/SKILL.md` | 入口技能 — 决策树、路由表、全局规则（GitFlow/Checklist/Pitfalls） |
 | `skills/specpowers/refs/` | 入口技能 bundled resources（入门指南、项目模板、UltraPlan 提示词等） |
-| `skills/specpowers-plan/SKILL.md` | Phase 0-2: brainstorming → 格式转换+对照验证 → writing-plans 衔接 |
+| `skills/specpowers-design/SKILL.md` | Phase 0+1: brainstorming + propose + Gate 0/1 |
+| `skills/specpowers-plan/SKILL.md` | Phase 2: writing-plans 衔接 + Gate 2 |
 | `skills/specpowers-apply/SKILL.md` | Phase 3: TDD 实现 + Gate 3 审查（code-review + spec-compliance-check） |
 | `skills/specpowers-review/SKILL.md` | 审查决策树 + 多模型渐进式（文档类）/ UltraReview+对齐审查（其他情况）/ 最终通读 Gate |
 | `skills/specpowers-archive/SKILL.md` | Phase 4: 全量测试 → openspec validate → /opsx:archive → 完整性验证 → finishing |
@@ -36,7 +38,7 @@ specpowers (入口, 决策模式+路由)
 
 ## 关键设计决策
 
-1. **技能拆分策略**: 原为单一庞大 SKILL.md（~2026-06-10 删除），现拆为 1 入口 + 4 子技能，按 Phase 按需加载以减少上下文消耗。
+1. **技能拆分策略**: 原为单一庞大 SKILL.md（~2026-06-10 删除），现拆为 1 入口 + 5 子技能，按 Phase 按需加载以减少上下文消耗。
 2. **Phase 0 独立于 OpenSpec**: Phase 0 使用 `superpowers:brainstorming` 完成需求澄清+方案设计，产物为 `docs/superpowers/specs/<name>-design.md`。Phase 1 仅做格式转换+强制对照验证，不重复做需求分析。
 3. **Name 贯穿全流程**: `<name>` 由 Phase 0 定义（格式 `YYYY-MM-DD-<topic>`），贯穿 Phase 0-4，与 OpenSpec change 目录名同一标识符。
 4. **审查类型由 specpowers-review 内部决策树自动判定**（文档类→多模型渐进式，代码类由 specpowers-review 内部按文件数+行数级联判定），用户可手动覆盖。
