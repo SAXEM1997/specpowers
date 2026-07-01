@@ -8,7 +8,8 @@ specpowers 融合 OpenSpec（规范驱动开发）和 Superpowers（测试驱动
 
 ```
 specpowers (入口 — 决策树 + 路由)
-  ├── specpowers-plan   Phase 0/1/2: 需求澄清 → 格式转换 → 衔接
+  ├── specpowers-design Phase 0+1: 需求澄清 → 格式转换
+  ├── specpowers-plan   Phase 2: 衔接
   ├── specpowers-apply  Phase 3: TDD 实现 + Gate 3 审查
   ├── specpowers-review 审查体系: 多模型渐进式 / UltraReview / 最终通读
   └── specpowers-archive Phase 4: 硬 Gate 链验证归档
@@ -17,7 +18,8 @@ specpowers (入口 — 决策树 + 路由)
 | 技能 | Phase | 职责 |
 |------|-------|------|
 | **specpowers** | 全局 | 决策模式判定（微小/中等/复杂/大规模）+ 路由 |
-| **specpowers-plan** | 0+1+2 | brainstorming → OpenSpec 格式转换 → writing-plans 衔接 |
+| **specpowers-design** | 0+1 | brainstorming → OpenSpec 格式转换 + Gate 0/1 |
+| **specpowers-plan** | 2 | writing-plans 衔接 + Gate 2 |
 | **specpowers-apply** | 3 | TDD 逐 task 执行 + code-review + spec-compliance-check |
 | **specpowers-review** | 横切 | 多模型渐进式（文档类）/ 加强审查（≤2 文件且 ≤200 行）/ UltraReview + 对齐审查（其他情况）/ 最终通读 |
 | **specpowers-archive** | 4 | 全量测试 → openspec validate → archive → 完整性验证 |
@@ -175,7 +177,8 @@ specpowers/
 ├── skills/
 │   ├── specpowers/SKILL.md            # 入口技能
 │   │   └── refs/                      # 入门指南、项目模板、UltraPlan 提示词
-│   ├── specpowers-plan/SKILL.md       # Phase 0-2
+│   ├── specpowers-design/SKILL.md     # Phase 0+1
+│   ├── specpowers-plan/SKILL.md       # Phase 2
 │   ├── specpowers-apply/SKILL.md      # Phase 3
 │   ├── specpowers-review/SKILL.md     # 审查体系
 │   └── specpowers-archive/SKILL.md    # Phase 4
