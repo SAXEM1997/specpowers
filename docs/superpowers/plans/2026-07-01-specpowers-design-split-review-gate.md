@@ -283,14 +283,15 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 ## Phase 自动检测（跨会话恢复）
 
 入口技能按以下产物状态自动判定当前 Phase。行按从上到下顺序求值，首次匹配即停止。
+`<name>` 由当前任务上下文获取——与会话中 `Plan: <mode>` 或用户指定的 name 一致。
 
 | 产物状态 | Phase 判定 | 加载技能 |
 |---------|-----------|---------|
-| `clarifications/` 存在，`design.md` 不存在 | Phase 0 中途 | specpowers-design |
-| `.phase1-skipped` 存在 | Phase 1 已跳过 | specpowers-plan (Phase 2) |
-| `clarifications/` + `design.md` 存在，`openspec/` 不存在 | Phase 0 完成 | specpowers-design |
+| `docs/superpowers/clarifications/<name>.md` 存在，`docs/superpowers/specs/<name>-design.md` 不存在 | Phase 0 中途 | specpowers-design |
+| `.superpowers/.phase1-skipped` 存在 | Phase 1 已跳过 | specpowers-plan (Phase 2) |
+| `docs/superpowers/clarifications/<name>.md` + `docs/superpowers/specs/<name>-design.md` 存在，`openspec/changes/<name>/` 不存在 | Phase 0 完成 | specpowers-design |
+| `docs/superpowers/plans/<name>.md` 存在 | Phase 2 完成 | specpowers-apply (Phase 3) |
 | `openspec/changes/<name>/` 存在 | Phase 1 完成 | specpowers-plan (Phase 2) |
-| `plans/<name>.md` 存在 | Phase 2 完成 | specpowers-apply (Phase 3) |
 ```
 
 同步更新故障排查表（L234）的跨会话恢复点——将恢复点映射改为引用此表：`> 跨会话中断恢复：按上述 Phase 自动检测表判定当前 Phase 和应加载技能。`
@@ -418,10 +419,13 @@ Step 5 Quick Review 通过后，依据 **本轮审查原始发现的问题数**�
 > 本轮原始发现 P0: N 个, P1: Y 个, P2: Z 个, P3: W 个。
 >
 > ⚠️ **触发条件：<编号+描述>**（触发即强烈建议下一轮）
-> 本轮审查原始发现的问题数已达到需要额外审查的级别，即使当前问题已全部修复，仍建议启动下一轮审查，避免修复引入的回归问题、高复杂度变更中的隐藏缺陷、审查盲区的累积。
+> 本轮审查原始发现的问题数已达到需要额外审查的级别，即使当前问题已全部修复，仍**强烈建议启动下一轮审查**，避免以下风险：
+> - 修复引入的回归问题未被发现
+> - 高复杂度变更中的隐藏缺陷
+> - 审查盲区的累积
 >
 > **上轮对比**（如适用）：
-> - 上轮原始发现 → 本轮原始发现（P0/P1/P2/P3）
+> - 上轮原始发现：P0: X, P1: Y, P2: Z, P3: W → 本轮：P0: X', P1: Y', P2: Z', P3: W'
 > - 趋势：收敛中 ↗ / 持平 → / 恶化 ↘
 >
 > 请确认：是否进行下一轮审查？
@@ -550,13 +554,16 @@ grep "每轮审查 Step 5 完成后" skills/specpowers-review/refs/protocols.md
 
 **(b) 读写时机表更新**:
 
-修改 `写入 rounds` 行——时机从 Step 5 改为 Step 2，描述改为 `写入 rounds（原始发现数）`：
+在 `写入 rounds` 行之后新增一行 `写入 rounds（原始发现数）`：
 
 ```markdown
 | 写入 rounds（原始发现数） | 每轮审查 Step 2 汇总完成后 | 主 Agent |
 ```
 
-`写入 lessons_learned | 每轮审查 Step 5 完成后 | 主 Agent` 行已存在（L43），保持不变。
+`写入 rounds | 每轮审查 Step 5 完成后 | 主 Agent` 行保持不变（Step 5 写入修复后剩余的 p0/p1/p2）。
+`写入 lessons_learned | 每轮审查 Step 5 完成后 | 主 Agent` 行保持不变。
+
+同步更新 protocols.md L55-60 的账本写入时机说明段落——将 `账本写入时机为每轮 Step 5 后（会话内即时持久化到内存 dict）` 改为 `账本写入时机分为两阶段：每轮 Step 2 后写入原始发现数（p0-3_raw），每轮 Step 5 后写入 lessons_learned 和修复后剩余计数（p0/p1/p2）。review-cache.json 写入时机为每 Gate 退出前（跨会话持久化到文件）。`
 
 **(c) 向后兼容说明**:
 
@@ -587,7 +594,7 @@ grep "Step 2 汇总完成后" skills/specpowers-review/refs/protocols.md
 ```bash
 grep "写入 lessons_learned" skills/specpowers-review/refs/protocols.md
 ```
-预期: ≥ 1 处匹配（原行已拆分）
+预期: ≥ 1 处匹配（保持不变，≥ 1 处匹配）
 
 ```bash
 grep "旧格式账本" skills/specpowers-review/refs/protocols.md
@@ -722,6 +729,14 @@ grep -rn "P1 > 3\|着重提醒\|中等提醒" skills/specpowers-review/SKILL.md
 ```
 预期: 无输出（旧场景 B/C/D 已被新逻辑替代）
 
+- [ ] **GC6 验证 — Gate 验证协议关键标记格式未变**:
+
+```bash
+grep -rn "\[GATE_BLOCKED\]" skills/specpowers-plan/SKILL.md skills/specpowers-review/SKILL.md
+grep -rn "STEP<N>_EXECUTED" skills/specpowers-plan/SKILL.md skills/specpowers-review/SKILL.md
+```
+预期: `[GATE_BLOCKED]` 匹配 ≥ 2 处（plan 的 Gate 验证协议 + review 的收敛提醒节），`STEP<N>_EXECUTED` 匹配 ≥ 1 处（plan 的验证 1 节，verify 步骤引用）。如为 0 则标记 [GC6_VIOLATION]。
+
 - [ ] **通读关键位置**:
   - `skills/specpowers-design/SKILL.md` Phase 0/1 流程 + OpenSpec 跳过路径
   - `skills/specpowers-plan/SKILL.md` Phase 2 衔接 + 前置检查
@@ -736,6 +751,8 @@ grep -rn "P1 > 3\|着重提醒\|中等提醒" skills/specpowers-review/SKILL.md
 2. **入口路由验证**: 手动创建 `docs/superpowers/specs/<test-name>-design.md` 后，入口技能检测到产物并正确判定 Phase
 3. **跨技能过渡验证**: design doc + clarifications 存在（不含 openspec/）→ 入口技能路由到 specpowers-design（非 specpowers-plan）
 4. **跨会话恢复验证**: 手动写入 `.superpowers/.phase1-skipped`（内容 `<test-name>`）→ 入口技能识别 Phase 1 已跳过 → 路由到 specpowers-plan Phase 2
+5. **收敛提醒触发验证**（需求 2）：构造会话上下文账本含 `p0_raw=1` / `p1_raw=3` / `p0_raw+p1_raw+p2_raw=5` / 总和=10 的输入各一次，确认 specpowers-review 输出场景 A 模板且触发条件编号和描述正确
+6. **旧格式账本降级验证**（需求 2）：构造仅有 `p0/p1/p2`（无 `_raw` 后缀）的旧格式账本 rounds 条目，确认系统输出 `[DEGRADED] 旧格式账本缺少原始发现数，回退独立判断` 且不参与 4 条件计算
 
 grep 静态验证由 Task 1-6 的 Step 3 覆盖。以上 4 项为功能级行为验证，在 Task 1-6 全部完成后、Task 7 全局 grep 之前执行。
 
