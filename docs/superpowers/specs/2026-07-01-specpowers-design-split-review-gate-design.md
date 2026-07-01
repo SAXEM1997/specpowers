@@ -37,6 +37,18 @@ specpowers (入口, 路由)
 
 ### specpowers-design 职责
 
+**YAML frontmatter**（草案）:
+
+```yaml
+name: specpowers-design
+description: Use when the user says "brainstorm this feature", "write the design doc",
+  "explore requirements", or when specpowers entry skill routes to Phase 0 or Phase 1.
+  Handles the full design+propose phase: requirement clarification, brainstorming,
+  design document authoring, OpenSpec format conversion, and Gate 0+1 review.
+```
+
+**Body 规模估算**: Phase 0+1 原文约 180 行 + OpenSpec 跳过路径 ~10 行 + Gate 验证协议 ~40 行 ≈ **230 行**，远低于 500 行阈值，无需 refs/ bundled resources 分离。
+
 - Phase 0: brainstorming 完整流程
   - Step 0.1: 探索项目上下文
   - Step 0.2: 连环提问澄清需求
@@ -63,13 +75,33 @@ specpowers (入口, 路由)
 - 标题从"设计+衔接阶段"→"衔接阶段"
 - Gate 验证协议仅保留 Gate 2 行
 
-### 受影响文件
+### 跨技能过渡协议
+
+拆分前，Phase 0→1→2 均在 specpowers-plan 单次 `Skill()` 加载内自然流转。拆分后需定义过渡协议：
+
+**specpowers-design → specpowers-plan 过渡信号**：
+- specpowers-design 完成 Phase 0+1（含 Gate 0/1 审查通过）后，其产物 `docs/superpowers/specs/<name>-design.md` 已存在于磁盘
+- 入口技能（specpowers）按**产物存在性**判断 Phase 推进：`design.md` 存在 + `clarifications` 存在 → Phase 0/1 已完成 → 路由到 specpowers-plan Phase 2
+- OpenSpec 跳过路径下，`openspec/changes/<name>/` 不存在也视为正常（Phase 1 已跳过）
+
+**入口技能路由更新**：当前阶段路由表将 Phase 0 和 Phase 1-2 均路由到 specpowers-plan（共两行），拆为三行：
+
+| 当前 Phase | 模式 | 加载 | 命令 |
+|-----------|------|------|------|
+| Phase 0 | 中等+ | specpowers-design | `Skill({skill: "specpowers-design"})` |
+| Phase 1 | 中等+ | specpowers-design | `Skill({skill: "specpowers-design"})` |
+| Phase 2 | 中等+ | specpowers-plan | `Skill({skill: "specpowers-plan"})` |
+
+**跨会话恢复适配**：入口技能故障排查表（specpowers/SKILL.md 故障排查节）的跨会话恢复点检查逻辑保持不变——按产物存在性判断恢复点。但路由映射需更新：Phase 0/1 产物存在时加载 specpowers-design（非 specpowers-plan）。
+
+### 受影响文件（需求 1）
 
 | 文件 | 改动类型 | 说明 |
 |------|---------|------|
 | `skills/specpowers-design/SKILL.md` | **新建** | 从 specpowers-plan 提取 Phase 0+1 全部内容 + OpenSpec 跳过路径 |
 | `skills/specpowers-plan/SKILL.md` | 修改 | 删除 Phase 0/1，缩窄为 Phase 2 only |
-| `skills/specpowers/SKILL.md` | 修改 | 技能组结构表、阶段路由表、各模式映射表更新 |
+| `skills/specpowers/SKILL.md` | 修改 | 技能组结构表、阶段路由表拆分（Phase 0→design, Phase 1→design, Phase 2→plan）、各模式映射表更新、架构数量声明更新（33行→5子技能）、快速上手映射表更新 |
+| `skills/specpowers-review/SKILL.md` | 修改 | Gate 触发协议汇总表 L580-581 触发者列 Gate 0/1 → specpowers-design，L411 独立调用自检注释追加 specpowers-design |
 | `CLAUDE.md` | 修改 | 目录结构表新增 specpowers-design |
 | `README.md` | 修改 | 技能组架构图/描述更新 |
 
@@ -77,7 +109,6 @@ specpowers (入口, 路由)
 
 - `specpowers-apply/SKILL.md` — 不引用 specpowers-plan 内部结构，不受影响
 - `specpowers-archive/SKILL.md` — 不涉及设计/plan 阶段
-- `specpowers-review/SKILL.md` — 审查逻辑与此拆分无关
 - `commands/specpowers.md` — 描述足够抽象，不需要更新
 
 ---
@@ -87,6 +118,8 @@ specpowers (入口, 路由)
 ### 问题
 
 当前收敛提醒的判断依据是**修复后的剩余问题数**（Step 5 完成后还剩多少问题）。这导致一个漏洞：一轮审查发现大量问题，全部修复后剩余=0，系统判定"趋于收敛"——但发现大量问题本身就说明复杂度高、风险大，需要额外一轮审查。
+
+> **注**：条件 4（P0+P1+P2+P3 ≥ 10）要求追踪 P3 计数。当前审查流程已定义 P3 严重度级别但账本未记录 P3。本次变更一并补齐 P3 追踪能力。
 
 ### 目标逻辑
 
@@ -107,25 +140,29 @@ specpowers (入口, 路由)
 
 ### 场景重写
 
-**场景 A（原始 P0 > 0）— 硬提醒**：
+**场景 A（原始 P0 > 0 或触发其他条件）— 强烈提醒**：
 
 ```
 > **审查下一轮提醒**
 >
 > 本轮原始发现 P0: <N> 个, P1: <Y> 个, P2: <Z> 个, P3: <W> 个。
 >
-> ⚠️ **触发条件 <N>：<条件描述>**
-> 本轮审查发现的问题数已达到需要额外审查的级别，即使当前问题已全部修复，仍**强烈建议启动下一轮审查**，避免以下风险：
+> ⚠️ **触发条件：<条件编号+描述>**（触发即强烈建议下一轮）
+> 本轮审查原始发现的问题数已达到需要额外审查的级别，即使当前问题已全部修复，仍**强烈建议启动下一轮审查**，避免以下风险：
 > - 修复引入的回归问题未被发现
 > - 高复杂度变更中的隐藏缺陷
 > - 审查盲区的累积
 >
+> **上轮对比**（如适用）：
+> - 上轮原始发现：P0: X, P1: Y, P2: Z, P3: W → 本轮：P0: X', P1: Y', P2: Z', P3: W'
+> - 趋势：收敛中 ↗ / 持平 → / 恶化 ↘
+>
 > 请确认：是否进行下一轮审查？
 ```
 
-**场景 B（原始 P0=0，触发其他条件）— 强烈提醒**：同上格式，条件描述为具体触发的阈值。
+> **优先级规则**：当多条件同时触发时，按条件编号升序显示（条件 1 > 条件 2 > 条件 3 > 条件 4），列出所有触发条件的编号和描述。
 
-**场景 C（原始 P0=0，不触发任何条件）— 轻量提醒**：
+**场景 B（原始 P0=0，不触发任何条件）— 轻量提醒**：
 
 ```
 > **审查收敛提醒**
@@ -179,12 +216,12 @@ specpowers (入口, 路由)
 | 文件 | 需求 1 | 需求 2 | 总改动数 |
 |------|--------|--------|---------|
 | `skills/specpowers-design/SKILL.md` | **新建** | — | 1 |
-| `skills/specpowers-plan/SKILL.md` | 大改 | — | 1 |
-| `skills/specpowers/SKILL.md` | 多处 | — | 1 |
-| `skills/specpowers-review/SKILL.md` | — | 多处 | 1 |
-| `skills/specpowers-review/refs/protocols.md` | — | 账本结构 | 1 |
-| `CLAUDE.md` | 1 处 | — | 1 |
-| `README.md` | 1 处 | — | 1 |
+| `skills/specpowers-plan/SKILL.md` | 删除 Phase 0/1 + 缩窄为 Phase 2 only | — | 1 |
+| `skills/specpowers/SKILL.md` | 路由拆分 + 架构数量 + 映射表 + 快速上手 | — | 1 |
+| `skills/specpowers-review/SKILL.md` | Gate 0/1 触发者列更新 + L411 自检注释 | 收敛提醒节重写 | 1 |
+| `skills/specpowers-review/refs/protocols.md` | — | 账本结构新增 p0-3_raw + P3 字段 | 1 |
+| `CLAUDE.md` | 目录结构表新增 specpowers-design | — | 1 |
+| `README.md` | 技能组架构描述更新 | — | 1 |
 | **总计** | | | **7 文件** |
 
 ---
@@ -195,12 +232,14 @@ specpowers (入口, 路由)
 2. **Why specpowers-design 覆盖 Phase 0+1 而非仅 Phase 0**：用户选择 C 方案。Phase 1 propose 本质是格式转换——将设计文档转为 OpenSpec 结构化格式——与设计紧密相关，单独拆出到 plan 会打断设计→规范的连贯性。
 3. **Why 原始发现数用独立字段 `p0_raw`**：不复用现有 `p0` 字段，避免与旧逻辑（修复后剩余数）混淆。新增字段语义明确，向后兼容（父技能不读账本字段）。
 4. **Why 条件 4 包含 P3**：P3 是风格问题，大量 P3（≥10）说明代码或文档质量有问题、需要更多轮打磨，即使单个 P3 不阻塞 Gate。4 条件全覆盖（严重→轻微）避免任何维度的遗漏。
+5. **Why specpowers-design 不新增审查步骤**：用户确认 Phase 0 的 Gate 0（多模型渐进式审查 design vs clarifications）和 Phase 1 的 Gate 1（多模型渐进式审查 OpenSpec 四件套 vs design + clarifications）已有完整对齐审查，从 specpowers-plan 搬移到 specpowers-design 即可，无需增强。
+6. **Why 账本写入改为两阶段（Step 2 + Step 5）**：原始发现数必须在 Step 2 汇总完成后立即记录（修复后原始数据不可恢复）。Step 5 仅追加 lessons_learned。这是协议级别变更——当前 protocols.md 定义单一写入点（Step 5 完成后），变更为 Step 2 写入原始计数 + Step 5 追加教训。需同步更新 protocols.md 读写时机表。
 
 ## 约束条件
 
 - Phase 0/1 内容从 specpowers-plan 迁移到 specpowers-design 时保持原文不变（仅添加 OpenSpec 跳过路径）
 - specpowers-plan 缩窄后所有引用它的地方（specpowers/SKILL.md 路由表、CLAUDE.md、README.md）必须更新
-- 账本字段新增后，读取旧格式缓存时需兼容处理（缺失 `p0_raw` 时降级使用 `p0`）
+- 账本字段新增后，读取旧格式缓存时需兼容处理：缺失 `p0_raw/p1_raw/p2_raw/p3_raw` 时不使用旧 `p0/p1/p2` 伪装（旧格式的 `p0` 是修复后剩余数，用它替代 `p0_raw` 会精确复现需求 2 要修复的漏洞）。回退策略：旧格式轮次的数据视为不可用（unknown），该轮不参与收敛判断条件计算，改用当轮数据做独立判断，输出 `[DEGRADED] 旧格式账本缺少原始发现数，回退独立判断`
 - 审查流程 Step 1-5 不变，仅 Step 5 后的收敛提醒逻辑变更
 - 父技能 Gate 验证协议（验证 0/1/2）不变——双层验证读取 `[GATE_BLOCKED]` 和 `STEP<N>_EXECUTED`，不依赖账本
 
@@ -212,3 +251,16 @@ specpowers (入口, 路由)
 4. 通读 specpowers-review 收敛提醒节，确认 4 条件逻辑正确、文案区分清晰
 5. grep 确认 specpowers-plan 中无 Phase 0/1 残留引用
 6. grep 确认所有文件中对 specpowers-plan 的"设计+衔接"描述已更新
+7. grep `skills/specpowers-review/SKILL.md` 中的 `specpowers-plan 调用`，确认 Gate 0/1 已改为 specpowers-design，Gate 2 保持 specpowers-plan
+8. grep 活跃技能文件（skills/、CLAUDE.md、README.md，排除 docs/superpowers/specs/ 和 docs/superpowers/plans/ 历史文档）中残留的旧引用
+
+## 测试策略
+
+遵循 writing-skills Iron Law（"NO SKILL WITHOUT A FAILING TEST FIRST"），关键测试场景：
+
+1. **specpowers-design 加载验证**：`Skill({skill: "specpowers-design"})` 能被正确加载，Phase 0 brainstorming 流程完整执行
+2. **入口路由验证**：入口技能 specpowers 在 Phase 0 正确路由到 specpowers-design（非 specpowers-plan）
+3. **跨技能过渡验证**：specpowers-design 完成 Phase 0+1 → 入口技能检测产物存在性 → 路由到 specpowers-plan Phase 2
+4. **OpenSpec 跳过路径验证**：`openspec --version` 不可用时 specpowers-design 正确跳过 Phase 1，输出 `[OPENSPEC_SKIPPED]`
+5. **Gate 0/1 审查验证**：specpowers-design 内的 Gate 0（design vs clarifications）和 Gate 1（OpenSpec 四件套 vs design）正常执行，标记块正确输出
+6. **收敛提醒验证**：原始发现数触发条件（P0>0/P1≥3/总≥5/含P3≥10）正确输出强烈提醒
