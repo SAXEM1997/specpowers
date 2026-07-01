@@ -4,19 +4,28 @@
 
 **Goal:** 新建 specpowers-design 子技能（提取 Phase 0+1），缩窄 specpowers-plan 为 Phase 2 only，更新入口路由和审查收敛逻辑为基于原始发现数判断。
 
-**Architecture:** 6 个任务，按依赖顺序：需求 1（Task 1→2→3，技能拆分+路由更新）与需求 2（Task 4→5，审查逻辑+账本结构）独立，Task 6（文档更新）收尾。每个 Task 修改后 grep 验证旧内容已清除、新内容已存在。共 7 个文件变更。
+**Architecture:** 7 个任务（6 个实现 + 1 个全局验证），按依赖顺序：需求 1（Task 1→2→3，技能拆分+路由更新）与需求 2（Task 4→5，审查逻辑+账本结构）独立，Task 6（文档更新）收尾，Task 7（全局验证+清理）。
 
 **Tech Stack:** Markdown (SKILL.md files), git, grep
 
 ## Global Constraints
 
-- Phase 0/1 内容从 specpowers-plan 迁移到 specpowers-design 时保持原文不变（仅添加 OpenSpec 跳过路径）
-- 阈值格式统一为 `≤2 文件且 ≤200 行`（带空格）
-- 跨 Skill 的 grep 匹配模式（`[GATE_BLOCKED]`、`STEP<N>_EXECUTED`）精确格式不变
-- 设计文档路径: `docs/superpowers/specs/2026-07-01-specpowers-design-split-review-gate-design.md`
+### A. 设计约束映射（来自 design.md "约束条件" 节）
+
+- GC1: Phase 0/1 内容从 specpowers-plan 迁移到 specpowers-design 时保持原文不变（仅添加 OpenSpec 跳过路径）
+- GC2: OpenSpec 跳过路径下需写入 `.superpowers/.phase1-skipped`，入口技能在 Phase 检测时读取以区分"已跳过"与"未开始"
+- GC3: specpowers-plan 缩窄后所有引用处（specpowers/SKILL.md 路由表、CLAUDE.md、README.md）必须更新
+- GC4: 旧格式账本兼容——缺失 `p0_raw/p1_raw/p2_raw/p3_raw` 时不使用旧 `p0/p1/p2` 伪装，回退独立判断并输出 `[DEGRADED]`
+- GC5: 审查流程 Step 1-5 不变，仅 Step 5 完成后的收敛提醒逻辑变更
+- GC6: 父技能 Gate 验证协议不变——双层验证读取 `[GATE_BLOCKED]` 和 `STEP<N>_EXECUTED`，不依赖账本字段
+
+### B. 实施级补充约束
+
 - 技能 description 不含工作流摘要（writing-skills SDO 准则）
-- GitLab Flow：在当前 master 分支操作，每 task 完成后 commit
+- 跨 Skill 的 grep 匹配模式（`[GATE_BLOCKED]`、`STEP<N>_EXECUTED`）精确格式不变
 - 账本字段 `p0_raw/p1_raw/p2_raw/p3_raw` 为新增字段，旧 `p0/p1/p2` 保留用于向后兼容
+- GitLab Flow：在当前 master 分支操作，每 task 完成后 commit
+- 任务级回滚：每个 Task 提供明确的回滚命令（`git checkout -- <file>`），失败时执行
 
 ---
 
@@ -113,6 +122,8 @@ Gate 验证协议仅保留 Gate 0/1。
 Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```
 
+> **注意**: Task 1 完成后 specpowers-design 名称已就位。Task 4 Step 2b/2c 引用此名称。
+
 ---
 
 ### Task 2: 缩窄 specpowers-plan/SKILL.md 为 Phase 2 only
@@ -132,7 +143,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 ```bash
 grep -c "Phase 0: brainstorming" skills/specpowers-plan/SKILL.md
 grep -c "Phase 1: propose" skills/specpowers-plan/SKILL.md
-grep "design+衔接阶段" skills/specpowers-plan/SKILL.md
+grep "设计+衔接阶段" skills/specpowers-plan/SKILL.md
 ```
 预期: Phase 0/1 内容和旧标题均存在于 specpowers-plan
 
@@ -264,6 +275,26 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 ```
 （其余行不变：specpowers "全局"，specpowers-apply "Phase 3"，specpowers-review "审查"，specpowers-archive "Phase 4"）
 
+**(c-prime) Phase 自动检测表**（在阶段路由表之前新增）：
+
+当前入口技能（L100-101）的"完成模式选择后，按当前 Phase 加载对应子技能"假设 Phase 已知，但跨会话恢复时 Phase 未知。在阶段路由表之前（L101 之后）插入以下产物状态检测表：
+
+```markdown
+## Phase 自动检测（跨会话恢复）
+
+入口技能按以下产物状态自动判定当前 Phase。行按从上到下顺序求值，首次匹配即停止。
+
+| 产物状态 | Phase 判定 | 加载技能 |
+|---------|-----------|---------|
+| `clarifications/` 存在，`design.md` 不存在 | Phase 0 中途 | specpowers-design |
+| `.phase1-skipped` 存在 | Phase 1 已跳过 | specpowers-plan (Phase 2) |
+| `clarifications/` + `design.md` 存在，`openspec/` 不存在 | Phase 0 完成 | specpowers-design |
+| `openspec/changes/<name>/` 存在 | Phase 1 完成 | specpowers-plan (Phase 2) |
+| `plans/<name>.md` 存在 | Phase 2 完成 | specpowers-apply (Phase 3) |
+```
+
+同步更新故障排查表（L234）的跨会话恢复点——将恢复点映射改为引用此表：`> 跨会话中断恢复：按上述 Phase 自动检测表判定当前 Phase 和应加载技能。`
+
 **(c) 阶段路由表**（L105-L112），将当前的 Phase 0 和 Phase 1-2 两行拆为三行：
 
 ```markdown
@@ -309,6 +340,18 @@ grep "Phase 1-2.*specpowers-plan" skills/specpowers/SKILL.md
 ```
 预期: 无输出（Phase 1-2 合并行已拆分）
 
+同时验证 Phase 自动检测表已正确插入：
+
+```bash
+grep "Phase 自动检测" skills/specpowers/SKILL.md
+```
+预期: ≥ 1（新表已插入）
+
+```bash
+grep ".phase1-skipped" skills/specpowers/SKILL.md
+```
+预期: ≥ 1（检测表含 .phase1-skipped 行）
+
 - [ ] **Step 4: Commit**
 
 ```bash
@@ -324,7 +367,7 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 
 ### Task 4: 修改 specpowers-review/SKILL.md — 收敛逻辑 + Gate 触发表
 
-> **依赖**: 无（需求 2 与需求 1 独立）
+> **依赖**: 逻辑依赖 Task 1（Step 2b/2c 引用 specpowers-design 名称，建议 Task 1 先完成）。Step 2a（收敛逻辑重写，需求 2 核心变更）本身独立。
 > **回滚**: `git checkout -- skills/specpowers-review/SKILL.md`
 
 **Files:**
@@ -507,15 +550,13 @@ grep "每轮审查 Step 5 完成后" skills/specpowers-review/refs/protocols.md
 
 **(b) 读写时机表更新**:
 
-将原单一写入行：
-```
-| 写入 rounds | 每轮审查 Step 5 完成后 | 主 Agent |
-```
-拆为两行：
-```
+修改 `写入 rounds` 行——时机从 Step 5 改为 Step 2，描述改为 `写入 rounds（原始发现数）`：
+
+```markdown
 | 写入 rounds（原始发现数） | 每轮审查 Step 2 汇总完成后 | 主 Agent |
-| 写入 lessons_learned | 每轮审查 Step 5 完成后 | 主 Agent |
 ```
+
+`写入 lessons_learned | 每轮审查 Step 5 完成后 | 主 Agent` 行已存在（L43），保持不变。
 
 **(c) 向后兼容说明**:
 
@@ -686,6 +727,17 @@ grep -rn "P1 > 3\|着重提醒\|中等提醒" skills/specpowers-review/SKILL.md
   - `skills/specpowers-plan/SKILL.md` Phase 2 衔接 + 前置检查
   - `skills/specpowers/SKILL.md` 阶段路由表（三行拆分）
   - `skills/specpowers-review/SKILL.md` 收敛提醒节（4 条件 + DEGRADED 分支）
+
+- [ ] **功能级验证（关键行为）**:
+
+以下验证基于 grep 静态检查之上，在本地测试环境执行：
+
+1. **specpowers-design 加载验证**: `Skill({skill: "specpowers-design"})` 能被正确加载
+2. **入口路由验证**: 手动创建 `docs/superpowers/specs/<test-name>-design.md` 后，入口技能检测到产物并正确判定 Phase
+3. **跨技能过渡验证**: design doc + clarifications 存在（不含 openspec/）→ 入口技能路由到 specpowers-design（非 specpowers-plan）
+4. **跨会话恢复验证**: 手动写入 `.superpowers/.phase1-skipped`（内容 `<test-name>`）→ 入口技能识别 Phase 1 已跳过 → 路由到 specpowers-plan Phase 2
+
+grep 静态验证由 Task 1-6 的 Step 3 覆盖。以上 4 项为功能级行为验证，在 Task 1-6 全部完成后、Task 7 全局 grep 之前执行。
 
 - [ ] **Commit（如有遗漏修复）**:
 
