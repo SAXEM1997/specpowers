@@ -162,7 +162,7 @@ ref: AgentId=<id>, tokens=<N>
 | Step 5 | Quick Review Agent | complete / degraded | 单一 Agent 时声明"缺少独立视角"；Step 4 退化时声明"执行两轮补偿验证" |
 | 最终通读 | 独立子 Agent 或主 Agent（自执行） | complete / fail | 沿用通用标记块格式（STEP_FINAL_READTHROUGH）。agents 填子 Agent 模型名或 self（主 Agent 自执行）。issues_found 填残余问题数。子 Agent 工具不可用时由主 Agent 自执行，degradation 声明"单一模型，最终通读缺少独立视角" |
 
-**多修复子 Agent 合并规则（Step 4）**: 当修复项 > 5 条拆分为多个修复子 Agent 时，主 Agent 收集所有修复子 Agent 的输出后，合并为**单个** STEP4_EXECUTED 标记块。issues_found 汇总所有修复子 Agent 发现的新问题数。agents 列表包含所有修复子 Agent 的名称和模型。degradation 取所有修复子 Agent 中最严重的退化状态。
+**多修复子 Agent 合并规则（Step 4）**: 当修复项涉及 ≥ 2 个无依赖文件时，拆分为多个修复子 Agent 并行执行（以文件为分组维度，无修复项数量阈值）；单文件内 > 10 条时分批顺序执行（见 SKILL.md Step 4 "同文件不并发"硬约束），主 Agent 收集所有修复子 Agent 的输出后，合并为**单个** STEP4_EXECUTED 标记块。issues_found 汇总所有修复子 Agent 发现的新问题数。agents 列表包含所有修复子 Agent 的名称和模型。degradation 取所有修复子 Agent 中最严重的退化状态。
 
 ### 标记块验证规则
 
@@ -247,3 +247,46 @@ ref: AgentId=<id>, tokens=<N>
 | 最终通读 | 子 Agent 工具不可用 | 由主 Agent 自行执行 | 主 Agent |
 
 退化声明对所有降级场景强制要求，不可省略。这构成**横切规则**，覆盖 Step 3/4/5 的全部降级分支。
+
+## 协议 5: 上下文传递与注入模板
+
+### 上下文传递机制表
+
+| 注入项 | 注入内容 | 注入方式 | 注入时机 | 附加指令 |
+|--------|---------|---------|---------|----------|
+| 模型配置 | 每个 Step 使用的模型列表 | 主 Agent 通过 prompt 参数传递 | Step 启动前 | 无（模型选择由主 Agent 决定） |
+| 规范上下文 | 当前 Gate 的对齐检查目标（design/specs/plan/code） | 主 Agent 通过 prompt 参数传递 | Step 启动前 | 无（规范内容为审查输入） |
+| 上轮审查经验 | lessons_learned（来自账本或 review-cache.json） | 主 Agent 通过 prompt 参数传递 | Step 0 / 对齐 Agent 注入 | 无（经验为辅助输入） |
+| 标记块输出指令 | 每个子 Agent 完成审查/修复/检查后，必须在输出末尾附加结构化标记块 | 主 Agent 通过 prompt 参数注入子 Agent | 每个 Step 启动前 | **强制**: 子 Agent 需输出 STEP<N>_EXECUTED 标记块 |
+
+截断策略：注入内容总长度超过 Agent prompt 限制时（通常 > 8000 字），优先保留"问题清单 + 严重度 + 证据"部分，截断"分析过程"和"冗余上下文"，截断处标注 `[... 已截断，完整报告已由主 Agent 在合并阶段审查 ...]`。合并判断表不截断。
+
+### 子 Agent prompt 注入模板
+
+主 Agent 在启动每个子 Agent 时，将以下指令附加到 prompt 参数末尾：
+
+```markdown
+## 输出要求（强制）
+
+完成本 Step 的审查/修复/检查后，你必须在输出的最后附加以下格式的结构化标记块：
+
+\`\`\`STEP<N>_EXECUTED
+status: complete|degraded|failed
+agents: [<agent_name>(<model>)]
+issues_found: <N>
+degradation: none|<具体原因>|<影响分析>|<替代措施>
+\`\`\`
+
+字段说明:
+- status: complete（正常完成）/ degraded（降级执行）/ failed（执行失败）
+- agents: 本 Step 使用的 Agent 列表，格式 [名称(模型)]
+- issues_found: 本 Step 新发现的问题数量（P0+P1+P2 合计）
+- degradation: 无降级时填 none；有降级时按退化声明格式要求填写 <具体原因>|<影响分析>|<替代措施>（完整定义见本文件协议 4）
+
+> **注意**: `ref: AgentId=<id>, tokens=<N>` 行由**主 Agent 在汇总时追加**（非子 Agent 输出）。
+
+**无论 issues_found 是否为 0，每个执行的 Step 必须输出此标记块。**
+标记块缺失将被父技能视为 Step 未执行，导致当前 Phase 被阻塞。
+```
+
+> **注入时注意**: 注入时将 `\`\`\`` 还原为普通三反引号（```），否则父技能无法匹配标记块。

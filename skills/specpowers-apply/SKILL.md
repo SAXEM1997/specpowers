@@ -11,8 +11,30 @@ description: Use when entering the implementation phase of a specpowers workflow
 > 3. 确认 Plan 审查 Gate 已通过（询问已执行，见 specpowers-plan Phase 2 "Plan 审查 Gate"）。如未询问，回 specpowers-plan 完成 Gate 后再进入。
 > 4. 如当前模式为微小任务，仍须加载 specpowers-review 执行 Gate 3 审查（走 specpowers-review 内部级联判定路径）。
 
-**REQUIRED SUB-SKILL:** Skill({skill: "superpowers:executing-plans"})
+**REQUIRED SUB-SKILL:** Skill({skill: "superpowers:subagent-driven-development"})
 **REQUIRED BACKGROUND:** Skill({skill: "superpowers:test-driven-development"})
+
+---
+
+## 执行模式硬约束
+
+> **主 Agent 不得内联串行执行 task。** 必须按 `subagent-driven-development` 流程：每个 task 分发独立子 Agent 执行，子 Agent 拥有新鲜上下文。
+
+| Plan mode | 执行方式 |
+|-----------|---------|
+| 微小 | 单个子 Agent 直接执行，跳过逐 task 审查 |
+| 中等 / 复杂 | subagent-driven-development 完整流程 |
+| 大规模 | Workflow 编排，每个 task 仍为独立子 Agent |
+
+**长上下文下的内联诱惑**: 主 Agent 在开始实现前自检以下合理化——
+
+| 如果你在想… | 实际后果 |
+|------------|---------|
+| "上下文已加载，直接做更快" | 50+ 轮后的主 Agent 更容易遗漏 TDD 步骤、跳过边界测试 |
+| "子 Agent 浪费 token" | 串行执行 10 个 task 的累积 token 消耗 > 10 个独立子 Agent 的总和 |
+| "我自己来更省事" | 第 8-10 个 task 因上下文过载，质量断崖下降 |
+
+**违规检测**: 发现自己在内联执行（非子 Agent 方式）→ 立即停止，将已写代码移入子 Agent 重新开始。
 
 ---
 
