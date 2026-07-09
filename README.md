@@ -10,7 +10,7 @@ specpowers 融合 OpenSpec（规范驱动开发）和 Superpowers（测试驱动
 specpowers (入口 — 决策树 + 路由)
   ├── specpowers-design Phase 0+1: 需求澄清 → 格式转换
   ├── specpowers-plan   Phase 2: 衔接
-  ├── specpowers-apply  Phase 3: TDD 实现 + Gate 3 审查
+  ├── specpowers-apply  Phase 3: subagent-driven TDD 实现 + Gate 3 审查
   ├── specpowers-review 审查体系: 多模型渐进式 / UltraReview / 最终通读
   └── specpowers-archive Phase 4: 硬 Gate 链验证归档
 ```
@@ -20,7 +20,7 @@ specpowers (入口 — 决策树 + 路由)
 | **specpowers** | 全局 | 决策模式判定（微小/中等/复杂/大规模）+ 路由 |
 | **specpowers-design** | 0+1 | brainstorming → OpenSpec 格式转换 + Gate 0/1 |
 | **specpowers-plan** | 2 | writing-plans 衔接 + Gate 2 |
-| **specpowers-apply** | 3 | TDD 逐 task 执行 + code-review + spec-compliance-check |
+| **specpowers-apply** | 3 | subagent-driven TDD 逐 task 执行 + code-review + spec-compliance-check |
 | **specpowers-review** | 横切 | 多模型渐进式（文档类）/ 加强审查（≤2 文件且 ≤200 行）/ UltraReview + 对齐审查（其他情况）/ 最终通读 |
 | **specpowers-archive** | 4 | 全量测试 → openspec validate → archive → 完整性验证 |
 
@@ -68,7 +68,8 @@ Phase 2: 衔接阶段 (writing-plans)
   ├── 粒度转换 + 场景→测试映射
   └── Gate 2 审查
        ↓
-Phase 3: TDD 实现
+Phase 3: subagent-driven TDD 实现
+  ├── 每个 task 独立子 Agent 执行（新鲜上下文）
   ├── RED-GREEN-REFACTOR-COMMIT 逐 task 执行
   ├── code-review + spec-compliance-check
   └── Gate 3 审查
@@ -89,11 +90,13 @@ Phase 4: 验证 + 归档
 ├── 文档类 (proposal/design/plan/spec/skill/...)
 │   └── 多模型渐进式审查 (3 Agent 并行)
 │       结构 Agent + 落地 Agent + 对齐 Agent
+│       + 审查层级边界（分析不受限，评论受限制）
 │
 └── 代码类
-    ├── 微小任务 → 内部审查协议
-    ├── 其他情况 → UltraReview + 对齐审查（6 Agent 团队）
-    └── 加强审查（≤2 文件且 ≤200 行, code-review + 对齐 Agent 单审）
+    ├── 条件 1: ≤2 文件且 ≤200 行 → 加强审查
+    │   （code-review + 对齐 Agent 单审）
+    └── 条件 2: 其他情况 → UltraReview + 对齐审查
+        （6 Agent 团队 + COVERED/MISSING/DRIFT 对照）
 ```
 
 ### 多模型渐进式审查

@@ -257,7 +257,7 @@ master (main) ← 始终可部署
 | propose | `Skill({skill: "specpowers-design"})`（Phase 1，格式转换+强制对照） | specpowers-design |
 | Plan 审查 | 询问用户是否审查 plan（Phase 2 Gate） | specpowers-plan |
 | 衔接 | "读取 openspec changes/, 用 writing-plans 拆 TDD 计划" | specpowers-plan |
-| 实现 | Skill({skill: "superpowers:executing-plans"}) | specpowers-apply |
+| 实现 | `Skill({skill: "superpowers:subagent-driven-development"})`（每个 task 一个独立子 Agent） | specpowers-apply |
 | 审查 | Skill({skill: "specpowers-review"})（自动判定审查类型） | specpowers-review |
 | 验证 | `openspec validate <name>` + test | specpowers-archive |
 | 归档 | `/opsx:archive`（硬 Gate 链，禁止手动绕过） | specpowers-archive |

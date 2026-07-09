@@ -127,6 +127,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 
 **审批通过后，执行 Gate 0 审查**:
 `Skill({skill: "specpowers-review"})` — 对齐检查：design.md vs clarifications/<name>.md。
+> **审查层级提醒**: Gate 0 审查对象为 design.md（设计层面），审查应停留在架构/接口/数据流/错误处理策略层面，不应涉及具体代码实现细节。specpowers-review 的审查层级边界协议会自动将此约束注入审查 Agent prompt。
 Gate 0 返回后，执行 Gate 返回后验证协议（参数: Gate=0, Phase=0, 标记块=STEP1-5）。
 
 ---
@@ -188,6 +189,7 @@ Gate 0 返回后，执行 Gate 返回后验证协议（参数: Gate=0, Phase=0, 
 
 **人工审核通过后，执行 Gate 1 审查**:
 `Skill({skill: "specpowers-review"})` — 对齐检查：OpenSpec 四件套（proposal/design/specs/tasks）vs Phase 0 design.md + clarifications。
+> **审查层级提醒**: Gate 1 审查对象包含 proposal（动机/范围层面）、design（架构/接口层面）、specs（需求覆盖层面）、tasks（任务拆解层面），审查应分别停留在各文档对应的抽象层级，不应涉及具体代码实现细节。specpowers-review 的审查层级边界协议会自动将此约束注入审查 Agent prompt。
 Gate 1 返回后，执行 Gate 返回后验证协议（参数: Gate=1, Phase=1, 标记块=STEP1-5）。
 
 ---
