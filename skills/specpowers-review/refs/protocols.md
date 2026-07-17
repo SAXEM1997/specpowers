@@ -15,6 +15,7 @@ session_ledger = {
         "rounds": [
             {
                 "round": 1,
+                "tier": "full",       // 新增：本轮路由到的层级（full|critical|fast）
                 "p0": 0,            // 保留：修复后剩余 P0（向后兼容，Step 5 写入）
                 "p1": 0,            // 保留：修复后剩余 P1
                 "p2": 0,            // 保留：修复后剩余 P2
@@ -179,12 +180,15 @@ ref: AgentId=<id>, tokens=<N>
 
 | Gate | 应存在的标记块 |
 |------|-------------|
-| Gate 0/1/2（多模型渐进式） | STEP1, STEP2, STEP3, STEP4, STEP5 |
-| Gate 3（UltraReview+对齐审查, 其他情况） | STEP1(对应 Step A), STEP2(Step B-C), STEP3(Step D-E), STEP4(Step F), STEP5 |
-| Gate 3（加强审查, ≤2 文件且 ≤200 行） | STEP1(对齐 Agent 审查，含 code-review 结果引用), STEP2(主 Agent 判断) |
+| Gate 0/1/2（文档类） | 按 [TIER_ROUTING] expected_steps 动态检查（非固定 STEP 集）。无 TIER_ROUTING 标记时回退旧逻辑：STEP1, STEP2, STEP3, STEP4, STEP5 |
+| Gate 3（代码类） | 按 [TIER_ROUTING] expected_steps 动态检查（非固定 STEP 集）。无 TIER_ROUTING 标记时回退旧逻辑——2 文件且 ≤200 行：STEP1, STEP2；其他：STEP1, STEP2, STEP3, STEP4, STEP5 |
 | 最终通读 | STEP_FINAL_READTHROUGH |
 
-> **加强审查标记块均在 specpowers-review 内部产出，非跨 skill**: specpowers-apply 的 code-review 结果作为上下文**注入** specpowers-review 的对齐 Agent prompt。对齐 Agent 接收 code-review 结果后执行对齐检查，输出 `STEP1_EXECUTED`（标记块中记录 code-review 结果引用）；主 Agent 综合判断后输出 `STEP2_EXECUTED`。两个标记块均由 specpowers-review 内部 Agent 产出，父技能（specpowers-apply）在 Gate 3 返回后统一检查。
+> **动态检查规则**: 父技能（验证者）搜索 `[TIER_ROUTING]` 标记，提取 `expected_steps` 数组，以此作为应存在的 STEP 列表。无 TIER_ROUTING 标记时回退旧逻辑（上表"回退旧逻辑"列）以保证向前兼容。
+>
+> **TIER_SKIPPED 块识别规则**: `STEP<N>_TIER_SKIPPED` 块（见协议 6）表示 tier 裁剪主动跳过的 Step。识别规则：(a) 该块既不计入已执行的 STEP，也不计入缺失；(b) 仅当对应 STEP 号在 expected_steps 中且未找到 STEP<N>_EXECUTED 时，才视为缺失；(c) TIER_SKIPPED 块本身不参与完整性判断——父技能在 expected_steps 检查之外可忽略之。
+
+> **加强审查（旧路由路径名，实施后降级为 recipe 名）标记块均在 specpowers-review 内部产出，非跨 skill**: specpowers-apply 的 code-review 结果作为上下文**注入** specpowers-review 的对齐 Agent prompt。对齐 Agent 接收 code-review 结果后执行对齐检查，输出 `STEP1_EXECUTED`（标记块中记录 code-review 结果引用）；主 Agent 综合判断后输出 `STEP2_EXECUTED`。两个标记块均由 specpowers-review 内部 Agent 产出，父技能（specpowers-apply）在 Gate 3 返回后统一检查。
 
 - 缺失任一块 → 视为审查未完成，阻塞当前 Phase，要求重新执行 specpowers-review
 - 检查方法: 搜索以 `` ```STEP<N>_EXECUTED `` 开头的 fenced code block（即匹配行首的 `` ``` `` 后紧跟 `STEP<N>_EXECUTED`，作为 fenced code block 的起始标记）。此匹配方式利用标记块固定为 fenced code block 的事实，排除审查报告正文中的示例引用或讨论提及。如果审查报告使用了非标准 code fence（如 `~~~`），同时搜索 `~~~STEP<N>_EXECUTED`
@@ -265,28 +269,108 @@ ref: AgentId=<id>, tokens=<N>
 
 主 Agent 在启动每个子 Agent 时，将以下指令附加到 prompt 参数末尾：
 
-```markdown
-## 输出要求（强制）
+> **标记块格式**: 见本文件协议 3「标记块格式」节（`STEP<N>_EXECUTED` fenced code block 完整定义 + 字段说明）。注入时将 `\`\`\`` 还原为普通三反引号（```），否则父技能无法匹配标记块。
 
-完成本 Step 的审查/修复/检查后，你必须在输出的最后附加以下格式的结构化标记块：
+注入指令要点（基于协议 3 格式）：
+- 子 Agent 完成审查/修复/检查后，必须在输出末尾附加 `STEP<N>_EXECUTED` 标记块
+- `ref: AgentId=<id>, tokens=<N>` 行由**主 Agent 在汇总时追加**（非子 Agent 输出）
+- **无论 issues_found 是否为 0，每个执行的 Step 必须输出此标记块**
+- 标记块缺失将被父技能视为 Step 未执行，导致当前 Phase 被阻塞
 
-\`\`\`STEP<N>_EXECUTED
-status: complete|degraded|failed
-agents: [<agent_name>(<model>)]
-issues_found: <N>
-degradation: none|<具体原因>|<影响分析>|<替代措施>
-\`\`\`
+## 协议 6: 三级路由算法（tier routing）
 
-字段说明:
-- status: complete（正常完成）/ degraded（降级执行）/ failed（执行失败）
-- agents: 本 Step 使用的 Agent 列表，格式 [名称(模型)]
-- issues_found: 本 Step 新发现的问题数量（P0+P1+P2 合计）
-- degradation: 无降级时填 none；有降级时按退化声明格式要求填写 <具体原因>|<影响分析>|<替代措施>（完整定义见本文件协议 4）
+> 定义审查层级（tier）的路由矩阵、评估算法、层级裁剪声明、FAST 开关及典型场景。由 specpowers-review SKILL.md 按需引用。路由决策由主 Agent 在 Step 0 执行，输出 `[TIER_ROUTING]` 标记。
 
-> **注意**: `ref: AgentId=<id>, tokens=<N>` 行由**主 Agent 在汇总时追加**（非子 Agent 输出）。
+### 路由矩阵
 
-**无论 issues_found 是否为 0，每个执行的 Step 必须输出此标记块。**
-标记块缺失将被父技能视为 Step 未执行，导致当前 Phase 被阻塞。
+规模分桶（基于入口 skill 有效范围）：微小 1-3 / 中等 4-19 / 复杂 20-49 / 大规模 50+。
+
+> **入口 4 文件空洞修复**：入口原微小=1-3、中等=5-19，4 文件未归类。本矩阵中等=4-19 修复此空洞。部署时须同步入口 skill 的分桶定义。
+
+| 规模 × 轮数 | 第 1 轮 | 第 2 轮 | 第 3 轮+ |
+|------------|--------|--------|---------|
+| 微小（1-3）| 关键 | 关键 | 快速★ |
+| 中等（4-19）| 完整 | 关键★ | 关键★ |
+| 复杂（20-49）| 完整 | 完整 | 完整 |
+| 大规模（50+）| 完整 | 完整 | 完整 |
+
+★ 触发收敛闸门，不满足则升级。详见下方算法 step 5。
+
+**快速 tier 实际触发条件（极窄）**：微小 + round≥3 + line≤200 + 上轮收敛（p0_raw=0 且 p1_raw<3），四条件全满足。
+
+### 路由算法
+
+```text
+输入: object_type, file_count, line_count (apply 传入)
+预计算:
+  bucket = bucket(file_count)                          # 微小/中等/复杂/大规模
+  bucket_class = (object_type==代码) ? (bucket in {微小,中等} ? 小代码 : 大代码) : null
+  round = (!ledger || !ledger[gate_id]) ? 1 : ledger[gate_id].rounds.length + 1   # gate_id 不存在视为首轮 (若护栏1 early-return 触发, 此预计算值被忽略)
+  prev_raw = (round >= 2) ? ledger[gate_id].rounds[round-2] : null   # round=1 无上一轮, round>=2 取 rounds[round-2] (0-indexed) 防数组负索引
+1. 护栏1(安全优先, early-return): if !ledger || !ledger[gate_id] → return tier=完整, reason="ledger缺失,保守完整"   # 最先, 覆盖手动覆盖
+2. 手动覆盖(基础 tier=floor): if 用户指定"完整/关键/快速审查" → base_tier=指定值; else base_tier=null; reason+="用户指定"   # 文档类手动指定"UltraReview": 不走 tier 路由, 直接 recipe=UltraReview(6-agent), 但仍须经护栏1(ledger缺失仍 early-return 完整)
+3. 矩阵: matrix_tier = MATRIX[bucket][round]; tier = (base_tier!=null) ? max(base_tier, matrix_tier) : matrix_tier; if matrix_tier>base_tier reason+="矩阵升级"
+4. 行数地板: floor_tier = floor(line_count); if floor_tier>tier → tier=floor_tier, reason+="行数地板升级"
+5. 收敛闸门(仅 prev_raw!=null 时, 无论 tier 来源都执行):
+   - tier==快速 且 非(round>=3 且 prev_raw.p0_raw==0 且 prev_raw.p1_raw<3) → tier=关键, reason+="收敛证据不足降级"   # round>=3 防御性冗余, 由矩阵保证
+   - tier==关键 且 bucket==中等 且 prev_raw.p0_raw>0 → tier=完整, reason+="中等未收敛升级"
+   convergence = (prev_raw==null) ? n/a : (闸门触发 ? failed : passed)
+6. FAST 开关: if FAST_TIER_ENABLED==false 且 tier==快速 → tier=关键, reason+="FAST_TIER_ENABLED关闭,回退关键"
+7. recipe = RECIPES[object_type][tier][bucket_class]   # 代码类完整层按 bucket_class 选 加强审查/UltraReview; 文档类 bucket_class=null
+输出: [TIER_ROUTING] tier=<>, round=<>, file_count=<>, bucket=<>, line_count=<>, floor=<>, convergence=<passed|failed|n/a>, reason=<>, expected_steps=[...]
 ```
 
-> **注入时注意**: 注入时将 `\`\`\`` 还原为普通三反引号（```），否则父技能无法匹配标记块。
+**评估顺序（箭头=先后，非覆盖；每层只升不降）**：护栏 1（ledger 缺失 early-return）→ 手动覆盖（设基础 tier=floor）→ 矩阵 → 行数地板（max 升级）→ 收敛闸门（条件升级）→ FAST 开关。
+
+**行数地板（只升不降）**：`floor(line>500)={round1:完整, round2+:关键}; floor(200<line≤500)=关键; floor(line≤200)=矩阵tier`；`tier=max(tier, 地板tier)`。
+
+> 护栏 1 是安全护栏（与行数地板同级），可覆盖手动覆盖——因为 floor 语义是"不低于此 tier"，安全护栏升级手动值不违背用户控制（用户指定"快速"+ledger 缺失 → 安全优先完整）。reason 字段会注明"手动覆盖被安全护栏覆盖"。
+
+### 层级裁剪声明块
+
+tier 裁剪专用，与协议 4「退化声明」区分。review 侧在裁剪掉的 STEP 输出此块。
+
+```
+STEP<N>_TIER_SKIPPED
+tier: <fast|full>
+step: <N>
+reason: <快速层裁剪独立监督 | 完整层加强审查子路径轻量>
+fallback_coverage: 最终通读 Gate 横切 + 主 Agent 自检 + 收敛闸门
+```
+
+| 字段 | 说明 |
+|------|------|
+| `tier` | 当前路由层级（fast 或 full） |
+| `step` | 被裁剪的 STEP 编号 |
+| `reason` | 快速层：裁剪独立监督（STEP3/5）；完整层加强审查子路径：轻量路径无需监督+QuickReview（STEP3/4/5） |
+| `fallback_coverage` | 裁剪的补偿机制：最终通读 Gate 横切 + 主 Agent 自检 + 收敛闸门 |
+
+**review 侧（必须输出）**：tier 裁剪掉的 STEP 输出此块，供父技能 reason 抽查与人类审计追溯。
+
+**父技能验证侧（中性）**：TIER_SKIPPED 块既不计入已执行也不计入缺失；父技能按 `expected_steps` 检查（expected 中的 STEP 必须有 STEP<N>_EXECUTED，不在 expected 中的 STEP 不需检查）。
+
+### FAST_TIER_ENABLED 配置
+
+快速 tier 的全局开关，默认值 `false`。位于本协议（protocols.md）中，非用户可配置项。
+
+- **默认 false（过渡期安全）**：快速 tier 不可用，算法 step 6 将快速回退为关键，确保与旧父技能兼容（关键层仍产 STEP1-5）。
+- **置 true（解锁快速层）**：待所有消费者（specpowers-apply/design/plan）升级为 expected_steps 动态检查后，手动改为此处为 true。
+- **开关流向**：见路由算法 step 6。
+
+### 典型场景验证
+
+以下 11 个场景覆盖路由算法全部路径：
+
+| # | 场景 | 预期 tier | 关键路径 |
+|---|------|----------|---------|
+| 1 | 微小 round3 + 收敛（p0_raw=0, p1_raw<3）+ line≤200 | 快速 | 矩阵→快速 + 闸门通过 + FAST 开关（若 true） |
+| 2 | 中等 round2 | 关键 | 矩阵→关键★ + 闸门（p0_raw=0 则通过） |
+| 3 | 中等 round3 但上轮 p0_raw>0 | 完整 | 矩阵→关键 → 闸门升级完整（中等未收敛） |
+| 4 | 复杂任意轮 | 完整 | 矩阵→完整，永不降级 |
+| 5 | 跨会话恢复（ledger 缺失） | 完整 | 护栏1 early-return，覆盖手动覆盖 |
+| 6 | 代码类 3 文件/400 行 round1 | 完整（加强审查子路径） | 矩阵→完整，bucket=微小/中等→recipe=加强审查 STEP1-2 |
+| 7 | 代码类 3 文件 round2 | 关键（3 独立视角） | 矩阵→关键，recipe=3 独立视角 |
+| 8 | round1 手动指定快速但 line>500 | 完整 | 手动→快速 → 行数地板升级完整 |
+| 9 | round2+ 手动指定快速但 line>500 | 关键 | 手动→快速 → 行数地板升级关键 |
+| 10 | 问题多但 round3（微小） | 关键 | 矩阵→快速 → 闸门降级关键（收敛证据不足） |
+| 11 | FAST_TIER_ENABLED=false + 微小 round3+收敛 | 关键 | 矩阵→快速 → step6 回退关键 |

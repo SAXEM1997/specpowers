@@ -73,13 +73,11 @@ git diff --shortstat $(git merge-base main HEAD)..HEAD | awk '{print $4+$6}'
 ```
 将文件数和修改总行数传入 specpowers-review Skill 调用。
 
-审查类型由 specpowers-review 内部决策树按级联条件自动判定（命中即停止）：
-- 条件 1：文件数 ≤ 2 且修改总行数 ≤ 200 → 加强审查（code-review 由本技能执行 + 对齐检查由 specpowers-review 对齐 Agent 单 Agent 执行）
-- 条件 2：其他情况 → UltraReview + 对齐审查（specpowers-review 的 6-agent 团队审查）
+审查 tier 由 specpowers-review 内部三级路由矩阵自动判定（轮数×规模×行数地板→快速/关键/完整），apply 传入 file_count + line_count，review 返回 `[TIER_ROUTING] expected_steps=[...]`。
 
 **Gate 3 返回后，执行以下验证（不可跳过）**:
 
-> **设计说明**: 以下验证 0/1/2 逻辑与 specpowers-plan 的 "Gate 返回后验证协议" 结构一致但独立内联。跨文件 Skill() 引用不可靠（子 skill 加载未必携带父 skill 上下文），因此有意保留此重复（v2 预期内的 MINOR DRIFT）。修改任一处时需同步更新另一处。
+> **设计说明**: 验证 0/1/2 逻辑已与 design/plan 统一为 expected_steps 检查 + 向前兼容。
 
 **验证 0 — 执行模式检查**:
 读取会话上下文中的 `Plan: <mode>`:
@@ -87,9 +85,7 @@ git diff --shortstat $(git merge-base main HEAD)..HEAD | awk '{print $4+$6}'
 降级: 若 Plan mode 不存在，输出 `[WARNING] Plan mode 未设置` 后继续完整验证。
 
 **验证 1 — 执行标记完整性检查**:
-根据审查类型检查对应的标记块（搜索以 ```STEP<N>_EXECUTED 开头的 fenced code block）:
-- 加强审查（≤2 文件且 ≤200 行）: STEP1, STEP2
-- UltraReview + 对齐审查（其他情况）: STEP1, STEP2, STEP3, STEP4, STEP5
+搜索 specpowers-review 输出的 `[TIER_ROUTING] expected_steps=[...]`，按 expected_steps 列表逐个检查对应 `STEP<N>_EXECUTED` 标记块存在性；裁剪的 STEP 若有 `STEP<N>_TIER_SKIPPED` 块不计入缺失。**向前兼容**：若无 TIER_ROUTING 标记（旧版 review），回退旧逻辑：2 文件且 ≤200 行 → STEP1, STEP2（原加强审查）；其他 → STEP1-5（原 UltraReview）。
 
 缺失任一块 → `[VERIFY_FAIL] Gate 3 审查执行不完整，阻塞 Phase 3`。
 搜索未命中任何标记块 → `[VERIFY_FAIL] Gate 3 审查 Agent 未正常执行（无任何执行标记），阻塞 Phase 3`。
@@ -99,13 +95,13 @@ git diff --shortstat $(git merge-base main HEAD)..HEAD | awk '{print $4+$6}'
 - N > 0 → `[VERIFY_FAIL] Gate 3 未通过（P0=N），阻塞 Phase 3`
 - N = 0 且验证 1 通过 → Gate 3 通过，进入 Phase 4
 
-> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate，非 Phase 0-4 Gate 体系的组成部分。父技能仅验证 STEP1-STEP5（或加强审查的 STEP1-STEP2），不跨边界验证 specpowers-review 的内部 Gate。详见 specpowers-plan "Gate 返回后验证协议" 节的设计说明。
+> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate，非 Phase 0-4 Gate 体系的组成部分。父技能仅验证 TIER_ROUTING.expected_steps 声明的 STEP 集，不跨边界验证 specpowers-review 的内部 Gate。详见 specpowers-plan "Gate 返回后验证协议" 节的设计说明。
 
 ---
 
-### code-review（加强审查路径）
+### code-review（Gate 3 代码类路径）
 
-加强审查路径（代码 ≤2 文件且 ≤200 行）中，code-review 由本技能执行：
+代码类所有 tier（完整/关键/快速）均由本技能执行 code-review。code-review 执行结果由 specpowers-review 在 STEP1 中作为对齐 Agent 输入上下文；其他 STEP（STEP3-5）由 review 内部 tier recipe 路由决定。代码类关键层 = 3 独立视角（code-review + 对齐 + 监督）、快速层 = code-review（轻量）。
 1. 使用 `Skill({skill: "superpowers:requesting-code-review"})` 加载代码质量审查
 2. 审查维度：命名、结构、错误处理、代码风格
 3. 通过标准：无 P0 问题
@@ -129,7 +125,7 @@ git diff --shortstat $(git merge-base main HEAD)..HEAD | awk '{print $4+$6}'
 [COVERED/MISSING/DRIFT] Requirement: <title> — <evidence>
 
 > 注：本协议的核心检查逻辑已注入为 specpowers-review 对齐审查 Agent 的 prompt 模板。
-> 在 Gate 3 加强审查路径中由对齐 Agent 自动执行，不再由本技能手动执行。
+> 在 Gate 3 代码类路径中由对齐 Agent 自动执行，不再由本技能手动执行。
 > 微小任务模式下，本协议仍由本技能手动执行。
 ```
 
