@@ -11,7 +11,7 @@ specpowers (入口 — 决策树 + 路由)
   ├── specpowers-design Phase 0+1: 需求澄清 → 格式转换
   ├── specpowers-plan   Phase 2: 衔接
   ├── specpowers-apply  Phase 3: subagent-driven TDD 实现 + Gate 3 审查
-  ├── specpowers-review 审查体系: 多模型渐进式 / UltraReview / 最终通读
+  ├── specpowers-review 审查体系: 三级路由（快速/关键/完整）/ 最终通读
   └── specpowers-archive Phase 4: 硬 Gate 链验证归档
 ```
 
@@ -21,7 +21,7 @@ specpowers (入口 — 决策树 + 路由)
 | **specpowers-design** | 0+1 | brainstorming → OpenSpec 格式转换 + Gate 0/1 |
 | **specpowers-plan** | 2 | writing-plans 衔接 + Gate 2 |
 | **specpowers-apply** | 3 | subagent-driven TDD 逐 task 执行 + code-review + spec-compliance-check |
-| **specpowers-review** | 横切 | 多模型渐进式（文档类）/ 加强审查（≤2 文件且 ≤200 行）/ UltraReview + 对齐审查（其他情况）/ 最终通读 |
+| **specpowers-review** | 横切 | 三级路由（按轮数×规模自动判定：快速/关键/完整审查）/ 防退化机制保留 |
 | **specpowers-archive** | 4 | 全量测试 → openspec validate → archive → 完整性验证 |
 
 ## 快速开始
@@ -43,10 +43,10 @@ specpowers (入口 — 决策树 + 路由)
 
 | 模式 | 文件数 | Phase 流程 | 审查 |
 |------|--------|-----------|------|
-| **微小** | 1-3 | 轻量探索 → 子代理执行 → 完成 | 内部审查协议 |
-| **中等** | 4-19 | Phase 0→1→2→3→4 完整流程 | Gate 0→1→2→3→4 |
-| **复杂** | 20-49 | Phase 2 启用 UltraPlan | UltraReview |
-| **大规模** | 50+ | Phase 2 启用 Workflow | UltraReview |
+| **微小** | 1-3 | 轻量探索 → 子代理执行 → 完成 | 三级路由自动判定 |
+| **中等** | 4-19 | Phase 0→1→2→3→4 完整流程 | 三级路由自动判定 |
+| **复杂** | 20-49 | Phase 2 启用 UltraPlan | 三级路由自动判定 |
+| **大规模** | 50+ | Phase 2 启用 Workflow | 三级路由自动判定 |
 
 ## Phase 工作流
 
@@ -83,21 +83,15 @@ Phase 4: 验证 + 归档
 
 ## 审查体系
 
-审查类型由 specpowers-review 内部决策树自动判定，用户可手动覆盖：
+审查层级由 specpowers-review 内部三级路由矩阵自动判定（按评审轮数×待评审物规模×行数地板），用户可手动覆盖（快速/关键/完整审查）：
 
-```
-审查对象类型?
-├── 文档类 (proposal/design/plan/spec/skill/...)
-│   └── 多模型渐进式审查 (3 Agent 并行)
-│       结构 Agent + 落地 Agent + 对齐 Agent
-│       + 审查层级边界（分析不受限，评论受限制）
-│
-└── 代码类
-    ├── 条件 1: ≤2 文件且 ≤200 行 → 加强审查
-    │   （code-review + 对齐 Agent 单审）
-    └── 条件 2: 其他情况 → UltraReview + 对齐审查
-        （6 Agent 团队 + COVERED/MISSING/DRIFT 对照）
-```
+- **快速**：微小任务第 3 轮+，收敛后触发（~0.15x token）
+- **关键**：中等规模后期轮次、微小早期轮次（~0.4x token）
+- **完整**：首轮审查、复杂/大规模任务（含加强审查/UltraReview 等 recipe 子路径）
+
+防退化机制全部保留并为 tier 路由补充防护。
+
+以下为三维 recipe 表（详见 specpowers-review SKILL.md §1）中的核心 recipe 展开说明：
 
 ### 多模型渐进式审查
 

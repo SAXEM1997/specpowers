@@ -42,7 +42,7 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 | **specpowers-design** | Phase 0+1 | brainstorming 前置+设计+propose 阶段 |
 | **specpowers-plan** | Phase 2 | 衔接阶段 |
 | **specpowers-apply** | Phase 3 | 实现阶段 |
-| **specpowers-review** | 审查 | UltraReview 级审查 |
+| **specpowers-review** | 审查 | 三级路由（按轮数×规模：快速/关键/完整审查） |
 | **specpowers-archive** | Phase 4 | 验证+归档阶段 |
 
 ## 启动协议
@@ -70,9 +70,9 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 │   ├── Phase 2: 跳过
 │   ├── Phase 3: 子代理直接执行
 │   ├── Phase 4: 跳过
-│   ⚠ 4+ 文件或跨模块 → 升为中等任务
+│   ⚠ 4+ 文件或跨模块 → 升为中等任务（4 文件归中等，中等范围 4-19）
 │
-├── 中等任务（5-19 文件）← specpowers 默认
+├── 中等任务（4-19 文件）← specpowers 默认
 │   ├── Phase 0: brainstorming 完整流程（需求澄清+方案设计+审批 Gate）
 │   ├── Phase 1: propose 格式转换+强制对照验证
 │   ├── Phase 2: writing-plans 衔接 + Plan 审查 Gate
@@ -116,13 +116,15 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 
 **微小任务不加载子技能** — 直接在入口 skill 上下文中子代理执行。
 
+> 注：微小任务不加载 design/plan/apply/archive 业务子技能，但 specpowers-review（审查横切）仍加载执行 Gate 3（见 specpowers-apply 前置检查）。
+
 | 当前 Phase | 模式 | 加载 | 命令 |
 |-----------|------|------|------|
 | Phase 0 | 中等+ | specpowers-design | `Skill({skill: "specpowers-design"})` |
 | Phase 1 | 中等+ | specpowers-design | `Skill({skill: "specpowers-design"})` |
 | Phase 2 | 中等+ | specpowers-plan | `Skill({skill: "specpowers-plan"})` |
 | Phase 3 | 中等+ | specpowers-apply | `Skill({skill: "specpowers-apply"})` |
-| 审查 | 代码类（由 specpowers-review 内部按文件数+行数自动判定）或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers-review"})` |
+| 审查 | 代码类（由 specpowers-review 内部三级路由自动判定：快速/关键/完整审查）或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers-review"})` |
 | Phase 4 | 中等+ | specpowers-archive | `Skill({skill: "specpowers-archive"})` |
 | — | 微小 | 不加载子技能 | 入口 skill 中直接子代理执行。执行完毕后主 Agent 确认产物并输出完成摘要 |
 
@@ -130,9 +132,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 
 ## 审查路由
 
-需要审查时，加载 `specpowers-review`，由 specpowers-review 内部按文档/代码分类 + 文件数自动判定审查类型，用户可手动覆盖。
-
-> 原审查级别判断矩阵（文件数 × 风险维度）已废弃。审查类型判定逻辑完整移入 specpowers-review 内部决策树。
+需要审查时，加载 `specpowers-review`，由 specpowers-review 内部三级路由矩阵自动判定审查层级（按评审轮数×待评审物规模×行数地板路由到快速/关键/完整审查），防退化机制全部保留并为 tier 路由补充防护；用户可手动覆盖（快速/关键/完整审查）。
 
 ### 各模式映射
 
@@ -258,7 +258,7 @@ master (main) ← 始终可部署
 | Plan 审查 | 询问用户是否审查 plan（Phase 2 Gate） | specpowers-plan |
 | 衔接 | "读取 openspec changes/, 用 writing-plans 拆 TDD 计划" | specpowers-plan |
 | 实现 | `Skill({skill: "superpowers:subagent-driven-development"})`（每个 task 一个独立子 Agent） | specpowers-apply |
-| 审查 | Skill({skill: "specpowers-review"})（自动判定审查类型） | specpowers-review |
+| 审查 | Skill({skill: "specpowers-review"})（三级路由自动判定） | specpowers-review |
 | 验证 | `openspec validate <name>` + test | specpowers-archive |
 | 归档 | `/opsx:archive`（硬 Gate 链，禁止手动绕过） | specpowers-archive |
 

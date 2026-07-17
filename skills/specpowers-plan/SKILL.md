@@ -56,7 +56,7 @@ description: Use when the user says "plan the implementation", "bridge OpenSpec 
 **衔接阶段完成后，强制执行 Gate 2 审查**：
 
 `Skill({skill: "specpowers-review"})` — 对齐检查：plan vs Phase 1 OpenSpec specs + Phase 0 design。
-Gate 2 返回后，执行 Gate 返回后验证协议（参数: Gate=2, Phase=2, 标记块=STEP1-5）。
+Gate 2 返回后，执行 Gate 返回后验证协议（参数: Gate=2, Phase=2）。
 
 ### 场景→测试转换
 
@@ -85,22 +85,24 @@ Gate 2 返回后，执行 Gate 返回后验证协议（参数: Gate=2, Phase=2, 
 降级: 若 Plan mode 不存在，默认视为非 tiny，输出 `[WARNING] Plan mode 未设置` 后继续完整验证。
 
 **验证 1 — 执行标记完整性检查**:
-在 specpowers-review 返回的审查报告中搜索以 ```STEP<N>_EXECUTED 开头的 fenced code block。
-缺失任一块 → `[VERIFY_FAIL] Gate <N> 审查执行不完整，阻塞 Phase <N>`。
-搜索未命中任何标记块 → `[VERIFY_FAIL] Gate <N> 审查 Agent 未正常执行（无任何执行标记），阻塞 Phase <N>`。
+从 specpowers-review 返回的审查报告中搜索 `[TIER_ROUTING]` 标记，提取 `expected_steps=[...]` 字段：
+- 若 `[TIER_ROUTING]` 存在：按 `expected_steps` 逐个检查 `STEP<N>_EXECUTED` 存在性。裁剪的 STEP 的 `STEP<N>_TIER_SKIPPED` 块不计入缺失。
+- 向前兼容：无 `[TIER_ROUTING]` 标记则回退旧逻辑——按 STEP1-5 检查（与旧版 specpowers-review 输出兼容）。
+任一 expected 中的 STEP 缺失 `STEP<N>_EXECUTED` → `[VERIFY_FAIL] Gate <N> 审查执行不完整，阻塞 Phase <N>`。
+搜索未命中任何执行标记块 → `[VERIFY_FAIL] Gate <N> 审查 Agent 未正常执行（无任何执行标记），阻塞 Phase <N>`。
 
 **验证 2 — P0 硬阻止检查**:
 搜索 `[GATE_BLOCKED] p0_count=N`:
 - N > 0 → `[VERIFY_FAIL] Gate <N> 未通过（P0=N），阻塞 Phase <N>`
 - N = 0 且验证 1 通过 → Gate <N> 通过
 
-> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate（由 specpowers-review 主 Agent 在 Step 5 后自行启动），非 Phase 0-4 Gate 体系的组成部分。父技能（specpowers-design / specpowers-plan / specpowers-apply）仅验证各 Gate 对应的 STEP1-STEP5 标记块，不跨边界验证 specpowers-review 的内部 Gate。specpowers-review 的独立调用自检中已包含 STEP_FINAL_READTHROUGH 的存在性检查（见 specpowers-review SKILL.md "独立调用场景自检" 节），确保其在独立调用场景下不被遗漏。
+> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate（由 specpowers-review 主 Agent 在 Step 5 后自行启动），非 Phase 0-4 Gate 体系的组成部分。父技能（specpowers-design / specpowers-plan / specpowers-apply）仅验证各 Gate 对应 expected_steps 的标记块（无 TIER_ROUTING 时回退 STEP1-5），不跨边界验证 specpowers-review 的内部 Gate。specpowers-review 的独立调用自检中已包含 STEP_FINAL_READTHROUGH 的存在性检查（见 specpowers-review SKILL.md "独立调用场景自检" 节），确保其在独立调用场景下不被遗漏。
 
 **各 Gate 特化参数**:
 
-| Gate | Phase | 应存在标记块 |
+| Gate | Phase | 标记块检查方式 |
 |------|-------|-------------|
-| Gate 2 | Phase 2 | STEP1, STEP2, STEP3, STEP4, STEP5 |
+| Gate 2 | Phase 2 | 按 `[TIER_ROUTING] expected_steps` 动态检查；无 TIER_ROUTING 回退 STEP1-5 |
 
 > **注**: Gate 3 验证由 specpowers-apply 负责（见 specpowers-apply SKILL.md 的 "审查（Gate 3）" 节）。本表仅覆盖 specpowers-plan 管辖的 Phase 2 Gate。Phase 0/1 Gate 对应协议见 specpowers-design。
 
