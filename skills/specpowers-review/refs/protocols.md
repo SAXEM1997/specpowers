@@ -15,14 +15,15 @@ session_ledger = {
         "rounds": [
             {
                 "round": 1,
-                "tier": "full",       // 新增：本轮路由到的层级（full|critical|fast）
-                "p0": 0,            // 保留：修复后剩余 P0（向后兼容，Step 5 写入）
-                "p1": 0,            // 保留：修复后剩余 P1
-                "p2": 0,            // 保留：修复后剩余 P2
-                "p0_raw": 1,        // 新增：原始发现 P0（Step 2 汇总时记录）
-                "p1_raw": 4,        // 新增：原始发现 P1
-                "p2_raw": 3,        // 新增：原始发现 P2
-                "p3_raw": 2,        // 新增：原始发现 P3
+                "tier": "full",       // 本轮路由到的层级（full|critical|fast）
+                "p0": 0,            // 修复后剩余 P0（向后兼容，Step 5 写入）
+                "p1": 0,            // 修复后剩余 P1
+                "p2": 0,            // 修复后剩余 P2
+                // 注: 不追踪 p3（修复后剩余）——P3 为风格问题，不计入阻塞判定或剩余计数，仅通过 p3_raw 追踪原始发现数
+                "p0_raw": 1,        // 原始发现 P0（Step 2 汇总时记录）
+                "p1_raw": 4,        // 原始发现 P1
+                "p2_raw": 3,        // 原始发现 P2
+                "p3_raw": 2,        // 原始发现 P3
                 "issues_summary": ["问题简述1", "问题简述2"],
                 "timestamp": "2026-06-25T10:30:00Z"
             }
@@ -51,6 +52,8 @@ session_ledger = {
 | 读取 lessons_learned | 下一 Gate 加载时，注入对齐 Agent prompt（Step 0） | 主 Agent |
 | 写入 final_readthrough | 最终通读完成后 | 主 Agent |
 | 读取 final_readthrough | 最终通读执行前，判断是否需要执行 | 主 Agent |
+
+> **final_readthrough 同名说明**: 会话上下文账本（协议 1）的 `final_readthrough` 与会话内审查状态绑定（每 Gate 独立 key），review-cache.json（协议 2）的 `final_readthrough` 为跨会话持久化缓存。两者同名但存储位置不同、生命周期不同——账本随会话消亡，缓存跨会话持久化。读取优先级：账本优先（反映当前会话最新状态），缓存作为跨会话恢复的 fallback。
 
 > **向后兼容**: 旧格式账本仅有 p0/p1/p2（修复后剩余数），缺失 _raw 后缀字段。
 > 读取旧格式时，该轮数据视为不可用（unknown），不参与收敛判断条件计算，
@@ -146,7 +149,9 @@ ref: AgentId=<id>, tokens=<N>
 \`\`\`
 ```
 
-> **ref 行说明**: `ref: AgentId=<id>, tokens=<N>` 由**主 Agent 在汇总时追加**（非子 Agent 输出）。AgentId 从子 Agent 的 `Agent` 工具返回值中提取。AgentId 格式为 `a` + 16 位 hex（系统生成）。主 Agent 在遵循协议时从该路径获取真实 AgentId；但技术上可生成格式合法的虚假值——此为辅助真实度信号，非密码学验证。完整限制声明见标记块验证规则中的"验证能力与限制"表。
+> **degradation 字段说明**: pipe 三段对应协议 4 退化声明三要素：(a) 具体原因（缺失能力+模型名），(b) 影响分析（尝试过的调用方式+失败信息），(c) 替代措施（降级路径选择依据）。`none` 表示无退化。
+
+> **ref 行说明**: `ref: AgentId=<id>[, tokens=<N>]` 由**主 Agent 在汇总时追加**（非子 Agent 输出）。AgentId 从子 Agent 的 `Agent` 工具返回值提取（必填）；tokens 为主 Agent 估算的消耗（可选字段，不可用时省略或填 `null`）。AgentId 格式为 `a` + 16 位 hex（系统生成）。主 Agent 在遵循协议时从该路径获取真实 AgentId；但技术上可生成格式合法的虚假值——此为辅助真实度信号，非密码学验证。完整限制声明见标记块验证规则中的"验证能力与限制"表。
 
 > **零问题标记块强制要求**: **无论 issues_found 是否为 0，每个执行的 Step 必须输出 STEP<N>_EXECUTED 标记块。** `issues_found: 0` = Step 正常完成且未发现新问题；标记块缺失 = Step 未执行。两者有本质区别。父技能的验证逻辑依赖标记块的存在性来判断审查是否完成，零问题 Step 省略标记块将导致父技能误判为审查未完成并阻塞当前 Phase。
 >
@@ -163,7 +168,7 @@ ref: AgentId=<id>, tokens=<N>
 | Step 5 | Quick Review Agent | complete / degraded | 单一 Agent 时声明"缺少独立视角"；Step 4 退化时声明"执行两轮补偿验证" |
 | 最终通读 | 独立子 Agent 或主 Agent（自执行） | complete / fail | 沿用通用标记块格式（STEP_FINAL_READTHROUGH）。agents 填子 Agent 模型名或 self（主 Agent 自执行）。issues_found 填残余问题数。子 Agent 工具不可用时由主 Agent 自执行，degradation 声明"单一模型，最终通读缺少独立视角" |
 
-**多修复子 Agent 合并规则（Step 4）**: 当修复项涉及 ≥ 2 个无依赖文件时，拆分为多个修复子 Agent 并行执行（以文件为分组维度，无修复项数量阈值）；单文件内 > 10 条时分批顺序执行（见 SKILL.md Step 4 "同文件不并发"硬约束），主 Agent 收集所有修复子 Agent 的输出后，合并为**单个** STEP4_EXECUTED 标记块。issues_found 汇总所有修复子 Agent 发现的新问题数。agents 列表包含所有修复子 Agent 的名称和模型。degradation 取所有修复子 Agent 中最严重的退化状态。
+**多修复子 Agent 合并规则（Step 4）**: 当修复项涉及 ≥ 2 个无依赖文件时，拆分为多个修复子 Agent 并行执行（以文件为分组维度，无修复项数量阈值）；单文件内 > 10 条时分批顺序执行（见 SKILL.md Step 4 "同文件不并发"硬约束），主 Agent 收集所有修复子 Agent 的输出后，合并为**单个** STEP4_EXECUTED 标记块。issues_found 汇总所有修复子 Agent 发现的新问题数。agents 列表包含所有修复子 Agent 的名称和模型。degradation 取所有修复子 Agent 中最严重的退化状态（严重度序: `failed` > `degraded` > `complete`；多个 `degraded` 时保留覆盖范围最广的一条，如同时有 '子Agent不可用' 和 '环境不支持并行'，保留前者因其覆盖范围更广）。
 
 ### 标记块验证规则
 
@@ -172,7 +177,7 @@ ref: AgentId=<id>, tokens=<N>
 - **例外**: Step 2（主 Agent 自执行）和最终通读（主 Agent 自执行路径）除外——主 Agent 为自己执行的 Step 输出标记块，ref 行 AgentId 填 `self`
 - 汇总方式: 将子 Agent 输出中的 `STEP<N>_EXECUTED` 块原样附加到审查报告中。标记块附加在审查报告的执行日志表格之后，统一以 `## 执行标记原始记录` 标题开头，按 Step 编号排序
 - 如果某 Step 的子 Agent 未输出标记块 → 主 Agent 标注 `STEP<N>_EXECUTED: missing`（不可补写内容）
-- 汇总时必须在每个标记块末尾追加 `ref: AgentId=<id>, tokens=<N>` 行，其中 AgentId 和 tokens 从子 Agent 的 `Agent` 工具返回值中提取（AgentId 格式: `a` 开头 + 16 位 hex，由系统生成。主 Agent 在遵循协议时从该路径获取真实 AgentId，但技术上可生成格式合法的虚假值——此为辅助真实度信号，非密码学验证）
+- 汇总时必须在每个标记块末尾追加 `ref` 行（AgentId 必填，从子 Agent 的 `Agent` 工具返回值中提取，格式: `a` 开头 + 16 位 hex，由系统生成）；tokens 为可选估算值，不可用时省略或填 `null`。格式: `ref: AgentId=<id>[, tokens=<N>]`
 
 **父技能（验证者）规则**:
 - specpowers-review 返回后，父技能在 specpowers-review 的输出中检查每个应执行的 Step 的标记块是否存在
@@ -202,7 +207,7 @@ ref: AgentId=<id>, tokens=<N>
 |------|---------|------|
 | 主 Agent 遗忘输出标记块 | 能 | 父技能搜索 `STEP<N>_EXECUTED` 字符串，缺失即发现 |
 | 子 Agent 未执行但主 Agent 不伪造 | 能 | 子 Agent 未输出标记块 → 主 Agent 标注 `missing` → 父技能检测到缺失 |
-| 主 Agent 恶意跳过 Step 后伪造标记块 | 不能 | 主 Agent 可输出虚假的 `STEP<N>_EXECUTED` 块，父技能的字符串搜索无法区分真伪 |
+| 主 Agent 故意跳过 Step 后伪造标记块 | 不能 | 主 Agent 可输出虚假的 `STEP<N>_EXECUTED` 块，父技能的字符串搜索无法区分真伪 |
 | 主 Agent 伪造 AgentId | 不能（但有门槛） | AgentId 格式可验证（`a` + 16 hex），但无法验证是否为系统真实分配——主 Agent 可生成格式合法的虚假 AgentId。此信号提升伪造门槛但非技术性防伪 |
 
 **这是纯 SKILL.md 文本协议的固有边界**: 所有指令均为文本指令，无进程隔离、无代码强制。Agent 若选择忽略指令，无技术手段阻止。双层验证的设计目标是将"静默跳过审查"从单 Agent 的疏忽/违规升级为需要在审查阶段和验证阶段中做出不一致行为（同一 Agent 的两个时序分离角色），显著提升跳过门槛，但不声称技术性不可伪造。
@@ -226,8 +231,6 @@ ref: AgentId=<id>, tokens=<N>
 
 ## 协议 4: 退化声明标准协议
 
-> **导航提示**: 本节为横切协议，定义所有 Step 共用的退化声明格式与规则。**多模型渐进式审查的 Step 3 在本节之后继续**（见下方 "Step 3 — 独立监督 Agent 交叉验证"）。读者如需跟随线性审查流程，可跳过本节先阅读 Step 3-5，再回到此处查阅退化声明的具体格式要求。
-
 当任何 Step 无法按标准路径执行时（模型不足/Agent 工具不可用/并行不可用/修复重试超限），对应 Agent 必须在 `STEP<N>_EXECUTED` 标记块的 `degradation` 字段中输出退化声明，包含以下三要素：
 
 | 要素 | 内容 | 示例 |
@@ -249,6 +252,8 @@ ref: AgentId=<id>, tokens=<N>
 | Step 5 | 仅 1 个 Agent 可用 | 声明"缺少独立视角" | Quick Review Agent |
 | Step 5 | Step 4 退化 | 执行两轮补偿验证 | Quick Review Agent |
 | 最终通读 | 子 Agent 工具不可用 | 由主 Agent 自行执行 | 主 Agent |
+
+> **多降级并发格式**: 多降级条件同时触发时（如同一 Step 中模型不足 + 问题数 < 5），`degradation` 字段用分号拼接多个三要素（如 `单一模型"缺少独立视角"; 问题<5 仅执行溯源+遗漏检查`）。
 
 退化声明对所有降级场景强制要求，不可省略。这构成**横切规则**，覆盖 Step 3/4/5 的全部降级分支。
 
@@ -285,7 +290,7 @@ ref: AgentId=<id>, tokens=<N>
 
 规模分桶（基于入口 skill 有效范围）：微小 1-3 / 中等 4-19 / 复杂 20-49 / 大规模 50+。
 
-> **入口 4 文件空洞修复**：入口原微小=1-3、中等=5-19，4 文件未归类。本矩阵中等=4-19 修复此空洞。部署时须同步入口 skill 的分桶定义。
+> 中等 bucket=4-19，须与入口 skill 分桶定义一致。
 
 | 规模 × 轮数 | 第 1 轮 | 第 2 轮 | 第 3 轮+ |
 |------------|--------|--------|---------|
@@ -300,6 +305,14 @@ ref: AgentId=<id>, tokens=<N>
 
 ### 路由算法
 
+**符号定义**：
+
+- `floor(line_count)`: 行数地板函数，定义见下方"行数地板"节（round1: line>500→完整; 200<line≤500→关键; line≤200→矩阵tier）
+- tier 序：快速 < 关键 < 完整（用于 `max()` 比较）
+- `MATRIX`: 本协议上方"路由矩阵"表
+- `RECIPES`: SKILL.md "三维 recipe 表"（代码类完整层按 bucket_class 选 加强审查/UltraReview）
+- UltraReview：代码类完整层复杂/大规模 bucket 的 6-agent recipe（见 SKILL.md）
+
 ```text
 输入: object_type, file_count, line_count (apply 传入)
 预计算:
@@ -308,7 +321,8 @@ ref: AgentId=<id>, tokens=<N>
   round = (!ledger || !ledger[gate_id]) ? 1 : ledger[gate_id].rounds.length + 1   # gate_id 不存在视为首轮 (若护栏1 early-return 触发, 此预计算值被忽略)
   prev_raw = (round >= 2) ? ledger[gate_id].rounds[round-2] : null   # round=1 无上一轮, round>=2 取 rounds[round-2] (0-indexed) 防数组负索引
 1. 护栏1(安全优先, early-return): if !ledger || !ledger[gate_id] → return tier=完整, reason="ledger缺失,保守完整"   # 最先, 覆盖手动覆盖
-2. 手动覆盖(基础 tier=floor): if 用户指定"完整/关键/快速审查" → base_tier=指定值; else base_tier=null; reason+="用户指定"   # 文档类手动指定"UltraReview": 不走 tier 路由, 直接 recipe=UltraReview(6-agent), 但仍须经护栏1(ledger缺失仍 early-return 完整)
+2a. 手动 tier 覆盖: if 用户指定"完整/关键/快速审查" → base_tier=指定值, reason+="用户指定"; else base_tier=null（无手动覆盖时不追加 reason）
+2b. 文档类 UltraReview 特殊路径: if 文档类且用户指定"UltraReview" → 跳过步骤 3-6, 直接 recipe=完整层多模型渐进式(3-agent)（文档类 6-agent 维度不适用, 映射到 3-agent）, 但仍须经护栏1（ledger缺失仍 early-return 完整）
 3. 矩阵: matrix_tier = MATRIX[bucket][round]; tier = (base_tier!=null) ? max(base_tier, matrix_tier) : matrix_tier; if matrix_tier>base_tier reason+="矩阵升级"
 4. 行数地板: floor_tier = floor(line_count); if floor_tier>tier → tier=floor_tier, reason+="行数地板升级"
 5. 收敛闸门(仅 prev_raw!=null 时, 无论 tier 来源都执行):
@@ -363,14 +377,14 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent 自检 + 收敛闸门
 
 | # | 场景 | 预期 tier | 关键路径 |
 |---|------|----------|---------|
-| 1 | 微小 round3 + 收敛（p0_raw=0, p1_raw<3）+ line≤200 | 快速 | 矩阵→快速 + 闸门通过 + FAST 开关（若 true） |
-| 2 | 中等 round2 | 关键 | 矩阵→关键★ + 闸门（p0_raw=0 则通过） |
-| 3 | 中等 round3 但上轮 p0_raw>0 | 完整 | 矩阵→关键 → 闸门升级完整（中等未收敛） |
-| 4 | 复杂任意轮 | 完整 | 矩阵→完整，永不降级 |
+| 1 | 微小 round3 + 收敛（p0_raw=0, p1_raw<3）+ line≤200（假设 ledger 存在） | 快速 | 矩阵→快速 + 闸门通过 + FAST 开关（若 true） |
+| 2 | 中等 round2（假设 ledger 存在） | 关键 | 矩阵→关键★ + 闸门（p0_raw=0 则通过） |
+| 3 | 中等 round3 但上轮 p0_raw>0（假设 ledger 存在） | 完整 | 矩阵→关键 → 闸门升级完整（中等未收敛） |
+| 4 | 复杂任意轮（假设 ledger 存在） | 完整 | 矩阵→完整，永不降级 |
 | 5 | 跨会话恢复（ledger 缺失） | 完整 | 护栏1 early-return，覆盖手动覆盖 |
-| 6 | 代码类 3 文件/400 行 round1 | 完整（加强审查子路径） | 矩阵→完整，bucket=微小/中等→recipe=加强审查 STEP1-2 |
-| 7 | 代码类 3 文件 round2 | 关键（3 独立视角） | 矩阵→关键，recipe=3 独立视角 |
-| 8 | round1 手动指定快速但 line>500 | 完整 | 手动→快速 → 行数地板升级完整 |
-| 9 | round2+ 手动指定快速但 line>500 | 关键 | 手动→快速 → 行数地板升级关键 |
-| 10 | 问题多但 round3（微小） | 关键 | 矩阵→快速 → 闸门降级关键（收敛证据不足） |
-| 11 | FAST_TIER_ENABLED=false + 微小 round3+收敛 | 关键 | 矩阵→快速 → step6 回退关键 |
+| 6 | 代码类 4 文件/400 行 round1（假设 ledger 存在） | 完整（加强审查子路径） | 矩阵→完整，bucket=中等→recipe=加强审查 STEP1-2 |
+| 7 | 代码类 3 文件 round2（假设 ledger 存在） | 关键（3 独立视角） | 矩阵→关键，recipe=3 独立视角 |
+| 8 | round1 手动指定快速但 line>500（假设 ledger 存在） | 完整 | 手动→快速 → 行数地板升级完整 |
+| 9 | round2+ 手动指定快速但 line>500（假设 ledger 存在） | 关键 | 手动→快速 → 行数地板升级关键 |
+| 10 | 问题多但 round3（微小）（假设 ledger 存在） | 关键 | 矩阵→快速 → 闸门降级关键（收敛证据不足） |
+| 11 | FAST_TIER_ENABLED=false + 微小 round3+收敛（假设 ledger 存在） | 关键 | 矩阵→快速 → step6 回退关键 |
