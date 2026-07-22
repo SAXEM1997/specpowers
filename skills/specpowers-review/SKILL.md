@@ -290,7 +290,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 ### 审查流程
 
-### Step 0 — 准备（审查经验 + 审查层级边界注入 + tier 路由）
+### Step 0 — 准备（审查经验 + 审查层级边界注入 + gate_id 确定 + tier 路由）
 
 > 注：本节（Step 0-5）适用于所有 tier（快速/关键/完整）和所有对象类型（文档/代码），不仅限于多模型渐进式。
 
@@ -329,7 +329,11 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 - 评论受限制: 审查输出必须表述为当前层级的语言——发现问题后，以设计/规划层面的术语描述问题和建议，不以代码实现建议的形式输出
 ```
 
-**0c. 执行 tier 路由**
+**0c. 确定 gate_id（轮次隔离）**
+
+按当前触发的 Gate 确定 gate_id——Gate 0→`gate_0`、Gate 1→`gate_1`、Gate 2→`gate_2`、Gate 3→`gate_3`、独立调用→`standalone`。round 计算基于当前 gate_id 的 rounds（见协议6），不同 Gate 轮次独立计数。⚠️ 不可对不同 Gate 复用同一 gate_id（会导致轮次跨 Gate 累加、路由错误降级）。
+
+**0d. 执行 tier 路由**
 
 按 `refs/protocols.md` 协议 6 路由算法执行 tier 路由决策（完整算法见协议 6）。计算完成后，在审查报告开头输出 `[TIER_ROUTING]` 标记，格式：
 

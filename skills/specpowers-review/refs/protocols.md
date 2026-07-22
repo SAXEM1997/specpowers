@@ -41,6 +41,15 @@ session_ledger = {
 }
 ```
 
+> **gate_id 取值规则（轮次隔离关键）**: gate_id 是每个 Gate 的唯一标识，**每个 Gate 必须使用独立的 gate_id**，确保轮次计数互不累加：
+> - Gate 0（design 审查）→ `gate_0`
+> - Gate 1（proposal/specs 审查）→ `gate_1`
+> - Gate 2（plan 审查）→ `gate_2`
+> - Gate 3（代码审查）→ `gate_3`
+> - 独立调用（非 Gate 路由）→ `standalone`
+>
+> ⚠️ **禁止对不同 Gate 复用同一 gate_id**——否则 rounds 数组跨 Gate 累加，导致 round 误算（如 Gate 2 首轮被算成第 2 轮，路由错误降级）。
+
 ### 读写时机
 
 | 操作 | 时机 | 执行者 |
@@ -64,6 +73,8 @@ session_ledger = {
 同一会话内跨 Gate（如 Gate 0 → Gate 1 → Gate 2）时，主 Agent 将前几个 Gate 的账本数据通过 prompt 参数注入下一 Gate 的审查 Agent。传递内容：lessons_learned + 上一 Gate 的 issues_summary（用于对齐 Agent 逐条验证遗留问题是否已修复）。
 
 各 Gate 的账本数据以 gate_id 为独立 key 存储，互不覆盖。跨 Gate 传递时，主 Agent 将所有已执行 Gate 的 lessons_learned 合并去重后注入。如因会话压缩导致前 Gate 数据丢失，仅从当前可用的数据注入，不阻塞审查。合并去重规则：相同场景+相同根因+相同结论视为重复，由主 Agent 逐条比对判断（启发式指引，非精确计算）。
+
+> **轮次隔离（重要）**: 跨 Gate 传递的仅是 lessons_learned + issues_summary（审查经验共享）。**rounds（轮次计数）每 Gate 独立，绝不跨 Gate 累加**——每个 Gate 的 round 从 1 重新开始。例如 Gate 0 审了 2 轮，Gate 2 审查时 round 仍从 1 开始（不因 Gate 0 的 2 轮而变成 round 3）。这是 tier 路由正确性的前提（不同阶段产物应按各自首轮/后续轮独立路由）。
 
 > **账本与缓存写入时机差异**: 账本写入时机分为两阶段：每轮 Step 2 后写入原始发现数（p0-3_raw），每轮 Step 5 后写入 lessons_learned 和修复后剩余计数（p0/p1/p2）。review-cache.json 写入时机为每 Gate 退出前（跨会话持久化到文件）。存在时间差——如会话在 Step 2 后、Gate 退出前崩溃，缓存可能丢失本轮 lessons_learned。差异总结如下表:
 >
@@ -318,7 +329,7 @@ ref: AgentId=<id>, tokens=<N>
 预计算:
   bucket = bucket(file_count)                          # 微小/中等/复杂/大规模
   bucket_class = (object_type==代码) ? (bucket in {微小,中等} ? 小代码 : 大代码) : null
-  round = (!ledger || !ledger[gate_id]) ? 1 : ledger[gate_id].rounds.length + 1   # gate_id 不存在视为首轮 (若护栏1 early-return 触发, 此预计算值被忽略)
+  round = (!ledger || !ledger[gate_id]) ? 1 : ledger[gate_id].rounds.length + 1   # round 基于【当前 gate_id】的 rounds.length，非全局轮次。不同 Gate 的 gate_id 不同（gate_0/gate_1/gate_2/gate_3），轮次独立计数——Gate 0 审了 N 轮不影响 Gate 2 的 round（Gate 2 首轮 round=1）。gate_id 不存在视为首轮。
   prev_raw = (round >= 2) ? ledger[gate_id].rounds[round-2] : null   # round=1 无上一轮, round>=2 取 rounds[round-2] (0-indexed) 防数组负索引
 1. 护栏1(安全优先, early-return): if !ledger || !ledger[gate_id] → return tier=完整, reason="ledger缺失,保守完整"   # 最先, 覆盖手动覆盖
 2a. 手动 tier 覆盖: if 用户指定"完整/关键/快速审查" → base_tier=指定值, reason+="用户指定"; else base_tier=null（无手动覆盖时不追加 reason）
