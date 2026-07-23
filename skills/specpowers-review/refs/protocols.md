@@ -337,16 +337,18 @@ ref: AgentId=<id>, tokens=<N>
 
 ### 路由矩阵
 
-规模分桶（基于入口 skill 有效范围）：微小 1-3 / 中等 4-19 / 复杂 20-49 / 大规模 50+。
+规模分桶按对象类型区分（详见下方算法预计算和 `bucket_doc` 函数）：
+- **代码类**按 `file_count`：微小 1-3 / 中等 4-19 / 复杂 20-49 / 大规模 50+
+- **文档类**按 `line_count`：微小 ≤100 / 中等 101-300 / 复杂 301-600 / 大规模 600+
 
-> 中等 bucket=4-19，须与入口 skill 分桶定义一致。
+> 代码类中等 bucket=4-19，须与入口 skill 分桶定义一致。
 
 | 规模 × 轮数 | 第 1 轮 | 第 2 轮 | 第 3 轮+ |
 |------------|--------|--------|---------|
-| 微小（1-3）| 关键 | 关键 | 快速★ |
-| 中等（4-19）| 完整 | 关键★ | 关键★ |
-| 复杂（20-49）| 完整 | 完整 | 完整 |
-| 大规模（50+）| 完整 | 完整 | 完整 |
+| 微小 | 关键 | 关键 | 快速★ |
+| 中等 | 完整 | 关键★ | 关键★ |
+| 复杂 | 完整 | 完整 | 完整 |
+| 大规模 | 完整 | 完整 | 完整 |
 
 ★ 触发收敛闸门，不满足则升级。详见下方算法 step 5。
 
@@ -365,7 +367,9 @@ ref: AgentId=<id>, tokens=<N>
 ```text
 输入: object_type, file_count, line_count (apply 传入)
 预计算:
-  bucket = bucket(file_count)                          # 微小/中等/复杂/大规模
+  # 文档类 bucket 按 line_count（文档行数与内容复杂度正相关；file_count 对文档无区分度——1 个 design.md 可能描述 3 个或 50 个文件的系统）
+  # 代码类 bucket 按 file_count（变更文件数直接反映代码变更范围）
+  bucket = (object_type==文档) ? bucket_doc(line_count) : bucket(file_count)
   bucket_class = (object_type==代码) ? (bucket in {微小,中等} ? 小代码 : 大代码) : null
   round = (!ledger || !ledger[gate_id]) ? 1 : ledger[gate_id].rounds.length + 1   # round 基于【当前 gate_id】的 rounds.length，非全局轮次。不同 Gate 的 gate_id 不同（gate_0/gate_1/gate_2/gate_3），轮次独立计数——Gate 0 审了 N 轮不影响 Gate 2 的 round（Gate 2 首轮 round=1）。gate_id 不存在视为首轮。
   prev_raw = (round >= 2) ? ledger[gate_id].rounds[round-2] : null   # round 为当前轮次 1-indexed，rounds 数组 0-indexed，上一轮索引=round-2；round=1 无上一轮, round>=2 取 rounds[round-2] 防数组负索引
@@ -384,6 +388,10 @@ ref: AgentId=<id>, tokens=<N>
 ```
 
 **评估顺序（箭头=先后，非覆盖；每层只升不降）**：护栏 1（ledger 缺失 early-return）→ 手动覆盖（设基础 tier=floor）→ 矩阵 → 行数地板（max 升级）→ 收敛闸门（条件升级）→ FAST 开关。
+
+**文档类 bucket 函数（按 line_count）**：`bucket_doc(line≤100)=微小; bucket_doc(100<line≤300)=中等; bucket_doc(300<line≤600)=复杂; bucket_doc(line>600)=大规模`。文档行数与内容复杂度正相关——1 个 design.md 可能描述 3 个文件的简单修改，也可能描述 50 个文件的系统重构。file_count 对文档无区分度（Gate 0/2 始终 1 文件，Gate 1 通常 4-6 文件），故文档类按 line_count 分桶。代码类仍按 file_count 分桶（变更文件数直接反映代码变更范围）。
+
+> 文档类 bucket 阈值（100/300/600）与代码类 bucket 阈值（3/19/49 文件）语义对齐：微小=简短/少量，中等=适度，复杂=详尽，大规模=极长/极多。行数地板对文档类仍生效（作为安全网，不冲突——bucket_doc 已按 line_count 分桶，地板仅在边界场景提供额外保护）。
 
 **行数地板（只升不降）**：`floor(line>500)={round1:完整, round2+:关键}; floor(200<line≤500)=关键; floor(line≤200)=矩阵tier`；`tier=max(tier, 地板tier)`。
 
@@ -424,7 +432,7 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent 自检 + 收敛闸门
 
 ### 典型场景验证
 
-以下 11 个场景覆盖路由算法全部路径：
+以下 13 个场景覆盖路由算法全部路径：
 
 | # | 场景 | 预期 tier | 关键路径 |
 |---|------|----------|---------|
@@ -439,6 +447,8 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent 自检 + 收敛闸门
 | 9 | round2+ 手动指定快速但 line>500（假设 ledger 存在） | 关键 | 手动→快速 → 行数地板升级关键 |
 | 10 | 问题多但 round3（微小）（假设 ledger 存在） | 关键 | 矩阵→快速 → 闸门降级关键（收敛证据不足） |
 | 11 | FAST_TIER_ENABLED=false + 微小 round3+收敛（假设 ledger 存在） | 关键 | 矩阵→快速 → step6 回退关键 |
+| 12 | **文档类** design.md 1 文件/450 行 round1（假设 ledger 存在） | 完整（3-agent 多模型渐进式） | bucket_doc(450)=复杂 → 矩阵→完整。修复前 1 文件→微小→关键的错误路由 |
+| 13 | **文档类** plan.md 1 文件/80 行 round1（假设 ledger 存在） | 关键（对齐+监督 2-agent） | bucket_doc(80)=微小 → 矩阵→关键。短文档不需要 3-agent |
 
 ## 协议 7: 收敛提醒与硬阻止输出模板
 
