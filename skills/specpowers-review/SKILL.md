@@ -445,19 +445,25 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 行12: [匹配|不匹配], 理由: <1句>
 裁剪一致性（与 expected_steps 对照）: <是|否>
 N≤4 转移确认（mode=transferred_to_step5 非 tier 裁剪）: <确认>
+子 Agent prompt 完整性（每个审查 Agent prompt 含"完整评审全部内容"指令）: <是|否>
 ```
 
 要求：主 Agent 对每条合理化表条目给出"匹配/不匹配"及简要理由（1句话），才能进入 Step 1。此应答表作为自检完成的证据，缺失则视为自检未执行。
 
 3. **逐项核对合理化表左列**（上方"审查纪律自检 → 合理化表"）——检查自己是否计划跳过某步骤、是否计划缩减审查范围、是否计划以轮次为由加速。如匹配任一行 → 立即按右列纠正。
 4. **逐项核对 Red Flags 自检清单**（上方"审查纪律自检 → Red Flags 自检清单"），确认每个 Step 的执行前提条件满足。
-5. 自检完成后，在审查报告中记录: `[ANTI_LAZINESS_SELF_CHECK] round=<N>, passed=true`
+5. **子 Agent prompt 完整性**：每个审查 Agent prompt 含 Step 1 完整性指令？→ 不含 → 补注后启动
+6. 自检完成后，在审查报告中记录: `[ANTI_LAZINESS_SELF_CHECK] round=<N>, passed=true`
 
 **违规检测（主 Agent 检查子 Agent 报告完整性）**: 主 Agent 在 Step 2 合并时，逐章/逐文件检查每个审查 Agent 的报告是否覆盖了审查对象的全部内容。发现章节/文件遗漏 → 该 Agent 的报告标记为不完整，要求该 Agent 补充审查遗漏部分后再进入合并流程。**注意**：子 Agent 不会故意偷懒（干净上下文），但可能因 prompt 中审查对象描述不完整而遗漏章节——主 Agent 的违规检测是捕获这类遗漏的最后防线。
 
 **Step 1 — 审查 Agent 并行执行**（按 tier recipe 启动对应审查 Agent：快速层 1 个对齐 Agent；关键层 2 个：对齐+监督；完整层 3 个结构/落地/对齐 或 6 个 UltraReview。文档类：快速=单对齐 Agent，关键=对齐+监督 Agent，完整=结构+落地+对齐 3 Agent。代码类：见三维 recipe 表）
 
 结构审查 Agent、落地审查 Agent、对齐审查 Agent 按 tier recipe 启动，互不感知对方的发现。每个 Agent 独立输出审查报告（问题 + 严重度分级 + 证据）。
+
+**子 Agent prompt 完整性硬约束**：每个审查 Agent 的 prompt 必须包含以下完整性指令（不可省略，多轮审查中尤其关键）：
+
+> 请完整评审以下全部内容，逐章/逐节/逐文件审查，不要跳过任何章节、段落或文件，不要省略待评审内容。无论这是第几轮审查，都必须以第 1 轮的标准独立完整评审全部内容。
 
 **RAW_COUNT 强制（反偷懒）**：每个审查 Agent 输出末尾必须带一行结构化计数 `RAW_COUNT: p0=N p1=N p2=N p3=N`（该 Agent 本轮发现的问题数）。主 Agent 在 STEP1_EXECUTED 标记块中汇总为 `raw_count_sum: p0=N p1=N p2=N p3=N`（所有 Agent 计数求和）（此处的 p0/p1/p2/p3 均为**原始发现数**，对应账本 p*_raw 语义，非修复后剩余的 p0/p1/p2）。此结构化计数供 Step 5 兼并合并验证时对照（见 Step 3 转移规则）——降低主 Agent 在自由文本报告中压低问题数的空间。
 
@@ -500,8 +506,11 @@ N≤4 转移确认（mode=transferred_to_step5 非 tier 裁剪）: <确认>
 
 **Step 4 — 子 Agent 执行修复 + 主 Agent 校验**（加强审查子路径裁剪：输出 STEP4_TIER_SKIPPED）
 
+> **⚠️ 时序硬约束**: Step 3 与 Step 4 禁止同一 turn 启动。须等待 Step 3 完成信号（task-notification 或标记块）后，方可启动 Step 4。
+
 **前置条件（硬约束，逐条确认后方可进入）**:
 - [ ] Step 3 已按档位完成（输出 `STEP3_EXECUTED` 标记块，含 mode 字段）：mode=standard → 独立监督 Agent 已完成交叉验证 + 主 Agent 已将审核调整应用到合并判断表（最终版已输出）；mode=transferred_to_step5 → 主 Agent 已输出转移声明，合并表为 Step 2 版本；mode=trivial → 主 Agent 已输出
+- [ ] 修复由独立子 Agent 执行（非主 Agent 内联）
 - [ ] 修复 prompt 中的修复项来源于合并判断表（mode=standard 路径=Step 3 最终版；mode=transferred_to_step5 路径=Step 2 版本）
 - [ ] 【转移路径 mode=transferred_to_step5 独有】修复 prompt 中明确声明"合并验证尚未执行，修复基于 Step 2 合并结果，Step 5 将做合并验证+修复验证双重检查"——让修复子 Agent 知情，若修复过程中发现合并遗漏可主动上报（额外横向检测点）
 

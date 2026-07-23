@@ -302,6 +302,7 @@ ref: AgentId=<id>, tokens=<N>
 - `ref: AgentId=<id>, tokens=<N>` 行由**主 Agent 在汇总时追加**（非子 Agent 输出）
 - **无论 issues_found 是否为 0，每个执行的 Step 必须输出此标记块**
 - 标记块缺失将被父技能视为 Step 未执行，导致当前 Phase 被阻塞
+- **完整性指令（强制注入，不可省略）**: 每个审查子 Agent 的 prompt 必须包含"请完整评审以下全部内容，逐章/逐节/逐文件审查，不要跳过任何章节、段落或文件，不要省略待评审内容。无论这是第几轮审查，都必须以第 1 轮的标准独立完整评审全部内容"。多轮审查中主 Agent 不得在子 Agent prompt 中缩减审查范围（如"只查修改部分"、"快速过一遍"）。违反 = 子 Agent 仅审查部分内容，遗漏问题进入下游 Phase
 
 ### Step 4 转移路径知情声明注入模板（mode=transferred_to_step5 时）
 
