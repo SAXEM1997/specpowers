@@ -8,7 +8,7 @@ project/
 ├── docs/
 │   ├── checklist.md         # Pre/Post-Task 清单
 │   ├── superpowers/plans/   # 实施计划
-│   ├── skills/specpowers/   # 本 skill（方法论）
+│   ├── skills/specpowers/   # 本 skill（目标项目目录约定；specpowers 仓库自身布局见仓库 CLAUDE.md）
 │   ├── skills/<domain>/     # 其他领域 skill
 │   ├── experience/          # 通用开发经验（按领域分类）
 │   │   ├── README.md

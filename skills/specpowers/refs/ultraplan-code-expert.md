@@ -1,5 +1,7 @@
 # UltraPlan 代码专家提示词
 
+> 注：本提示词原为原生 Claude Code 环境编写，引用 TeamCreate/ExitPlanMode 等工具。在当前 Claude Code 环境中，对应改用 Agent 工具（并行子 Agent）+ AskUserQuestion 工具；ExitPlanMode/EnterPlanMode 为 plan 模式工具。
+
 > 触发 UltraPlan 代码专家模式时，将此提示词填充至上下文开头。
 
 ```

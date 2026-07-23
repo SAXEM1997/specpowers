@@ -7,7 +7,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 # specpowers-design: 设计+propose 阶段
 
 > **前置检查（必须执行，不可跳过）**: 
-> 1. 确认 specpowers 入口 skill 的全局规则（GitFlow/Checklist/Pitfalls）已在当前会话上下文中可用。如未加载，先 `Skill({skill: "specpowers"})` 获取决策树和全局规则。等待加载完成后继续。
+> 1. 确认 specpowers 入口 skill 的全局规则（GitFlow/Checklist/Pitfalls）已在当前会话上下文中可用。如未加载，先 `Skill({skill: "specpowers:specpowers"})` 获取决策树和全局规则。等待加载完成后继续。
 > 2. 确认当前任务模式（Plan: <mode>）。如为微小任务，仅做轻量上下文探索后终止本技能，不执行 Phase 0 完整流程。
 
 ---
@@ -126,7 +126,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 - 审批通过 → 进入 Phase 1
 
 **审批通过后，执行 Gate 0 审查**:
-`Skill({skill: "specpowers-review"})` — 对齐检查：design.md vs clarifications/<name>.md。
+`Skill({skill: "specpowers:specpowers-review"})` — 对齐检查：design.md vs clarifications/<name>.md。
 > **审查层级提醒**: Gate 0 审查对象为 design.md（设计层面），审查应停留在架构/接口/数据流/错误处理策略层面，不应涉及具体代码实现细节。specpowers-review 提升为独立节的审查层级边界表（横切所有文档类审查，不分 tier）会自动将此约束注入审查 Agent prompt。
 Gate 0 返回后，执行 Gate 返回后验证协议（参数: Gate=0, Phase=0）。
 
@@ -188,7 +188,7 @@ Gate 0 返回后，执行 Gate 返回后验证协议（参数: Gate=0, Phase=0�
 ```
 
 **人工审核通过后，执行 Gate 1 审查**:
-`Skill({skill: "specpowers-review"})` — 对齐检查：OpenSpec 四件套（proposal/design/specs/tasks）vs Phase 0 design.md + clarifications。
+`Skill({skill: "specpowers:specpowers-review"})` — 对齐检查：OpenSpec 四件套（proposal/design/specs/tasks）vs Phase 0 design.md + clarifications。
 > **审查层级提醒**: Gate 1 审查对象包含 proposal（动机/范围层面）、design（架构/接口层面）、specs（需求覆盖层面）、tasks（任务拆解层面），审查应分别停留在各文档对应的抽象层级，不应涉及具体代码实现细节。specpowers-review 提升为独立节的审查层级边界表（横切所有文档类审查，不分 tier）会自动将此约束注入审查 Agent prompt。
 Gate 1 返回后，执行 Gate 返回后验证协议（参数: Gate=1, Phase=1）。
 
@@ -209,33 +209,11 @@ specpowers-plan Phase 2 衔接时需适配此场景：无 openspec/ 产物时，
 
 ## Gate 验证协议
 
-> **Gate 验证协议迁移说明（specpowers-design 分支）**: 通用验证逻辑 + 协议定义（验证 0/1/2 三步检查流程）随 Phase 0/1 移入本技能。本技能仅保留 Gate 0/1 的特化参数行。验证 2（Gate 2）保留在 specpowers-plan 中。
+> **验证链由入口 `specpowers:specpowers` SKILL.md「Gate 返回后验证协议（横切）」节权威定义（H1 精简）。本技能仅保留 Gate 0/1 特化参数行（Gate=0/1, Phase=0/1, tiny 跳过全部验证）**
 
 ### Gate 返回后验证协议（Phase 0-1 Gate 通用）
 
-对于 Gate <N>（对应 Phase <N>），specpowers-review 返回后执行以下验证：
-
-**验证 0 — 执行模式检查**:
-读取会话上下文中的 `Plan: <mode>`:
-- mode === "tiny" → 跳过全部验证
-- mode !== "tiny" 或 Plan mode 不存在 → 继续验证 1 + 验证 2
-降级: 若 Plan mode 不存在，默认视为非 tiny，输出 `[WARNING] Plan mode 未设置` 后继续完整验证。
-
-**验证 1 — 执行标记完整性检查**:
-从 specpowers-review 返回的审查报告中搜索 `[TIER_ROUTING]` 标记，提取 `expected_steps=[...]` 字段：
-- 若 `[TIER_ROUTING]` 存在：按 `expected_steps` 逐个检查 `STEP<N>_EXECUTED` 存在性。裁剪的 STEP 的 `STEP<N>_TIER_SKIPPED` 块不计入缺失。
-- 向前兼容：无 `[TIER_ROUTING]` 标记则回退旧逻辑——按 STEP1-5 检查（与旧版 specpowers-review 输出兼容）。
-任一 expected 中的 STEP 缺失 `STEP<N>_EXECUTED` → `[VERIFY_FAIL] Gate <N> 审查执行不完整，阻塞 Phase <N>`。
-搜索未命中任何执行标记块 → `[VERIFY_FAIL] Gate <N> 审查 Agent 未正常执行（无任何执行标记），阻塞 Phase <N>`。
-
-**验证 2 — P0 硬阻止检查**:
-搜索 `[GATE_BLOCKED] p0_count=N`:
-- N > 0 → `[VERIFY_FAIL] Gate <N> 未通过（P0=N），阻塞 Phase <N>`
-- N = 0 且验证 1 通过 → Gate <N> 通过
-
-> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate（由 specpowers-review 主 Agent 在 Step 5 后自行启动），非 Phase 0-4 Gate 体系的组成部分。调用方技能（specpowers-design）仅验证各 Gate 对应 expected_steps 的标记块（无 TIER_ROUTING 时回退 STEP1-5），不跨边界验证 specpowers-review 的内部 Gate。specpowers-review 的独立调用自检中已包含 STEP_FINAL_READTHROUGH 的存在性检查（见 specpowers-review SKILL.md "独立调用场景自检" 节），确保其在独立调用场景下不被遗漏。
-
-**各 Gate 特化参数**:
+> 执行入口 `specpowers:specpowers` SKILL.md「Gate 返回后验证协议（横切）」节（参数：Gate=<N>, Phase=<N>）。本 Gate 特化：Gate 0/1, Phase 0/1, tiny 跳过全部验证（验证 0 返回跳过）。
 
 | Gate | Phase | 标记块检查方式 |
 |------|-------|-------------|

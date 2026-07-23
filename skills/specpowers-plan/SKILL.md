@@ -7,9 +7,10 @@ description: Use when the user says "plan the implementation", "bridge OpenSpec 
 # specpowers-plan: 衔接阶段
 
 > **前置检查（必须执行，不可跳过）**: 
-> 1. 确认 specpowers 入口 skill 的全局规则（GitFlow/Checklist/Pitfalls）已在当前会话上下文中可用。如未加载，先 `Skill({skill: "specpowers"})` 获取决策树和全局规则。等待加载完成后继续。
+> 1. 确认 specpowers 入口 skill 的全局规则（GitFlow/Checklist/Pitfalls）已在当前会话上下文中可用。如未加载，先 `Skill({skill: "specpowers:specpowers"})` 获取决策树和全局规则。等待加载完成后继续。
 > 2. 确认 `docs/superpowers/specs/<name>-design.md` 和 `docs/superpowers/clarifications/<name>.md` 存在（由 specpowers-design 产出）。如不存在，输出 `[PRECHECK_FAILED] Phase 0/1 产物缺失，请先运行 specpowers-design`。
 > 3. 如 `openspec/changes/<name>/` 不存在，OpenSpec 已跳过——以 design doc + clarifications 作为 Phase 2 writing-plans 唯一输入。
+> 4. 检查 `docs/superpowers/plans/<name>.md` 是否已存在——若已存在，询问用户"plan 已存在，是否重新生成？（默认跳过，避免覆盖）"，用户确认跳过则直接进入后续（不重跑 writing-plans）。这是防御 Phase 自动检测行序错误的纵深保护。
 
 ---
 
@@ -55,16 +56,9 @@ description: Use when the user says "plan the implementation", "bridge OpenSpec 
 
 **衔接阶段完成后，强制执行 Gate 2 审查**：
 
-`Skill({skill: "specpowers-review"})` — 对齐检查：plan vs Phase 1 OpenSpec specs + Phase 0 design。
+`Skill({skill: "specpowers:specpowers-review"})` — 对齐检查：plan vs Phase 1 OpenSpec specs + Phase 0 design。
 Gate 2 返回后，执行 Gate 返回后验证协议（参数: Gate=2, Phase=2）。
 
-### 场景→测试转换
-
-| 场景类型 | 测试 |
-|---------|------|
-| 正常路径 | Given 有效输入 When 执行 Then 期望输出 |
-| 错误路径 | Given 异常输入 When 执行 Then 期望错误 |
-| 边界值 | Given 边界条件 When 执行 Then 期望行为 |
 
 **OpenSpec 跳过场景适配**: 如 openspec/changes/<name>/ 不存在（Phase 1 已跳过），Phase 2 writing-plans 衔接时使用以下简化输入集：
 - docs/superpowers/specs/<name>-design.md
@@ -76,29 +70,7 @@ Gate 2 返回后，执行 Gate 返回后验证协议（参数: Gate=2, Phase=2�
 
 ### Gate 返回后验证协议（Phase 2 Gate）
 
-对于 Gate <N>（对应 Phase <N>），specpowers-review 返回后执行以下验证：
-
-**验证 0 — 执行模式检查**:
-读取会话上下文中的 `Plan: <mode>`:
-- mode === "tiny" → 跳过全部验证
-- mode !== "tiny" 或 Plan mode 不存在 → 继续验证 1 + 验证 2
-降级: 若 Plan mode 不存在，默认视为非 tiny，输出 `[WARNING] Plan mode 未设置` 后继续完整验证。
-
-**验证 1 — 执行标记完整性检查**:
-从 specpowers-review 返回的审查报告中搜索 `[TIER_ROUTING]` 标记，提取 `expected_steps=[...]` 字段：
-- 若 `[TIER_ROUTING]` 存在：按 `expected_steps` 逐个检查 `STEP<N>_EXECUTED` 存在性。裁剪的 STEP 的 `STEP<N>_TIER_SKIPPED` 块不计入缺失。
-- 向前兼容：无 `[TIER_ROUTING]` 标记则回退旧逻辑——按 STEP1-5 检查（与旧版 specpowers-review 输出兼容）。
-任一 expected 中的 STEP 缺失 `STEP<N>_EXECUTED` → `[VERIFY_FAIL] Gate <N> 审查执行不完整，阻塞 Phase <N>`。
-搜索未命中任何执行标记块 → `[VERIFY_FAIL] Gate <N> 审查 Agent 未正常执行（无任何执行标记），阻塞 Phase <N>`。
-
-**验证 2 — P0 硬阻止检查**:
-搜索 `[GATE_BLOCKED] p0_count=N`:
-- N > 0 → `[VERIFY_FAIL] Gate <N> 未通过（P0=N），阻塞 Phase <N>`
-- N = 0 且验证 1 通过 → Gate <N> 通过
-
-> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate（由 specpowers-review 主 Agent 在 Step 5 后自行启动），非 Phase 0-4 Gate 体系的组成部分。父技能（specpowers-design / specpowers-plan / specpowers-apply）仅验证各 Gate 对应 expected_steps 的标记块（无 TIER_ROUTING 时回退 STEP1-5），不跨边界验证 specpowers-review 的内部 Gate。specpowers-review 的独立调用自检中已包含 STEP_FINAL_READTHROUGH 的存在性检查（见 specpowers-review SKILL.md "独立调用场景自检" 节），确保其在独立调用场景下不被遗漏。
-
-**各 Gate 特化参数**:
+> 执行入口 `specpowers:specpowers` SKILL.md「Gate 返回后验证协议（横切）」节（参数：Gate=2, Phase=2）。本 Gate 特化：Gate 2, Phase 2, tiny 跳过全部验证（验证 0 返回跳过）。
 
 | Gate | Phase | 标记块检查方式 |
 |------|-------|-------------|

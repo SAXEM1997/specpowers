@@ -6,9 +6,9 @@ description: Use when entering the implementation phase of a specpowers workflow
 # specpowers-apply: 实现阶段
 
 > **前置检查（必须执行，不可跳过）**:
-> 1. 执行 `Skill({skill: "specpowers"})` 加载入口 skill，获取全局规则。等待加载完成后继续。
-> 2. 确认 `docs/superpowers/plans/<name>.md` 存在。如不存在，回 specpowers-plan 生成 plan。
-> 3. 确认 Plan 审查 Gate 已通过（询问已执行，见 specpowers-plan Phase 2 "Plan 审查 Gate"）。如未询问，回 specpowers-plan 完成 Gate 后再进入。
+> 1. 执行 `Skill({skill: "specpowers:specpowers"})` 加载入口 skill，获取全局规则。等待加载完成后继续。
+> 2. 确认 Plan 模式：若 Plan: tiny → 跳过 plan 存在检查（微小任务无 plan，直接审查变更文件）；否则 → 确认 `docs/superpowers/plans/<name>.md` 存在。如不存在，回 specpowers-plan 生成 plan。
+> 3. 确认 Plan 审查 Gate 已通过（非 tiny 模式，询问已执行，见 specpowers-plan Phase 2 "Plan 审查 Gate"）。如未询问，回 specpowers-plan 完成 Gate 后再进入。
 > 4. 如当前模式为微小任务，仍须加载 specpowers-review 执行 Gate 3 审查（走 specpowers-review 内部级联判定路径）。
 
 **REQUIRED SUB-SKILL:** Skill({skill: "superpowers:subagent-driven-development"})
@@ -60,44 +60,20 @@ COMMIT -> git commit
 
 实现完成后，执行 Gate 3 审查：
 
-`Skill({skill: "specpowers-review"})` — 对齐检查：代码 vs Phase 2 plan + Phase 1 specs + Phase 0 design。
 **Step 0 — 计算变更规模**:
 执行以下命令获取文件数和修改总行数：
 ```bash
-git diff --shortstat $(git merge-base main HEAD)..HEAD
+BASE=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'); BASE=${BASE:-master}; git diff --shortstat $(git merge-base $BASE HEAD)..HEAD
 ```
 输出格式为 `N files changed, A insertions(+), D deletions(-)`。
+> **降级声明**: 若无 git 历史可用（如新项目/新 clone 未 fetch），回退为手动估算文件行数（与 review 独立调用同款降级策略）。
 计算修改总行数 = additions + deletions：
 ```bash
-git diff --shortstat $(git merge-base main HEAD)..HEAD | awk '{print $4+$6}'
+BASE=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'); BASE=${BASE:-master}; git diff --shortstat $(git merge-base $BASE HEAD)..HEAD | awk '{print $4+$6}'
 ```
 将文件数和修改总行数传入 specpowers-review Skill 调用。
 
 审查 tier 由 specpowers-review 内部三级路由矩阵自动判定（轮数×规模×行数地板→快速/关键/完整），apply 传入 file_count + line_count，review 返回 `[TIER_ROUTING] expected_steps=[...]`。
-
-**Gate 3 返回后，执行以下验证（不可跳过）**:
-
-> **设计说明**: 验证 0/1/2 逻辑已与 design/plan 统一为 expected_steps 检查 + 向前兼容。
-
-**验证 0 — 执行模式检查**:
-读取会话上下文中的 `Plan: <mode>`:
-- 所有模式均继续验证 1 + 验证 2
-降级: 若 Plan mode 不存在，输出 `[WARNING] Plan mode 未设置` 后继续完整验证。
-
-**验证 1 — 执行标记完整性检查**:
-搜索 specpowers-review 输出的 `[TIER_ROUTING] expected_steps=[...]`，按 expected_steps 列表逐个检查对应 `STEP<N>_EXECUTED` 标记块存在性；裁剪的 STEP 若有 `STEP<N>_TIER_SKIPPED` 块不计入缺失。**向前兼容**：若无 TIER_ROUTING 标记（旧版 review），回退旧逻辑：2 文件且 ≤200 行 → STEP1, STEP2（原加强审查）；其他 → STEP1-5（原 UltraReview）。
-
-缺失任一块 → `[VERIFY_FAIL] Gate 3 审查执行不完整，阻塞 Phase 3`。
-搜索未命中任何标记块 → `[VERIFY_FAIL] Gate 3 审查 Agent 未正常执行（无任何执行标记），阻塞 Phase 3`。
-
-**验证 2 — P0 硬阻止检查**:
-搜索 `[GATE_BLOCKED] p0_count=N`:
-- N > 0 → `[VERIFY_FAIL] Gate 3 未通过（P0=N），阻塞 Phase 3`
-- N = 0 且验证 1 通过 → Gate 3 通过，进入 Phase 4
-
-> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate，非 Phase 0-4 Gate 体系的组成部分。父技能仅验证 TIER_ROUTING.expected_steps 声明的 STEP 集，不跨边界验证 specpowers-review 的内部 Gate。详见 specpowers-plan "Gate 返回后验证协议" 节的设计说明。
-
----
 
 ### code-review（Gate 3 代码类路径）
 
@@ -106,6 +82,15 @@ git diff --shortstat $(git merge-base main HEAD)..HEAD | awk '{print $4+$6}'
 2. 审查维度：命名、结构、错误处理、代码风格
 3. 通过标准：无 P0 问题
 4. code-review 和 spec-compliance-check（对齐检查）两者均通过方可进入 Phase 4
+
+**Step 1 — 执行审查**:
+`Skill({skill: "specpowers:specpowers-review", args: "Gate 3, file_count=<N>, line_count=<N>, code-review 结果见上下文"})` — 对齐检查：代码 vs Phase 2 plan + Phase 1 specs + Phase 0 design。将 file_count、line_count、code-review 结果作为上下文注入 review 的对齐 Agent prompt。
+
+**Gate 3 返回后，执行以下验证（不可跳过）**:
+
+> 执行入口 `specpowers:specpowers` SKILL.md「Gate 返回后验证协议（横切）」节（参数：Gate=3, Phase=3）。本 Gate 特化：Gate 3, Phase 3, **tiny 不跳过——仍跑 Gate 3 验证**（验证 0 所有模式均继续，与 design/plan 的 tiny 跳过策略不同）。
+
+> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate，非 Phase 0-4 Gate 体系的组成部分。父技能仅验证 TIER_ROUTING.expected_steps 声明的 STEP 集，不跨边界验证 specpowers-review 的内部 Gate。（设计说明见本节——STEP_FINAL_READTHROUGH 是 review 内部横切 Gate，父技能不跨边界验证）
 
 ---
 

@@ -15,11 +15,7 @@
 
 在下一个功能中加入 3 条 Superpowers 纪律：
 
-（Superpowers 包含 14 个 Skill：brainstorming, writing-plans, executing-plans,
-verification-before-completion, finishing-a-development-branch, test-driven-development,
-systematic-debugging, requesting-code-review, receiving-code-review,
-dispatching-parallel-agents, subagent-driven-development, using-git-worktrees,
-using-superpowers, writing-skills）
+（Superpowers 含 brainstorming/writing-plans/test-driven-development 等 skill，完整列表见 `/skills` 命令）
 
 1. **没设计不写代码**: 将 design.md 注入 writing-plans 输入
 2. **没测试不写代码**: 每个 task 遵循 RED-GREEN-REFACTOR
@@ -29,6 +25,6 @@ using-superpowers, writing-skills）
 
 在下一个复杂功能前引入 OpenSpec 规范对齐：
 
-1. `/opsx:explore` — 讨论 2-3 个技术方案
-2. `/opsx:propose <功能名>` — 生成 design.md + specs
+1. `superpowers:brainstorming` — 需求澄清+方案设计
+2. 手动生成 OpenSpec 四件套（design.md + specs + tasks + proposal.md，Phase 1 不使用 `/opsx:propose`）
 3. 将 design.md 和 specs 加载为 Superpowers planning 上下文

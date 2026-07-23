@@ -3,12 +3,10 @@ name: specpowers
 description: >
   Use when starting any non-trivial development task (>5 files, multi-step, team project)
   that requires both requirements alignment AND engineering discipline.
-  Use when the user mentions: "start new feature", "implement change",
-  "apply OpenSpec tasks", "SDD+TDD workflow", "spec-driven development",
-  "engineering development with specs", "run with specpowers", "/specpowers",
-  "multi-step development task", "need both OpenSpec and Superpowers",
-  "cross-session development", "multi-agent collaboration", "/ultraplan",
-  "code review + spec compliance", "OpenSpec and Superpowers together".
+  Use when the user mentions: "start new feature", "SDD+TDD workflow",
+  "apply OpenSpec tasks", "/specpowers",
+  "engineering development with specs",
+  "OpenSpec and Superpowers together".
   Do NOT use for: single-file bugfixes without existing OpenSpec specs,
   typo corrections, one-off scripts, pure configuration changes.
 ---
@@ -30,7 +28,7 @@ specpowers 融合 OpenSpec（规范驱动开发）+ Superpowers（测试驱动�
 | 回答的问题 | 做什么、为什么做 | 怎么做、按什么标准 | 何时切换、如何衔接 |
 | 核心产物 | proposal/design/specs/tasks | 代码/测试/审查报告 | checklist/hooks/bridge |
 
-> 旧完整单体版本已删除（~2026-06-10）。当前使用拆分版本：1 入口 + 5 子技能（design/plan/apply/review/archive）。
+> 当前架构：1 入口 + 5 子技能（design/plan/apply/review/archive）。
 
 ## 技能组结构
 
@@ -42,7 +40,7 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 | **specpowers-design** | Phase 0+1 | brainstorming 前置+设计+propose 阶段 |
 | **specpowers-plan** | Phase 2 | 衔接阶段 |
 | **specpowers-apply** | Phase 3 | 实现阶段 |
-| **specpowers-review** | 审查 | 三级路由（按轮数×规模：快速/关键/完整审查） |
+| **specpowers-review** | 审查（横切，不绑定特定 Phase） | 三级路由（按轮数×规模：快速/关键/完整审查） |
 | **specpowers-archive** | Phase 4 | 验证+归档阶段 |
 
 ## 启动协议
@@ -50,7 +48,7 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 ```
 □ 流程设计: 根据下方决策树确定本次任务执行模式（微小/中等/复杂/大规模）
 □ 持久化计划: 将执行模式写入会话上下文（如 Plan: <mode>），后续每阶段开始校验
-□ 持久化审查级别: 将审查级别写入会话上下文（如 Review: <level>），Phase 3 加载 specpowers-apply 时读取
+□ 审查级别: 审查级别将在 Gate 执行时由 specpowers-review 根据实际 file_count/line_count/round 动态确定（无需预存）
 □ 子代理上下文: 如需子代理，将对应阶段的 task + spec 填充到子代理独立上下文
 □ 阶段校验: 每 Phase 完成后：输出是否完成？下阶段是否调整？是否偏离计划？复杂度是否超过初始判断（如需升级，更新 Plan: <mode>）？
 □ 并发检查: 多 Agent 任务时，确认目标文件未被其他 Agent 修改后再写入
@@ -82,7 +80,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 ├── 复杂任务（20+ 文件，跨模块）
 │   ├── Phase 0: brainstorming 完整流程
 │   ├── Phase 1: propose 格式转换+强制对照验证
-│   ├── Phase 2: UltraPlan 替代（使用本 Skill 绑定的 refs/ultraplan-*.md 资源，非 Claude Code 原生 /ultraplan 命令）
+│   ├── Phase 2: 中等模式用 writing-plans；复杂/大规模可由用户手动触发 UltraPlan（用户可手动加载 refs/ultraplan-*.md）/ Workflow，plan skill 本身仅覆盖中等模式
 │   ├── Phase 3: TDD + 子代理
 │   ├── Phase 4: 硬 Gate 链归档
 │   容错: UltraPlan 不可用 → 降级中等任务
@@ -90,7 +88,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 └── 大规模任务（50+ 文件）
     ├── Phase 0: brainstorming 完整流程
     ├── Phase 1: propose 格式转换+强制对照验证
-    ├── Phase 2: Workflow 脚本定义
+    ├── Phase 2: 中等模式用 writing-plans；复杂/大规模可由用户手动触发 UltraPlan（用户可手动加载 refs/ultraplan-*.md）/ Workflow，plan skill 本身仅覆盖中等模式
     ├── Phase 3: Workflow 编排子代理
     ├── Phase 4: 硬 Gate 链归档
     容错: Workflow 不可用 → 降级复杂任务
@@ -109,9 +107,9 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 | 产物状态 | Phase 判定 | 加载技能 |
 |---------|-----------|---------|
 | `docs/superpowers/clarifications/<name>.md` 存在，`docs/superpowers/specs/<name>-design.md` 不存在 | Phase 0 中途 | specpowers-design |
+| `docs/superpowers/plans/<name>.md` 存在 | Phase 2 完成 | specpowers-apply (Phase 3) |
 | `.superpowers/.phase1-skipped` 存在 | Phase 1 已跳过 | specpowers-plan (Phase 2) |
 | `docs/superpowers/clarifications/<name>.md` + `docs/superpowers/specs/<name>-design.md` 存在，`openspec/changes/<name>/` 不存在 | Phase 0 完成 | specpowers-design |
-| `docs/superpowers/plans/<name>.md` 存在 | Phase 2 完成 | specpowers-apply (Phase 3) |
 | `openspec/changes/<name>/` 存在 | Phase 1 完成 | specpowers-plan (Phase 2) |
 
 **微小任务不加载子技能** — 直接在入口 skill 上下文中子代理执行。
@@ -120,19 +118,19 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 
 | 当前 Phase | 模式 | 加载 | 命令 |
 |-----------|------|------|------|
-| Phase 0 | 中等+ | specpowers-design | `Skill({skill: "specpowers-design"})` |
-| Phase 1 | 中等+ | specpowers-design | `Skill({skill: "specpowers-design"})` |
-| Phase 2 | 中等+ | specpowers-plan | `Skill({skill: "specpowers-plan"})` |
-| Phase 3 | 中等+ | specpowers-apply | `Skill({skill: "specpowers-apply"})` |
-| 审查 | 代码类（由 specpowers-review 内部三级路由自动判定：快速/关键/完整审查）或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers-review"})` |
-| Phase 4 | 中等+ | specpowers-archive | `Skill({skill: "specpowers-archive"})` |
+| Phase 0 | 中等+ | specpowers-design | `Skill({skill: "specpowers:specpowers-design"})` |
+| Phase 1 | 中等+ | specpowers-design | `Skill({skill: "specpowers:specpowers-design"})` |
+| Phase 2 | 中等+ | specpowers-plan | `Skill({skill: "specpowers:specpowers-plan"})` |
+| Phase 3 | 中等+ | specpowers-apply | `Skill({skill: "specpowers:specpowers-apply"})` |
+| 审查 | 代码类（由 specpowers-review 内部三级路由自动判定：快速/关键/完整审查）或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers:specpowers-review"})` |
+| Phase 4 | 中等+ | specpowers-archive | `Skill({skill: "specpowers:specpowers-archive"})` |
 | — | 微小 | 不加载子技能 | 入口 skill 中直接子代理执行。执行完毕后主 Agent 确认产物并输出完成摘要 |
 
 > 横切规则（Git Flow、Checklist、Pitfalls）保留在本入口技能中，各阶段均需遵守。
 
 ## 审查路由
 
-需要审查时，加载 `specpowers-review`，由 specpowers-review 内部三级路由矩阵自动判定审查层级（按评审轮数×待评审物规模×行数地板路由到快速/关键/完整审查），防退化机制全部保留并为 tier 路由补充防护；用户可手动覆盖（快速/关键/完整审查）。
+需要审查时，加载 `Skill({skill: "specpowers:specpowers-review"})`，由 specpowers-review 内部三级路由矩阵自动判定审查层级（按评审轮数×待评审物规模×行数地板路由到快速/关键/完整审查），防退化机制全部保留并为 tier 路由补充防护；用户可手动覆盖（快速/关键/完整审查）。
 
 ### 各模式映射
 
@@ -163,7 +161,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 |------|------|---------|------|
 | **OpenSpec** | SDD | `openspec --version` | ✅ |
 | **Superpowers** | TDD | `/skills` 含 `superpowers:*` | ✅ |
-| **GitNexus** | AI 代码图谱 | MCP `gitnexus_query` | ⚠️ |
+| **GitNexus** | AI 代码图谱 | MCP `mcp__gitnexus__query` | ⚠️ |
 | **Understand-Anything** | 架构图 | `/understand` | ⚠️ |
 | **TEST_COMMAND** | 全量测试 | 项目实际测试命令（见下方） | ⚠️ 需手动配置 |
 
@@ -203,7 +201,7 @@ master (main) ← 始终可部署
 首次使用 specpowers 的项目需配置以下项：
 
 ```
-□ TEST_COMMAND: 全量测试命令。如未配置，archive 阶段自动检测（make test → npm test → xmake build）
+□ TEST_COMMAND: 全量测试命令（见上方环境准备节，如未配置 archive 自动检测）
 □ QTDIR: Qt 项目需设置（如有）
 □ openspec --version: 确认 OpenSpec CLI 可用
 ```
@@ -221,8 +219,31 @@ master (main) ← 始终可部署
 ```
 □ known-issues / next-steps / memory / session-summary / CLAUDE+SKILL.md
 □ git commit + push origin <current-branch>（遵循 GitLab Flow）
-□ openspec validate + archive（如用 OpenSpec）
+□ openspec validate + archive（如用 OpenSpec）（如 .superpowers/.phase1-skipped 存在则跳过 OpenSpec validate + archive）
 ```
+
+## Gate 返回后验证协议（横切）
+
+各子技能（design/plan/apply）在 Gate 返回后执行以下验证链。本协议为权威定义，子技能引用本协议并给出本 Gate 特化参数（Gate=N, Phase=N）。
+
+```
+验证链（按顺序执行，任一失败阻止后续）:
+
+验证0: 执行模式检查
+  - 微小任务(tiny): 跳过 design/plan 的 Gate 验证（Gate 3 除外——apply 中 tiny 仍执行验证 1/2）
+  - 非微小任务: 继续验证1
+
+验证1: 标记块完整性
+  - 按 [TIER_ROUTING] expected_steps 动态检查 STEP<N>_EXECUTED 标记
+  - 无 TIER_ROUTING 标记时回退旧逻辑（按 Phase 定义检查关键产物）
+  - 预期步骤全部标记 → 通过; 缺少步骤 → 失败（列出缺失项）
+
+验证2: P0 硬阻止
+  - [GATE_BLOCKED] p0_count>0 → 阻塞，禁止继续
+  - p0_count=0 → 通过
+```
+
+> 各子技能引用示例: "按入口 Gate 返回后验证协议执行验证链（Gate=1, Phase=1）：验证0→验证1→验证2。"
 
 ## 7 个常见 Pitfalls
 
@@ -253,13 +274,13 @@ master (main) ← 始终可部署
 
 | 步骤 | 命令 | 详见 |
 |------|------|------|
-| brainstorming | `Skill({skill: "specpowers-design"})`（Phase 0，需求澄清+方案设计） | specpowers-design |
-| propose | `Skill({skill: "specpowers-design"})`（Phase 1，格式转换+强制对照） | specpowers-design |
+| brainstorming | `Skill({skill: "specpowers:specpowers-design"})`（Phase 0，需求澄清+方案设计） | specpowers-design |
+| propose | `Skill({skill: "specpowers:specpowers-design"})`（Phase 1，格式转换+强制对照） | specpowers-design |
 | Plan 审查 | 询问用户是否审查 plan（Phase 2 Gate） | specpowers-plan |
 | 衔接 | "读取 openspec changes/, 用 writing-plans 拆 TDD 计划" | specpowers-plan |
 | 实现 | `Skill({skill: "superpowers:subagent-driven-development"})`（每个 task 一个独立子 Agent） | specpowers-apply |
-| 审查 | Skill({skill: "specpowers-review"})（三级路由自动判定） | specpowers-review |
-| 验证 | `openspec validate <name>` + test | specpowers-archive |
+| 审查 | Skill({skill: "specpowers:specpowers-review"})（三级路由自动判定） | specpowers-review |
+| 验证 | `openspec validate --change <name>` + test | specpowers-archive |
 | 归档 | `/opsx:archive`（硬 Gate 链，禁止手动绕过） | specpowers-archive |
 
 > 小改动无需 specpowers 全流程："帮我修复 xxx.cpp 的编译错误" → 直接子代理执行。
@@ -270,6 +291,7 @@ master (main) ← 始终可部署
 |------|------|
 | 入门指南 | `refs/onboarding.md`（本 skill 的 bundled resource） |
 | 项目模板 | `refs/project-template.md`（本 skill 的 bundled resource） |
+| UltraPlan 总览 | `refs/ultraplan-overview.md` |
 | UltraPlan 代码专家 | `refs/ultraplan-code-expert.md` |
 | UltraPlan 调研专家 | `refs/ultraplan-research-expert.md` |
-| A/B 测试报告 | `docs/tests/specpowers-ab-test-2026-06-04.md` |
+| C/C++ 项目模板 | `refs/pkg-xmake-template.md`（仅 xmake 项目参考） |
