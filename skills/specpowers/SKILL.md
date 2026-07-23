@@ -56,21 +56,14 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 
 ### 子 Agent 启动方式（全局硬约束）
 
-**所有子 Agent 必须使用后台子 agent 方式启动，禁止使用 teammate 方式。**
+**必须使用后台子 agent，禁止 teammate 方式。**
 
-| 方式 | 启动方法 | 结果获取 | 是否允许 |
-|------|---------|---------|---------|
-| **后台子 agent** | `Agent({run_in_background: true, prompt: "..."})` — **不指定 name** | task-notification 自动返回最终输出 | ✅ **必须使用** |
-| **teammate** | `Agent({name: "xxx", ...})` + `SendMessage` 通信 | mailbox 不可靠——agent 可能只发 idle_notification 不返回报告 | ❌ **禁止使用** |
+```
+✅ Agent({run_in_background: true, prompt: "..."})  // 不指定 name，通过 task-notification 获取结果
+❌ Agent({name: "xxx", ...}) + SendMessage           // mailbox 不可靠，agent 可能不返回报告
+```
 
-**原因**：teammate 方式（命名 agent + SendMessage/mailbox 通信）在实际使用中反复遇到 mailbox 不可靠问题——agent 完成任务后只发 `idle_notification` 不返回报告，主 Agent 需多次 SendMessage 索取，有时 agent 已终止不可达。后台子 agent 通过 task-notification 直接返回最终输出，更可靠。
-
-**实施方式**：
-- 在 prompt 中要求"完成后在最终输出给出完整报告"
-- 通过 task-notification + TaskOutput 拿结果
-- 并行审查/修复 Agent 用 `Agent({run_in_background: true, ...})` 不带 name
-
-**适用范围**：specpowers 技能组所有子技能（design/plan/apply/review/archive）的所有子 Agent 启动场景，包括审查 Agent、修复 Agent、监督 Agent、Quick Review Agent 等。
+适用于所有子技能的子 Agent 启动。
 
 ## 执行模式选择
 
