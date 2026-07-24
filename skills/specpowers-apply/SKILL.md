@@ -73,11 +73,11 @@ BASE=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'); 
 ```
 将文件数和修改总行数传入 specpowers-review Skill 调用。
 
-审查 tier 由 specpowers-review 内部三级路由矩阵自动判定（轮数×规模×行数地板→快速/关键/完整），apply 传入 file_count + line_count，review 返回 `[TIER_ROUTING] expected_steps=[...]`。
+审查 tier 由 specpowers-review 内部两级路由矩阵自动判定（轮数×规模×行数地板→关键/完整），apply 传入 file_count + line_count，review 返回 `[TIER_ROUTING] expected_steps=[...]`。
 
 ### code-review（Gate 3 代码类路径）
 
-代码类所有 tier（完整/关键/快速）均由本技能执行 code-review。code-review 执行结果由 specpowers-review 在 STEP1 中作为对齐 Agent 输入上下文；其他 STEP（STEP3-5）由 review 内部 tier recipe 路由决定。代码类关键层 = 3 独立视角（code-review + 对齐 + 监督）、快速层 = code-review（轻量）。
+代码类所有 tier（完整/关键）均由本技能执行 code-review。code-review 执行结果由 specpowers-review 在 STEP1 中作为对齐 Agent 输入上下文；其他 STEP（STEP3-5）由 review 内部 tier recipe 路由决定。代码类关键层 = 3 独立视角（code-review + 对齐 + 监督）。
 1. 使用 `Skill({skill: "superpowers:requesting-code-review"})` 加载代码质量审查
 2. 审查维度：命名、结构、错误处理、代码风格
 3. 通过标准：无 P0 问题

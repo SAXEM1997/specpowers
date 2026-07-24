@@ -40,7 +40,7 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 | **specpowers-design** | Phase 0+1 | brainstorming 前置+设计+propose 阶段 |
 | **specpowers-plan** | Phase 2 | 衔接阶段 |
 | **specpowers-apply** | Phase 3 | 实现阶段 |
-| **specpowers-review** | 审查（横切，不绑定特定 Phase） | 三级路由（按轮数×规模：快速/关键/完整审查） |
+| **specpowers-review** | 审查（横切，不绑定特定 Phase） | 两级路由（按轮数×规模：关键/完整审查） |
 | **specpowers-archive** | Phase 4 | 验证+归档阶段 |
 
 ## 启动协议
@@ -133,7 +133,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 | Phase 1 | 中等+ | specpowers-design | `Skill({skill: "specpowers:specpowers-design"})` |
 | Phase 2 | 中等+ | specpowers-plan | `Skill({skill: "specpowers:specpowers-plan"})` |
 | Phase 3 | 中等+ | specpowers-apply | `Skill({skill: "specpowers:specpowers-apply"})` |
-| 审查 | 代码类（由 specpowers-review 内部三级路由自动判定：快速/关键/完整审查）或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers:specpowers-review"})` |
+| 审查 | 代码类（由 specpowers-review 内部两级路由自动判定：关键/完整审查）或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers:specpowers-review"})` |
 | Phase 4 | 中等+ | specpowers-archive | `Skill({skill: "specpowers:specpowers-archive"})` |
 | — | 微小 | 不加载子技能 | 入口 skill 中直接子代理执行。执行完毕后主 Agent 确认产物并输出完成摘要 |
 
@@ -141,7 +141,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 
 ## 审查路由
 
-需要审查时，加载 `Skill({skill: "specpowers:specpowers-review"})`，由 specpowers-review 内部三级路由矩阵自动判定审查层级（按评审轮数×待评审物规模×行数地板路由到快速/关键/完整审查），防退化机制全部保留并为 tier 路由补充防护；用户可手动覆盖（快速/关键/完整审查）。
+需要审查时，加载 `Skill({skill: "specpowers:specpowers-review"})`，由 specpowers-review 内部两级路由矩阵自动判定审查层级（按评审轮数×待评审物规模×行数地板路由到关键/完整审查），防退化机制全部保留并为 tier 路由补充防护；用户可手动覆盖（关键/完整审查）。
 
 ### 各模式映射
 
@@ -290,7 +290,7 @@ master (main) ← 始终可部署
 | Plan 审查 | 询问用户是否审查 plan（Phase 2 Gate） | specpowers-plan |
 | 衔接 | "读取 openspec changes/, 用 writing-plans 拆 TDD 计划" | specpowers-plan |
 | 实现 | `Skill({skill: "superpowers:subagent-driven-development"})`（每个 task 一个独立子 Agent） | specpowers-apply |
-| 审查 | Skill({skill: "specpowers:specpowers-review"})（三级路由自动判定） | specpowers-review |
+| 审查 | Skill({skill: "specpowers:specpowers-review"})（两级路由自动判定） | specpowers-review |
 | 验证 | `openspec validate --change <name>` + test | specpowers-archive |
 | 归档 | `/opsx:archive`（硬 Gate 链，禁止手动绕过） | specpowers-archive |
 

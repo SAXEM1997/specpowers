@@ -15,7 +15,7 @@ session_ledger = {
         "rounds": [
             {
                 "round": 1,
-                "tier": "full",       // 本轮路由到的层级（full|critical|fast）
+                "tier": "full",       // 本轮路由到的层级（full|critical）
                 "p0": 0,            // 修复后剩余 P0（向后兼容，Step 5 写入）
                 "p1": 0,            // 修复后剩余 P1
                 "p2": 0,            // 修复后剩余 P2
@@ -160,7 +160,6 @@ raw_count_sum: p0=N p1=N p2=N p3=N   # 仅 Step 1 必填（各 Agent RAW_COUNT �
 agents: [<agent_name>(<model>), ...]
 issues_found: <N>
 degradation: none|<具体原因>|<影响分析>|<替代措施>
-dimensions: [trace, omission] | [trace, omission, merge, judgment]   # 仅 Step 3 mode=standard 可选（记录执行的监督维度，供审计追溯）
 notes: <自由文本>   # 可选（如 Step 5 兼并合并验证声明、回退标注等）
 ref: AgentId=<id>, tokens=<N>
 \`\`\`
@@ -168,7 +167,7 @@ ref: AgentId=<id>, tokens=<N>
 
 > **degradation 字段说明**: pipe 三段对应协议 4 退化声明三要素：(a) 具体原因（缺失能力+模型名），(b) 影响分析（尝试过的调用方式+失败信息），(c) 替代措施（降级路径选择依据）。`none` 表示无退化。
 
-> **mode 字段说明（仅 Step 3 必填）**: 描述 Step 3 合并验证的部署形式，独立于 degradation（能力损失）。取值：`standard`=独立监督 Agent 执行（N≥5 或含 P0）；`transferred_to_step5`=不启动独立 Agent，合并验证 2 维（溯源+遗漏）转移至 Step 5 兼并执行（N∈[1,4] 且 p0_raw==0，结构重组非能力损失，故 degradation=none）；`trivial`=无 P0/P1/P2 问题特判（N==0）。Step3 标记块可附 `dimensions` 字段记录执行的监督维度（N≤4含P0 时 [trace,omission]；N≥5 时完整4维），供审计追溯。详见 SKILL.md Step 3。
+> **mode 字段说明（仅 Step 3 必填）**: 描述 Step 3 合并验证的部署形式，独立于 degradation（能力损失）。取值：`standard`=独立监督 Agent 执行（含 P0 或 N≥11，完整 4 维）；`transferred_to_step5`=不启动独立 Agent，合并验证 2 维（溯源+遗漏）转移至 Step 5 兼并执行（N∈[1,10] 且 p0_raw==0，结构重组非能力损失，故 degradation=none）；`trivial`=无 P0/P1/P2 问题特判（N==0）。详见 SKILL.md Step 3。
 
 > **ref 行说明**: `ref: AgentId=<id>[, tokens=<N>]` 由**主 Agent 在汇总时追加**（非子 Agent 输出）。AgentId 从子 Agent 的 `Agent` 工具返回值提取（必填）；tokens 为主 Agent 估算的消耗（可选字段，不可用时省略或填 `null`）。AgentId 格式为 `a` + 16 位 hex（系统生成）。主 Agent 在遵循协议时从该路径获取真实 AgentId；但技术上可生成格式合法的虚假值——此为辅助真实度信号，非密码学验证。完整限制声明见标记块验证规则中的"验证能力与限制"表。
 
@@ -182,7 +181,7 @@ ref: AgentId=<id>, tokens=<N>
 |------|--------|------------|-------------------|
 | Step 1 | 主 Agent（汇总三个子 Agent 完成状态） | complete / degraded | 某 Agent 未完成（原因+重试次数+替代措施）；汇总 raw_count_sum |
 | Step 2 | 主 Agent（自执行，无子 Agent） | complete | none（主 Agent 执行，无降级路径）——标记块由主 Agent 为自己执行的 Step 输出，ref 行 AgentId 填 `self`，tokens 为主 Agent 执行 Step 2 的估算消耗 |
-| Step 3 | 按 mode 分叉（见上方 mode 字段说明）：standard=必须启动独立监督 Agent；transferred_to_step5=主Agent自执行(转移至Step5)；trivial=主Agent自执行(N==0) | complete / degraded | mode=standard（必须启动独立监督 Agent；N≥5 完整4维，N≤4含P0或file_count≥4仅维度1-2；单一模型时声明缺少独立视角）；mode=transferred_to_step5（主 Agent 自执行，agents=self，degradation=none，合并验证转移至 Step 5）；mode=trivial（N==0，主 Agent 自执行） |
+| Step 3 | 按 mode 分叉（见上方 mode 字段说明）：standard=必须启动独立监督 Agent；transferred_to_step5=主Agent自执行(转移至Step5)；trivial=主Agent自执行(N==0) | complete / degraded | mode=standard（含P0或N≥11 启动独立监督 Agent 完整4维；单一模型时声明缺少独立视角）；mode=transferred_to_step5（主 Agent 自执行，agents=self，degradation=none，合并验证转移至 Step 5）；mode=trivial（N==0，主 Agent 自执行） |
 | Step 4 | 修复子 Agent + 主 Agent | complete / degraded / failed | 子 Agent 不可用时声明"退回主 Agent 自行修复"；修复重试超限声明"修复失败" |
 | Step 5 | Quick Review Agent | complete / degraded | 单一 Agent 时声明"缺少独立视角"；Step 4 退化时声明"执行两轮补偿验证"；mode=transferred_to_step5 时声明"兼并 Step 3 合并验证（溯源+遗漏+问题数核对）" |
 | 最终通读 | 独立子 Agent 或主 Agent（自执行） | complete / fail | 沿用通用标记块格式（STEP_FINAL_READTHROUGH）。agents 填子 Agent 模型名或 self（主 Agent 自执行）。issues_found 填残余问题数。子 Agent 工具不可用时由主 Agent 自执行，degradation 声明"单一模型，最终通读缺少独立视角" |
@@ -265,8 +264,7 @@ ref: AgentId=<id>, tokens=<N>
 | Step 1 | 仅 2 个模型可用 | 结构+对齐不同模型，落地与对齐共用 | 主 Agent 汇总 |
 | Step 1 | 仅 1 个模型可用 | 串行执行（落地→对齐→结构） | 主 Agent 汇总 |
 | Step 3 | 仅 1 个模型可用 | 同模型执行监督，声明"缺少独立视角" | 监督 Agent |
-| Step 3 | N≤4 但 p0_raw≥1（含 P0） | 独立 Agent 仅维度 1-2（溯源+遗漏），P0 阻塞须查但问题总量小 | 监督 Agent |
-| Step 3 | N∈[1,4] 且 p0_raw==0 | **非退化**——mode=transferred_to_step5，合并验证 2 维转移至 Step 5 兼并执行（degradation=none，结构重组非能力损失） | 主 Agent |
+| Step 3 | N∈[1,10] 且 p0_raw==0 | **非退化**——mode=transferred_to_step5，合并验证 2 维转移至 Step 5 兼并执行（degradation=none，结构重组非能力损失） | 主 Agent |
 | Step 3 | N==0 | **非退化**——mode=trivial，无 P0/P1/P2 问题特判，无合并验证对象（degradation=none） | 主 Agent |
 | Step 4 | 子 Agent 工具不可用 | 退回主 Agent 自行修复 | 主 Agent |
 | Step 4 | 环境不支持并行 | 修复子 Agent 串行执行 | 主 Agent |
@@ -274,7 +272,7 @@ ref: AgentId=<id>, tokens=<N>
 | Step 5 | Step 4 退化 | 执行两轮补偿验证 | Quick Review Agent |
 | 最终通读 | 子 Agent 工具不可用 | 由主 Agent 自行执行 | 主 Agent |
 
-> **多降级并发格式**: 多降级条件同时触发时（如 Step 3 中单一模型可用 + N≤4 但 p0_raw≥1），`degradation` 字段用分号拼接多个三要素（如 `单一模型"缺少独立视角"; N≤4含P0 仅执行维度1-2`）。注意：N∈[1,4] 且 p0_raw==0 的转移路径用 mode=transferred_to_step5 标记（非 degradation，degradation=none）。
+> **多降级并发格式**: 多降级条件同时触发时，`degradation` 字段用分号拼接多个三要素。注意：N∈[1,10] 且 p0_raw==0 的转移路径用 mode=transferred_to_step5 标记（非 degradation，degradation=none）。
 
 退化声明对所有降级场景强制要求，不可省略。这构成**横切规则**，覆盖 Step 3/4/5 的全部降级分支。
 
@@ -306,7 +304,7 @@ ref: AgentId=<id>, tokens=<N>
 
 ### Step 4 转移路径知情声明注入模板（mode=transferred_to_step5 时）
 
-当 Step 3 转移至 Step 5（N∈[1,4] 且 p0_raw==0 且 file_count<4）时，主 Agent 启动修复子 Agent 的 prompt **首段**必须注入以下知情声明：
+当 Step 3 转移至 Step 5（N∈[1,10] 且 p0_raw==0）时，主 Agent 启动修复子 Agent 的 prompt **首段**必须注入以下知情声明：
 
 > 本轮合并验证尚未执行（Step 3 已转移至 Step 5 兼并）。你修复的合并判断表为 Step 2 版本（未经独立监督交叉验证）。修复完成后，Step 5 的 Quick Review Agent 将执行合并验证（溯源+遗漏+问题数核对）+ 修复验证双重检查。**若你在修复过程中发现合并表疑似遗漏某条审查发现，请主动在输出中上报（标注 [疑似合并遗漏]）**——这是额外的横向检测点。
 
@@ -314,7 +312,7 @@ ref: AgentId=<id>, tokens=<N>
 
 ### Step 5 兼并合并验证模式注入模板（mode=transferred_to_step5 时）
 
-当 Step 3 因 N∈[1,4] 且 p0_raw==0 转移至 Step 5 时，主 Agent 启动 Quick Review Agent 的 prompt **必须注入**以下字段（不得省略，否则 Step 5 无法做合并验证+问题数核对）：
+当 Step 3 因 N∈[1,10] 且 p0_raw==0 转移至 Step 5 时，主 Agent 启动 Quick Review Agent 的 prompt **必须注入**以下字段（不得省略，否则 Step 5 无法做合并验证+问题数核对）：
 
 | 必注入字段 | 内容 | 用途 |
 |---|---|---|
@@ -332,9 +330,9 @@ ref: AgentId=<id>, tokens=<N>
 >
 > 截断策略同协议 5 通用规则：原始报告超长时优先保留"问题清单+严重度+证据+RAW_COUNT 行"，截断分析过程。
 
-## 协议 6: 三级路由算法（tier routing）
+## 协议 6: 两级路由算法（tier routing）
 
-> 定义审查层级（tier）的路由矩阵、评估算法、层级裁剪声明、FAST 开关及典型场景。由 specpowers-review SKILL.md 按需引用。路由决策由主 Agent 在 Step 0 执行，输出 `[TIER_ROUTING]` 标记。
+> 定义审查层级（tier）的路由矩阵、评估算法、层级裁剪声明及典型场景。由 specpowers-review SKILL.md 按需引用。路由决策由主 Agent 在 Step 0 执行，输出 `[TIER_ROUTING]` 标记。
 
 ### 路由矩阵
 
@@ -346,161 +344,124 @@ ref: AgentId=<id>, tokens=<N>
 
 | 规模 × 轮数 | 第 1 轮 | 第 2 轮 | 第 3 轮+ |
 |------------|--------|--------|---------|
-| 微小 | 关键 | 关键 | 快速★ |
+| 微小 | 关键 | 关键 | 关键 |
 | 中等 | 完整 | 关键★ | 关键★ |
 | 复杂 | 完整 | 完整 | 完整 |
 | 大规模 | 完整 | 完整 | 完整 |
 
 ★ 触发收敛闸门，不满足则升级。详见下方算法 step 5。
 
-**快速 tier 实际触发条件（极窄）**：微小 + round≥3 + line≤200 + 上轮收敛（p0_raw=0 且 p1_raw<3），四条件全满足。
-
 ### 路由算法
 
 **符号定义**：
 
 - `floor(line_count)`: 行数地板函数，定义见下方"行数地板"节（round1: line>500→完整; 200<line≤500→关键; line≤200→矩阵tier）
-- tier 序：快速 < 关键 < 完整（用于 `max()` 比较）
+- tier 序：关键 < 完整（用于 `max()` 比较）
 - `MATRIX`: 本协议上方"路由矩阵"表
-- `RECIPES`: SKILL.md "三维 recipe 表"（代码类完整层按 bucket_class 选 加强审查/UltraReview）
+- `RECIPES`: SKILL.md "recipe 表"（代码类完整层按 bucket_class 选 加强审查/UltraReview）
 - UltraReview：代码类完整层复杂/大规模 bucket 的 6-agent recipe（见 SKILL.md）
 
 ```text
 输入: object_type, file_count, line_count (apply 传入)
 预计算:
-  # 文档类 bucket 按 line_count（文档行数与内容复杂度正相关；file_count 对文档无区分度——1 个 design.md 可能描述 3 个或 50 个文件的系统）
+  # 文档类 bucket 按 line_count（文档行数与内容复杂度正相关；file_count 对文档无区分度）
   # 代码类 bucket 按 file_count（变更文件数直接反映代码变更范围）
   bucket = (object_type==文档) ? bucket_doc(line_count) : bucket(file_count)
   bucket_class = (object_type==代码) ? (bucket in {微小,中等} ? 小代码 : 大代码) : null
-  round = (!ledger || !ledger[gate_id]) ? 1 : ledger[gate_id].rounds.length + 1   # round 基于【当前 gate_id】的 rounds.length，非全局轮次。不同 Gate 的 gate_id 不同（gate_0/gate_1/gate_2/gate_3），轮次独立计数——Gate 0 审了 N 轮不影响 Gate 2 的 round（Gate 2 首轮 round=1）。gate_id 不存在视为首轮。
-  prev_raw = (round >= 2) ? ledger[gate_id].rounds[round-2] : null   # round 为当前轮次 1-indexed，rounds 数组 0-indexed，上一轮索引=round-2；round=1 无上一轮, round>=2 取 rounds[round-2] 防数组负索引
+  round = (!ledger || !ledger[gate_id]) ? 1 : ledger[gate_id].rounds.length + 1   # round 基于【当前 gate_id】的 rounds.length。不同 Gate 的 gate_id 不同，轮次独立计数。gate_id 不存在视为首轮。
+  prev_raw = (round >= 2) ? ledger[gate_id].rounds[round-2] : null   # rounds 0-indexed，上一轮索引=round-2
 1. 护栏1(安全优先, early-return): if !ledger || !ledger[gate_id] → return tier=完整, reason="ledger缺失,保守完整"   # 最先, 覆盖手动覆盖
-2a. 手动 tier 覆盖: if 用户指定"完整/关键/快速审查" → base_tier=指定值, reason+="用户指定"; else base_tier=null（无手动覆盖时不追加 reason）
-2b. 文档类 UltraReview 特殊路径: if 文档类且用户指定"UltraReview" → 跳过步骤 3-6, 直接 recipe=完整层多模型渐进式(3-agent)（文档类 6-agent 维度不适用, 映射到 3-agent）, 但仍须经护栏1（ledger缺失仍 early-return 完整）
+2a. 手动 tier 覆盖: if 用户指定"完整/关键审查" → base_tier=指定值, reason+="用户指定"; else base_tier=null
+2b. 文档类 UltraReview 特殊路径: if 文档类且用户指定"UltraReview" → 跳过步骤 3-5, 直接 recipe=完整层多模型渐进式(3-agent), 但仍须经护栏1
 3. 矩阵: matrix_tier = MATRIX[bucket][round]; tier = (base_tier!=null) ? max(base_tier, matrix_tier) : matrix_tier; if matrix_tier>base_tier reason+="矩阵升级"
 4. 行数地板: floor_tier = floor(line_count); if floor_tier>tier → tier=floor_tier, reason+="行数地板升级"
-5. 收敛闸门(仅 prev_raw!=null 时, 无论 tier 来源都执行):
-   - tier==快速 且 非(round>=3 且 prev_raw.p0_raw==0 且 prev_raw.p1_raw<3) → tier=关键, reason+="收敛证据不足降级"   # round>=3 防御性冗余, 由矩阵保证
+5. 收敛闸门(仅 prev_raw!=null 时执行):
    - tier==关键 且 bucket==中等 且 prev_raw.p0_raw>0 → tier=完整, reason+="中等未收敛升级"
    convergence = (prev_raw==null) ? n/a : (闸门触发 ? failed : passed)
-6. FAST 开关: if FAST_TIER_ENABLED==false 且 tier==快速 → tier=关键, reason+="FAST_TIER_ENABLED关闭,回退关键"
-7. recipe = RECIPES[object_type][tier][bucket_class]   # 代码类完整层按 bucket_class 选 加强审查/UltraReview; 文档类 bucket_class=null
+6. recipe = RECIPES[object_type][tier][bucket_class]
 输出: [TIER_ROUTING] tier=<>, round=<>, file_count=<>, bucket=<>, line_count=<>, floor=<>, convergence=<passed|failed|n/a>, reason=<>, expected_steps=[...]
 ```
 
-**评估顺序（箭头=先后，非覆盖；每层只升不降）**：护栏 1（ledger 缺失 early-return）→ 手动覆盖（设基础 tier=floor）→ 矩阵 → 行数地板（max 升级）→ 收敛闸门（条件升级）→ FAST 开关。
+**评估顺序（箭头=先后，非覆盖；每层只升不降）**：护栏 1（ledger 缺失 early-return）→ 手动覆盖 → 矩阵 → 行数地板（max 升级）→ 收敛闸门（条件升级）。
 
-**文档类 bucket 函数（按 line_count）**：`bucket_doc(line≤100)=微小; bucket_doc(100<line≤300)=中等; bucket_doc(300<line≤600)=复杂; bucket_doc(line>600)=大规模`。文档行数与内容复杂度正相关——1 个 design.md 可能描述 3 个文件的简单修改，也可能描述 50 个文件的系统重构。file_count 对文档无区分度（Gate 0/2 始终 1 文件，Gate 1 通常 4-6 文件），故文档类按 line_count 分桶。代码类仍按 file_count 分桶（变更文件数直接反映代码变更范围）。
+**文档类 bucket 函数（按 line_count）**：`bucket_doc(line≤100)=微小; bucket_doc(100<line≤300)=中等; bucket_doc(300<line≤600)=复杂; bucket_doc(line>600)=大规模`。文档行数与内容复杂度正相关——1 个 design.md 可能描述 3 个文件的简单修改，也可能描述 50 个文件的系统重构。file_count 对文档无区分度（Gate 0/2 始终 1 文件，Gate 1 通常 4-6 文件），故文档类按 line_count 分桶。
 
-> 文档类 bucket 阈值（100/300/600）与代码类 bucket 阈值（3/19/49 文件）语义对齐：微小=简短/少量，中等=适度，复杂=详尽，大规模=极长/极多。行数地板对文档类仍生效（作为安全网，不冲突——bucket_doc 已按 line_count 分桶，地板仅在边界场景提供额外保护）。
+> 文档类 bucket 阈值（100/300/600）与代码类 bucket 阈值（3/19/49 文件）语义对齐。行数地板对文档类仍生效（作为安全网）。
 
 **行数地板（只升不降）**：`floor(line>500)={round1:完整, round2+:关键}; floor(200<line≤500)=关键; floor(line≤200)=矩阵tier`；`tier=max(tier, 地板tier)`。
 
-> 护栏 1 是安全护栏（与行数地板同级），可覆盖手动覆盖——因为 floor 语义是"不低于此 tier"，安全护栏升级手动值不违背用户控制（用户指定"快速"+ledger 缺失 → 安全优先完整）。reason 字段会注明"手动覆盖被安全护栏覆盖"。
+> 护栏 1 是安全护栏（与行数地板同级），可覆盖手动覆盖——floor 语义是"不低于此 tier"，安全护栏升级手动值不违背用户控制。reason 字段会注明"手动覆盖被安全护栏覆盖"。
 
 ### 层级裁剪声明块
 
-tier 裁剪专用，与协议 4「退化声明」区分。review 侧在裁剪掉的 STEP 输出此块。
+tier 裁剪专用，与协议 4「退化声明」区分。review 侧在裁剪掉的 STEP 输出此块。当前仅完整层加强审查子路径使用（裁剪 STEP3/4/5）。
 
 ```
 STEP<N>_TIER_SKIPPED
-tier: <fast|full>
+tier: full
 step: <N>
-reason: <快速层裁剪独立监督 | 完整层加强审查子路径轻量>
-fallback_coverage: 最终通读 Gate 横切 + 主 Agent 自检 + 收敛闸门
+reason: 完整层加强审查子路径轻量
+fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收敛闸门
 ```
 
 | 字段 | 说明 |
 |------|------|
-| `tier` | 当前路由层级（fast 或 full） |
+| `tier` | 当前路由层级（full） |
 | `step` | 被裁剪的 STEP 编号 |
-| `reason` | 快速层：裁剪独立监督（STEP3/5）；完整层加强审查子路径：轻量路径无需监督+QuickReview（STEP3/4/5） |
-| `fallback_coverage` | 裁剪的补偿机制：最终通读 Gate 横切 + 主 Agent 自检 + 收敛闸门 |
+| `reason` | 完整层加强审查子路径：轻量路径无需监督+QuickReview（STEP3/4/5） |
+| `fallback_coverage` | 裁剪的补偿机制：最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收敛闸门 |
 
 **review 侧（必须输出）**：tier 裁剪掉的 STEP 输出此块，供父技能 reason 抽查与人类审计追溯。
 
 **父技能验证侧（中性）**：TIER_SKIPPED 块既不计入已执行也不计入缺失；父技能按 `expected_steps` 检查（expected 中的 STEP 必须有 STEP<N>_EXECUTED，不在 expected 中的 STEP 不需检查）。
 
-### FAST_TIER_ENABLED 配置
-
-快速 tier 的全局开关，默认值 `false`。位于本协议（protocols.md）中，非用户可配置项。（注：此配置位于 git-tracked 文件，手动改 true 解锁快速层时会 dirty 仓库且升级可能被覆盖——解锁后建议同步到项目 CLAUDE.md）
-
-- **默认 false（过渡期安全）**：快速 tier 不可用，算法 step 6 将快速回退为关键，确保与旧父技能兼容（关键层仍产 STEP1-5）。
-- **置 true（解锁快速层）**：待所有消费者（specpowers-apply/design/plan）升级为 expected_steps 动态检查后，手动改为此处为 true。
-- **开关流向**：见路由算法 step 6。
-
-> 解锁前置待验证：需确认 specpowers-apply/design/plan 的 expected_steps 动态检查在所有 tier 路由分支下均正确（尤其快速层裁剪 STEP3/5 后父技能验证兼容性），验证通过后方可置 true。当前保守保留 false。
-
 ### 典型场景验证
 
-以下 13 个场景覆盖路由算法全部路径：
+以下场景覆盖路由算法全部路径：
 
 | # | 场景 | 预期 tier | 关键路径 |
 |---|------|----------|---------|
-| 1 | 微小 round3 + 收敛（p0_raw=0, p1_raw<3）+ line≤200（假设 ledger 存在） | 快速（FAST=true）/ 关键（FAST=false 默认） | 矩阵→快速 + 闸门通过 + FAST 开关（若 true） |
+| 1 | 微小 round3 + 收敛（假设 ledger 存在） | 关键 | 矩阵→关键 |
 | 2 | 中等 round2（假设 ledger 存在） | 关键 | 矩阵→关键★ + 闸门（p0_raw=0 则通过） |
 | 3 | 中等 round3 但上轮 p0_raw>0（假设 ledger 存在） | 完整 | 矩阵→关键 → 闸门升级完整（中等未收敛） |
 | 4 | 复杂任意轮（假设 ledger 存在） | 完整 | 矩阵→完整，永不降级 |
 | 5 | 跨会话恢复（ledger 缺失） | 完整 | 护栏1 early-return，覆盖手动覆盖 |
 | 6 | 代码类 4 文件/400 行 round1（假设 ledger 存在） | 完整（加强审查子路径） | 矩阵→完整，bucket=中等→recipe=加强审查 STEP1-2 |
 | 7 | 代码类 3 文件 round2（假设 ledger 存在） | 关键（3 独立视角） | 矩阵→关键，recipe=3 独立视角 |
-| 8 | round1 手动指定快速但 line>500（假设 ledger 存在） | 完整 | 手动→快速 → 行数地板升级完整 |
-| 9 | round2+ 手动指定快速但 line>500（假设 ledger 存在） | 关键 | 手动→快速 → 行数地板升级关键 |
-| 10 | 问题多但 round3（微小）（假设 ledger 存在） | 关键 | 矩阵→快速 → 闸门降级关键（收敛证据不足） |
-| 11 | FAST_TIER_ENABLED=false + 微小 round3+收敛（假设 ledger 存在） | 关键 | 矩阵→快速 → step6 回退关键 |
-| 12 | **文档类** design.md 1 文件/450 行 round1（假设 ledger 存在） | 完整（3-agent 多模型渐进式） | bucket_doc(450)=复杂 → 矩阵→完整。修复前 1 文件→微小→关键的错误路由 |
-| 13 | **文档类** plan.md 1 文件/80 行 round1（假设 ledger 存在） | 关键（对齐+监督 2-agent） | bucket_doc(80)=微小 → 矩阵→关键。短文档不需要 3-agent |
+| 8 | round1 手动指定关键但 line>500（假设 ledger 存在） | 完整 | 手动→关键 → 行数地板升级完整 |
+| 9 | **文档类** design.md 1 文件/450 行 round1（假设 ledger 存在） | 完整（3-agent 多模型渐进式） | bucket_doc(450)=复杂 → 矩阵→完整 |
+| 10 | **文档类** plan.md 1 文件/80 行 round1（假设 ledger 存在） | 关键（对齐+监督 2-agent） | bucket_doc(80)=微小 → 矩阵→关键 |
 
 ## 协议 7: 收敛提醒与硬阻止输出模板
 
-> 由 specpowers-review SKILL.md「收敛提醒与硬阻止机制」节引用。以下三个模板分别对应场景 A（P0>0 硬阻止）、触发场景 A（强烈提醒）、场景 B（不触发/轻量提醒）。
+> 由 specpowers-review SKILL.md「收敛提醒与硬阻止机制」节引用。
 
-### 场景 A: P0 > 0 — 硬阻止声明（强制语气）
+**输出判定**（依据本轮原始发现数 p0_raw/p1_raw/p2_raw/p3_raw，禁止用修复后剩余数）：
 
-```markdown
-> **[GATE_BLOCKED] p0_count=<N>**
->
-> 本轮审查发现 **P0: <N> 个** 必须修复的阻塞性问题。
->
-> P0 > 0，审查 Gate 未通过。当前 Phase 被阻塞。
-> **specpowers-review 必须执行修复-重审循环**，直到 P0 清零后方可向调用方返回。
->
-> 修复-重审循环规则:
-> 1. 修复子 Agent 修复所有 P0 项
-> 2. 修复完成后主 Agent 逐条校验
-> 3. 校验通过后，重新执行 Step 1-5 完整审查流程
-> 4. 循环直到 P0 = 0，且 P1 总数较上轮不增加
->
-> 本轮修复+重审中发现的 P1/P2 同样纳入累积计数。
-> 调用方（父技能）将检查 [GATE_BLOCKED] 标记，P0>0 时拒绝进入下一 Phase。
-```
+| 场景 | 条件 | 输出 |
+|------|------|------|
+| 硬阻止 | p0 未清零（修复后仍 p0 > 0） | `[GATE_BLOCKED]` 强制语气 + 修复-重审循环 |
+| 强烈提醒下一轮 | 下方 4 触发条件任一满足 | 强烈建议下一轮 + 上轮对比 |
+| 轻量提醒 | 以上均不满足 | 轻量收敛提醒 |
 
-### 触发场景 A（触发条件）— 强烈提醒
+**下一轮 4 触发条件**（任一满足即强烈提醒）：① p0_raw > 0；② p1_raw ≥ 3；③ p0_raw+p1_raw+p2_raw ≥ 5；④ p0_raw+p1_raw+p2_raw+p3_raw ≥ 10。
+
+> 条件 1（p0_raw > 0）与 `[GATE_BLOCKED]` 独立：P0 已全部修复后 p0_raw 仍 > 0（本轮发现过 P0），Gate 已通过但仍触发下一轮建议。多条件同时触发时按编号升序列出全部。
+
+### 统一输出模板
 
 ```markdown
-> **审查下一轮提醒**
+> **[GATE_BLOCKED] p0_count=<修复后剩余P0>**   ← 仅 P0 未全部修复时输出此行（p0_count=修复后剩余数，区别于下方原始发现数），否则删除
 >
-> 本轮原始发现 P0: N 个, P1: Y 个, P2: Z 个, P3: W 个（原始发现数——Step 2 汇总时记录，非修复后剩余数）。
+> 本轮原始发现 P0: <p0_raw>, P1: <p1_raw>, P2: <p2_raw>, P3: <p3_raw>（原始发现数——Step 2 汇总记录，非修复后剩余数）。
 >
-> ⚠️ **触发条件：<编号+描述>**（触发即强烈建议下一轮）
-> 本轮审查原始发现的问题数已达到需要额外审查的级别，即使当前问题已全部修复，仍**强烈建议启动下一轮审查**，避免以下风险：
-> - 修复引入的回归问题未被发现
-> - 高复杂度变更中的隐藏缺陷
-> - 审查盲区的累积
+> [p0 未清零时] P0 未清零，审查 Gate 未通过，当前 Phase 被阻塞。specpowers-review 必须执行修复-重审循环（修复子 Agent 修 P0 → 主 Agent 逐条校验 → 重跑 Step 1-5），直到 P0 清零且 P1 总数较上轮不增加。本轮修复+重审中发现的 P1/P2 纳入累积计数。调用方将检查 [GATE_BLOCKED]，P0>0 时拒绝进入下一 Phase。
 >
-> **上轮对比**（如适用）：
-> - 上轮原始发现：P0: X, P1: Y, P2: Z, P3: W → 本轮：P0: X', P1: Y', P2: Z', P3: W'
-> - 趋势：收敛中 ↗ / 持平 → / 恶化 ↘
+> [触发条件任一满足时] ⚠️ 触发条件 <编号+描述>，即使问题已全部修复，仍强烈建议启动下一轮审查（避免修复回归 / 高复杂度变更隐藏缺陷 / 审查盲区累积）。
+>
+> **上轮对比**（如适用）：上轮 P0:X P1:Y P2:Z P3:W → 本轮 P0:X' P1:Y' P2:Z' P3:W'，趋势：收敛中 ↗ / 持平 → / 恶化 ↘
 >
 > 请确认：是否进行下一轮审查？
 >
-> **[DEGRADED] 模式**（旧格式账本）：不展示上轮对比段（数据不可用），仅展示当轮原始发现数 + 声明 "旧格式账本缺少原始发现数，回退独立判断"。
-```
-
-### 场景 B（不触发）— 轻量提醒
-
-```markdown
-> **审查收敛提醒**
->
-> 本轮原始发现 P0: 0, P1: Y, P2: Z, P3: W（原始发现数，非修复后剩余数），未触发下一轮审查阈值，趋于收敛。是否继续下一轮审查？
+> **[DEGRADED]**（旧格式账本缺少 _raw 字段）：不展示上轮对比段，仅展示当轮原始发现数 + 声明"旧格式账本缺少原始发现数，回退独立判断"。
 ```

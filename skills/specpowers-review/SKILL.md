@@ -4,7 +4,7 @@ description: >-
   Use when code or document review is triggered in a specpowers workflow — when
   implementation is complete and needs quality gate, when design/spec/plan documents
   need review, when user says "review this" or "run UltraReview",
-  "快速审查" / "关键审查" / "完整审查", or when a specpowers Gate requires formal review
+  "关键审查" / "完整审查", or when a specpowers Gate requires formal review
   before proceeding to next phase.
 ---
 
@@ -21,73 +21,67 @@ description: >-
 
 ## 审查决策树
 
-审查类型由本 skill 内部按「对象类型 → recipe（对象类型×tier 对应的 Agent 编排与 STEP 集合，见下方三维 recipe 表；代码类完整层按 bucket 分叉子路径）查找」自动判定，用户可手动覆盖。
+审查类型由本 skill 内部按「对象类型 → recipe（对象类型×tier 对应的 Agent 编排与 STEP 集合，见下方 recipe 表；代码类完整层按 bucket 分叉子路径）查找」自动判定，用户可手动覆盖。
 
 ```text
 审查对象类型?
 ├── 文档类（proposal / design / plan / spec / skill / README / 架构文档 / clarifications）
-│   └── 三级 tier 路由 → recipe（见下方三维 recipe 表文档类行）
+│   └── 两级 tier 路由（关键/完整）→ recipe（见下方 recipe 表文档类行）
 │       用户可手动指定"UltraReview"→ 完整层 3-agent 多模型渐进式审查（6-agent 维度 build/code/specs/docs/deps 仅代码类，文档类映射到 3-agent）。
 │       文档类 UltraReview 不走 tier 路由，但仍须经护栏 1（ledger 缺失 early-return 完整，见 refs/protocols.md 协议 1）
 │
 └── 代码类（实现代码 / 项目结构 / 构建配置 / 项目创建或变更）
-    └── 三级 tier 路由 → recipe（见下方三维 recipe 表代码类行，按 bucket 分叉）
-        用户可手动指定审查层级："快速审查" / "关键审查" / "完整审查"
+    └── 两级 tier 路由（关键/完整）→ recipe（见下方 recipe 表代码类行，按 bucket 分叉）
+        用户可手动指定审查层级："关键审查" / "完整审查"
 ```
 
 **路由矩阵摘要**（完整定义见 `refs/protocols.md` 协议 6）：
 
 | 规模 × 轮数 | 第 1 轮 | 第 2 轮 | 第 3 轮+ |
 |------------|--------|--------|---------|
-| 微小 | 关键 | 关键 | 快速★ |
+| 微小 | 关键 | 关键 | 关键 |
 | 中等 | 完整 | 关键★ | 关键★ |
 | 复杂 | 完整 | 完整 | 完整 |
 | 大规模 | 完整 | 完整 | 完整 |
 
 > **规模分桶度量（按对象类型区分）**：代码类按 `file_count`（变更文件数，直接反映变更范围）——微小 1-3 / 中等 4-19 / 复杂 20-49 / 大规模 50+。文档类按 `line_count`（文档总行数，行数与内容复杂度正相关）——微小 ≤100 / 中等 101-300 / 复杂 301-600 / 大规模 >600。文档类的 file_count 无区分度（Gate 0/2 始终 1 文件，Gate 1 通常 4-6 文件），改用 line_count 度量内容复杂度。详见协议 6 `bucket_doc` 函数。
 
-★ 触发收敛闸门（摘要，完整算法见协议 6）。两道硬护栏（ledger 缺失→完整、行数地板）+ 收敛闸门 + FAST 开关。收敛闸门：快速层需上轮 p0_raw==0 且 p1_raw<3，关键层（中等规模）若上轮 p0_raw>0 → 升级完整
+★ 触发收敛闸门（完整算法见协议 6）。两道硬护栏（ledger 缺失→完整、行数地板）+ 收敛闸门。收敛闸门：关键层（中等规模）若上轮 p0_raw>0 → 升级完整。
 
-> 快速层默认被 `FAST_TIER_ENABLED=false` 回退为关键层。解锁前置：需确认所有父技能（specpowers-apply/design/plan）的 expected_steps 动态检查在所有 tier 路由分支下均正确（尤其快速层裁剪 STEP3/5 后父技能验证兼容性），验证通过后方可置 true。当前保守保留 false（详见 `refs/protocols.md` 协议 6）。
-
-**手动覆盖关键词**：当前轮用户输入含"快速审查"/"关键审查"/"完整审查"→ 手动覆盖设定基础 tier（后续护栏/矩阵/地板/闸门在此基础上只升不降）。匹配范围为当前轮用户输入，不含历史轮次指令；排除否定语境（如"不要快速审查"不触发快速层覆盖）。"UltraReview"→ 文档类映射到完整层 3-agent 多模型渐进式（→ 完整层；6-agent 维度 build/code/specs/docs/deps 仅适用代码类，文档类无对应定义），代码类走 6-agent UltraReview recipe（→ 完整层增强）。
+**手动覆盖关键词**：当前轮用户输入含"关键审查"/"完整审查"→ 手动覆盖设定基础 tier（后续护栏/矩阵/地板/闸门在此基础上只升不降）。匹配范围为当前轮用户输入，不含历史轮次指令；排除否定语境。"UltraReview"→ 文档类映射到完整层 3-agent 多模型渐进式（→ 完整层；6-agent 维度 build/code/specs/docs/deps 仅适用代码类，文档类无对应定义），代码类走 6-agent UltraReview recipe（→ 完整层增强）。
 
 "项目创建或变更"指涉及项目配置文件（package.json / Cargo.toml / go.mod / CMakeLists.txt / Makefile / pom.xml / docker-compose.yml 等）、构建脚本、目录结构调整的变更。判断标准：变更涉及项目基础设施层面（而非仅业务代码），即归入此类。
 
-### 三维 recipe 表
+### recipe 表
 
 审查 Agent 编排按 `(对象类型 × tier × bucket 分支)` 决定。代码类完整层按 bucket 分叉子路径。`bucket 分支` 仅在代码类完整层用于区分子路径（文档类不分子路径）。
 
-| 对象类型 × tier | 完整 Full（1x）| 关键 Critical（~0.4x）| 快速 Fast（~0.15x）|
-|----------------|--------------|-------------------|-----------------|
-| **文档类** | 结构+落地+对齐(3 Agent) [STEP1-5] | 对齐 Agent + 监督 Agent [STEP1-5] | 单对齐 Agent [STEP1,2,4] |
-| **代码类（微小/中等 bucket）** | **加强审查**：code-review（由 specpowers-apply 执行）+ 对齐单审 [STEP1-2] | **3 独立视角**：code-review（由 specpowers-apply 执行）+ 对齐 Agent + 监督 Agent [STEP1-5] | code-review(轻量，由 specpowers-apply 执行) + 对齐 Agent [STEP1,2,4] |
-| **代码类（复杂/大规模 bucket）** | **UltraReview**(6 Agent: build/code/specs/docs/deps/对齐) [STEP1-5] | 同代码类（微小/中等）关键 | 同代码类（微小/中等）快速 |
+| 对象类型 × tier | 完整 Full | 关键 Critical |
+|----------------|----------|---------------|
+| **文档类** | 结构+落地+对齐(3 Agent) [STEP1-5] | 对齐 Agent + 监督 Agent [STEP1-5] |
+| **代码类（微小/中等 bucket）** | **加强审查**：code-review（由 specpowers-apply 执行）+ 对齐单审 [STEP1-2] | **3 独立视角**：code-review（由 specpowers-apply 执行）+ 对齐 Agent + 监督 Agent [STEP1-5] |
+| **代码类（复杂/大规模 bucket）** | **UltraReview**(6 Agent: build/code/specs/docs/deps/对齐) [STEP1-5] | 同代码类（微小/中等）关键 |
 
 > bucket_class 映射（与 protocols.md 协议6 对齐）：{微小,中等}→小代码（加强审查 recipe）；{复杂,大规模}→大代码（UltraReview recipe）
-
-> 效率系数（1x/~0.4x/~0.15x）为相对完整层的粗略估算（按 Agent 数量 × STEP 跨度，含 STEP 裁剪差异），实际取决于审查对象规模和 recipe 子路径；仅表示相对序 full > critical > fast。
 
 > **STEP→阶段映射（所有 tier 共用）**：
 > - STEP1 = 审查 Agent 并行执行（数量由 tier recipe 决定）
 > - STEP2 = 主 Agent 合并去重判断
-> - STEP3 = 合并验证（按 N 三档动态部署：N≥5或含P0→独立Agent；N∈[1,4]且file_count<4→转Step5（file_count 此处度量跨文件合并风险，与 bucket 度量独立）；N==0→trivial；快速层/加强审查裁剪）
+> - STEP3 = 合并验证（按 N 部署：含P0或N≥11→独立Agent完整4维；N∈[1,10]且p0_raw==0→转Step5兼并；N==0→trivial；加强审查子路径裁剪）
 > - STEP4 = 修复 + 主 Agent 校验
-> - STEP5 = Quick Review（快速层裁剪，并入 STEP4 主 Agent 自检）
+> - STEP5 = Quick Review（加强审查子路径裁剪，并入 STEP2 主 Agent 合并判断）
 >
-> **完整层不对称（设计意图，非遗漏）**：代码类完整层按 bucket 分——微小/中等=加强审查(STEP1-2，无监督，现状轻量路径，微小变更无需监督即可控)；复杂/大规模=UltraReview(STEP1-5，含 6 维度审查)。关键层统一含监督，覆盖强度高于加强审查。
+> **完整层不对称（设计意图，非遗漏）**：代码类完整层按 bucket 分——微小/中等=加强审查(STEP1-2，无监督，轻量路径，微小变更无需监督即可控)；复杂/大规模=UltraReview(STEP1-5，含 6 维度审查)。关键层统一含监督，覆盖强度高于加强审查。
 >
-> **3 独立视角（代码类关键层）**= code-review（由 specpowers-apply 通过 `superpowers:requesting-code-review` 执行，代码质量维度）+ 对齐 Agent（规范合规维度 COVERED/MISSING/DRIFT）+ 监督 Agent（交叉验证维度：溯源检查 + 遗漏检测 + 合并合理性 + 判断充分性）。监督 Agent 部署形式按合并后问题数 N 动态决定——N∈[1,4] 且 p0_raw==0 时合并验证 2 维（溯源+遗漏）转移至 Step 5 兼并执行，不启动独立 Agent（见 Step 3）。
->
-> **code-review(轻量)（代码类快速层）**= 仅检查 P0 阻塞性问题（接口不匹配/数据丢失/安全漏洞）+ spec 严重偏离，跳过 P1-P3 维度（代码异味/重构/风格）。
+> **3 独立视角（代码类关键层）**= code-review（由 specpowers-apply 通过 `superpowers:requesting-code-review` 执行，代码质量维度）+ 对齐 Agent（规范合规维度 COVERED/MISSING/DRIFT）+ 监督 Agent（交叉验证维度：溯源检查 + 遗漏检测 + 合并合理性 + 判断充分性）。监督 Agent 部署形式按合并后问题数 N 动态决定——N∈[1,10] 且 p0_raw==0 时合并验证 2 维（溯源+遗漏）转移至 Step 5 兼并执行，不启动独立 Agent（见 Step 3）。
 >
 > **code-review 执行主体（代码类全 tier）**：apply 先执行 code-review（`superpowers:requesting-code-review`），结果注入 review 的对齐 Agent prompt；review 对齐 Agent 输出 STEP1_EXECUTED（含 code-review 结果引用）。文档类无 code-review。
 >
 > **加强审查**= 代码类完整层微小/中等 bucket 专用 recipe（STEP1-2，无监督），详见下方"加强审查"节。
 >
-> **质量底线（每级强制）**：①对齐 COVERED/MISSING/DRIFT 不可省；②代码类必含 code-review（全 tier）；③P0 修复不可省；④最终通读 Gate 横切不可省略——快速层以主 Agent 自检、加强审查子路径以主 Agent STEP2 合并去重判断，分别作为最终通读的轻量替代，不可裁（替代声明须在对应 STEP 标记块注明）；⑤层级裁剪声明块——格式见协议 6；⑥合并验证（溯源+遗漏）维度不可省——部署形式见 Step 3。
+> **质量底线（每级强制）**：①对齐 COVERED/MISSING/DRIFT 不可省；②代码类必含 code-review（全 tier）；③P0 修复不可省；④最终通读 Gate 横切不可省略——加强审查子路径以主 Agent STEP2 合并去重判断作为最终通读的轻量替代，不可裁（替代声明须在对应 STEP 标记块注明）；⑤层级裁剪声明块——格式见协议 6；⑥合并验证（溯源+遗漏）维度不可省——部署形式见 Step 3。
 >
-> 详细路由算法、层级裁剪声明块格式、FAST_TIER_ENABLED 配置、典型场景示例见 `refs/protocols.md` 协议 6。
+> 详细路由算法、层级裁剪声明块格式、典型场景示例见 `refs/protocols.md` 协议 6。
 
 ## 全流程逐层审查 Gate
 
@@ -157,7 +151,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 ## UltraReview + 对齐审查（代码类 recipe，复杂/大规模 bucket 完整层）
 
-**适用条件**：代码类完整层 + 复杂/大规模 bucket（文件数 ≥ 20），由 tier 路由自动判定（见上方三维 recipe 表）。
+**适用条件**：代码类完整层 + 复杂/大规模 bucket（文件数 ≥ 20），由 tier 路由自动判定（见上方 recipe 表）。
 
 > **文档类注意事项**: 文档类手动指定 UltraReview 时映射到完整层 3-agent 多模型渐进式（6-agent 维度 build/code/specs/docs/deps 仅适用代码类，文档类无对应定义）。详见审查决策树和手动覆盖关键词说明。
 
@@ -232,7 +226,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 ## 加强审查（代码类 recipe，微小/中等 bucket 完整层）
 
-**适用条件**：代码类完整层 + 微小/中等 bucket（文件数 ≤ 19），由 tier 路由自动判定（见上方三维 recipe 表）。不启动 6-agent 团队，由 specpowers-review 构造对齐 Agent 单审：
+**适用条件**：代码类完整层 + 微小/中等 bucket（文件数 ≤ 19），由 tier 路由自动判定（见上方 recipe 表）。不启动 6-agent 团队，由 specpowers-review 构造对齐 Agent 单审：
 
 1. **specpowers-apply 内部 code-review**：通过标准为无 P0 问题
 2. **specpowers-review 对齐 Agent 单审**：对齐检查，通过标准为无 MISSING 或 DRIFT 标记为 P0 的项
@@ -299,7 +293,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 | 维度 | 多模型渐进式 | UltraReview |
 |------|------------|-------------|
 | 审查对象 | 文档（设计/规范/计划等） | 代码（复杂/大规模 bucket） |
-| Agent 数量 | 3（完整层）/ 2（关键层）/ 1（快速层） | 6（仅完整层） |
+| Agent 数量 | 3（完整层）/ 2（关键层） | 6（仅完整层） |
 | 对齐检查 | 对齐 Agent 专门负责 | 对齐审查 Agent 专门负责（COVERED/MISSING/DRIFT 对照） |
 | 收敛提醒 | 是 | 是 |
 
@@ -309,7 +303,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 ### Step 0 — 审查准备与路由
 
-> 注：本节（Step 0-5）适用于所有 tier（快速/关键/完整）和所有对象类型（文档/代码），不仅限于多模型渐进式。
+> 注：本节（Step 0-5）适用于所有 tier（关键/完整）和所有对象类型（文档/代码），不仅限于多模型渐进式。
 
 主 Agent 执行以下准备步骤：
 
@@ -359,10 +353,10 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 按 `refs/protocols.md` 协议 6 路由算法执行 tier 路由决策（完整算法见协议 6）。计算完成后，在审查报告开头输出 `[TIER_ROUTING]` 标记，格式：
 
 ```
-[TIER_ROUTING] tier=<fast|critical|full>, round=<N>, file_count=<N>, bucket=<微小|中等|复杂|大规模>, line_count=<N>, floor=<tier>, convergence=<passed|failed|n/a>, recipe=<加强审查|UltraReview|3视角|快速|文档3Agent>, reason=<路由路径简述>, expected_steps=[...]
+[TIER_ROUTING] tier=<critical|full>, round=<N>, file_count=<N>, bucket=<微小|中等|复杂|大规模>, line_count=<N>, floor=<tier>, convergence=<passed|failed|n/a>, recipe=<加强审查|UltraReview|3视角|文档3Agent>, reason=<路由路径简述>, expected_steps=[...]
 ```
 
-`expected_steps` 由 tier recipe 决定，见上方三维 recipe 表。路由完成后，按 expected_steps 执行对应 Step。
+`expected_steps` 由 tier recipe 决定，见上方 recipe 表。路由完成后，按 expected_steps 执行对应 Step。
 
 > expected_steps 仅含 tier recipe 的 STEP（STEP1-5）；STEP_FINAL_READTHROUGH 为横切 Gate，独立于 expected_steps 检查（父技能**不**跨边界验证此横切 Gate；由 review 内部主 Agent 自执行 + 独立调用场景 [SELF_VERIFY] 兜底）。
 
@@ -375,7 +369,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 | 如果你在想… | 为什么这是陷阱 | 正确做法 |
 |------------|---------------|---------|
 | "三个 Agent 结论一致 → 不需要监督验证" | 一致可能是共识偏见而非正确。监督 Agent 常见在合并判断表中发现审查 Agent 未注意到的遗漏（历史记录中单轮最多发现 12 项） | Step 3 强制执行，无论 Agent 间结论是否一致 |
-| "问题少 → 完全跳过合并验证" | 合并验证的溯源+遗漏维度无论问题多少都须执行——问题少（N∈[1,4] 且 p0_raw==0）只意味着可由 Step 5 兼并（不启动独立 Agent），不意味着可省略维度；且"问题少"是主 Agent 自统计，压低问题数或把 P0 降级 P3 逃避独立监督是已知偷懒模式（Step 1 RAW_COUNT + Step 5 问题数核对会捕获） | N∈[1,4] 且 p0_raw==0：合并验证 2 维转移至 Step 5（mode=transferred_to_step5，省独立 Agent 不省维度）；N≤4 但 p0_raw≥1 或跨文件（file_count≥4）：仍独立 Step 3 缩范围（P0 延迟发现是 Gate 阻塞成本）；N≥5：独立监督完整 4 维 |
+| "问题少 → 完全跳过合并验证" | 合并验证的溯源+遗漏维度无论问题多少都须执行——问题少（N∈[1,10] 且 p0_raw==0）只意味着可由 Step 5 兼并（不启动独立 Agent），不意味着可省略维度；且"问题少"是主 Agent 自统计，压低问题数或把 P0 降级 P3 逃避独立监督是已知偷懒模式（Step 1 RAW_COUNT + Step 5 问题数核对会捕获） | N∈[1,10] 且 p0_raw==0：合并验证 2 维转移至 Step 5（mode=transferred_to_step5，省独立 Agent 不省维度）；含 P0 或 N≥11：独立监督完整 4 维 |
 | "这轮只是小修复，不需要 Quick Review" | 修复引入新问题是已知模式——"修复→引入问题→遗漏修复"是多轮审查中最常见的失败路径 | Step 5 强制执行，无论修复规模 |
 | "用户会发现剩余问题" | 用户审查是后续环节——Gate 审查阶段跳过的偏差在下游 Phase 逐层放大 | 每个 Gate 独立完成全部审查步骤 |
 | "退化声明太复杂，跳过" | 无退化声明 → 父技能按标记块缺失处理 → 阻塞 Phase。退化声明的存在性比措辞完美更重要 | 至少输出 (a) 缺失了什么能力 (b) 尝试过什么 |
@@ -394,7 +388,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 ```
 □ Step 1: 三个 Agent 都启动了？任一未完成 → 不可标 complete，不可进入 Step 2
 □ Step 2: 每条问题写了具体原因（非模板化措辞）？→ 有模板化措辞 → 重写
-□ Step 3: 满足下列任一形式（按档位判定顺序）？→ 都不满足 → 不可进入 Step 4：(a) N≥5 或含 P0 或 file_count≥4（跨文件）→ 独立监督 Agent 输出了报告（mode=standard）；(b) N∈[1,4] 且 p0_raw==0 且 file_count<4 → 主 Agent 输出了 STEP3_EXECUTED（mode=transferred_to_step5）；(c) N==0 → 主 Agent 输出了 mode=trivial
+□ Step 3: 满足下列任一形式？→ 都不满足 → 不可进入 Step 4：(a) 含 P0 或 N≥11 → 独立监督 Agent 输出了报告（mode=standard）；(b) N∈[1,10] 且 p0_raw==0 → 主 Agent 输出了 STEP3_EXECUTED（mode=transferred_to_step5）；(c) N==0 → 主 Agent 输出了 mode=trivial
 □ Step 4: 所有 P0 修复均已逐条校验？→ 不清楚 → 先校验
 □ Step 5: Quick Review Agent 非 Step 4 实施者？→ 是同一 Agent → 退化声明
 □ 最终通读: 全文术语一致？无废弃引用？→ 不确定 → 全文 grep 验证（详见 Step 4 逐条校验）
@@ -405,11 +399,11 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 ### 多轮审查防偷懒协议（主 Agent 自检）
 
-> **⚠️ 本协议针对主 Agent 自身，非子 Agent。** 子 Agent 每次启动拥有干净上下文——它不知道前面进行了几轮审查、不会因为"已审过多轮"而偷懒。真正会偷懒的是已完成多轮审查、上下文已腐化的**主 Agent**——它积累了 50+ 轮的会话上下文，经历过多次"审查→修复→重审"循环，自然倾向于"快速过一遍"或"跳过一些步骤赶紧结束"。
+> **⚠️ 本协议针对主 Agent 自身，非子 Agent。** 子 Agent 每次启动拥有干净上下文——它不知道前面进行了几轮审查、不会因为"已审过多轮"而偷懒。真正会偷懒的是已完成多轮审查、上下文已腐化的**主 Agent**——它积累了大量会话上下文，经历过多次"审查→修复→重审"循环，自然倾向于"快速过一遍"或"跳过一些步骤赶紧结束"。
 > 
 > 以下协议在审查进入第 2 轮及以后时适用。主 Agent 在每轮开始前逐条自检。
 > 
-> **第 1 轮的主 Agent 自检**由上方"审查纪律自检"节（合理化表 + Red Flags 自检清单）覆盖——第 1 轮使用合理化表中不依赖"已审过多轮"前提的通用条目（如"三个 Agent 结论一致→不需要监督验证""问题<5→不需要完整监督""退化声明太复杂跳过"等）+ Red Flags 全部条目。从第 2 轮起追加"多轮审查防偷懒协议"专用自检（含多轮特有陷阱条目和逐项应答表）。
+> **第 1 轮的主 Agent 自检**由上方"审查纪律自检"节（合理化表 + Red Flags 自检清单）覆盖——第 1 轮使用合理化表中不依赖"已审过多轮"前提的通用条目（如"三个 Agent 结论一致→不需要监督验证""问题少→完全跳过合并验证""退化声明太复杂跳过"等）+ Red Flags 全部条目。从第 2 轮起追加"多轮审查防偷懒协议"专用自检（含多轮特有陷阱条目）。
 
 **核心原则**: 每一轮审查是独立完整的审查——不以轮次为由缩减审查范围，不以"已审过"为由跳过章节，不以"快收敛了"为由加速流程。
 
@@ -427,37 +421,14 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 > 
 > 如匹配任一行 → 立即按右列纠正。每个 Step 独立完整执行。
 
-2.5. 主 Agent 在输出自检提醒后，强制输出逐项应答表（不可跳过）：
-
-```[ANTI_LAZINESS_CHECKLIST] round=<N>
-逐条核对上方合理化表全部 12 行 + 步骤裁剪核对 + N∈[1,4] 转移确认，每行给 匹配/不匹配 + 1句理由：
-行1: [匹配|不匹配], 理由: <1句>
-行2: [匹配|不匹配], 理由: <1句>
-行3: [匹配|不匹配], 理由: <1句>
-行4: [匹配|不匹配], 理由: <1句>
-行5: [匹配|不匹配], 理由: <1句>
-行6: [匹配|不匹配], 理由: <1句>
-行7: [匹配|不匹配], 理由: <1句>
-行8: [匹配|不匹配], 理由: <1句>
-行9: [匹配|不匹配], 理由: <1句>
-行10: [匹配|不匹配], 理由: <1句>
-行11: [匹配|不匹配], 理由: <1句>
-行12: [匹配|不匹配], 理由: <1句>
-裁剪一致性（与 expected_steps 对照）: <是|否>
-N≤4 转移确认（mode=transferred_to_step5 非 tier 裁剪）: <确认>
-子 Agent prompt 完整性（每个审查 Agent prompt 含"完整评审全部内容"指令）: <是|否>
-```
-
-要求：主 Agent 对每条合理化表条目给出"匹配/不匹配"及简要理由（1句话），才能进入 Step 1。此应答表作为自检完成的证据，缺失则视为自检未执行。
-
-3. **逐项核对合理化表左列**（上方"审查纪律自检 → 合理化表"）——检查自己是否计划跳过某步骤、是否计划缩减审查范围、是否计划以轮次为由加速。如匹配任一行 → 立即按右列纠正。
-4. **逐项核对 Red Flags 自检清单**（上方"审查纪律自检 → Red Flags 自检清单"），确认每个 Step 的执行前提条件满足。
-5. **子 Agent prompt 完整性**：每个审查 Agent prompt 含 Step 1 完整性指令？→ 不含 → 补注后启动
-6. 自检完成后，在审查报告中记录: `[ANTI_LAZINESS_SELF_CHECK] round=<N>, passed=true`
+2. **逐项核对合理化表左列**（上方"审查纪律自检 → 合理化表"）——检查自己是否计划跳过某步骤、是否计划缩减审查范围、是否计划以轮次为由加速。如匹配任一行 → 立即按右列纠正。
+3. **逐项核对 Red Flags 自检清单**（上方"审查纪律自检 → Red Flags 自检清单"），确认每个 Step 的执行前提条件满足。
+4. **子 Agent prompt 完整性**：每个审查 Agent prompt 含 Step 1 完整性指令？→ 不含 → 补注后启动
+5. 自检完成后，在审查报告中记录: `[ANTI_LAZINESS_SELF_CHECK] round=<N>, passed=true`
 
 **违规检测（主 Agent 检查子 Agent 报告完整性）**: 主 Agent 在 Step 2 合并时，逐章/逐文件检查每个审查 Agent 的报告是否覆盖了审查对象的全部内容。发现章节/文件遗漏 → 该 Agent 的报告标记为不完整，要求该 Agent 补充审查遗漏部分后再进入合并流程。**注意**：子 Agent 不会故意偷懒（干净上下文），但可能因 prompt 中审查对象描述不完整而遗漏章节——主 Agent 的违规检测是捕获这类遗漏的最后防线。
 
-**Step 1 — 审查 Agent 并行执行**（按 tier recipe 启动对应审查 Agent：快速层 1 个对齐 Agent；关键层 2 个：对齐+监督；完整层 3 个结构/落地/对齐 或 6 个 UltraReview。文档类：快速=单对齐 Agent，关键=对齐+监督 Agent，完整=结构+落地+对齐 3 Agent。代码类：见三维 recipe 表）
+**Step 1 — 审查 Agent 并行执行**（按 tier recipe 启动：关键层=对齐+监督 2 个；文档类完整层=结构+落地+对齐 3 个；代码类完整层=加强审查(code-review+对齐, 2 个) 或 UltraReview(6 个)。代码类具体 recipe 见上方 recipe 表）
 
 结构审查 Agent、落地审查 Agent、对齐审查 Agent 按 tier recipe 启动，互不感知对方的发现。每个 Agent 独立输出审查报告（问题 + 严重度分级 + 证据）。
 
@@ -477,32 +448,21 @@ N≤4 转移确认（mode=transferred_to_step5 非 tier 裁剪）: <确认>
 
 > 上下文传递机制和子 Agent prompt 注入模板详见 `refs/protocols.md` 协议 5。
 
-**Step 3 — 合并验证**（部署形式按合并后问题数 N=p0_raw+p1_raw+p2_raw 动态决定；tier 裁剪优先：快速层/加强审查子路径输出 `STEP3_TIER_SKIPPED`，本动态部署规则不介入）
+**Step 3 — 合并验证**（部署形式按合并后问题数 N=p0_raw+p1_raw+p2_raw 决定；加强审查子路径输出 `STEP3_TIER_SKIPPED`，本规则不介入）
 
-**为什么按问题数分档**：监督 4 维中，「合并去重合理性」「判断充分性」的价值随问题数上升——问题多时主 Agent 合并易漏合/误合/漏判，需独立视角在修复前捕获；问题少时合并几乎无需去重、主 Agent 逐条判断负担轻，独立 Agent 边际价值低。但「溯源+遗漏」2 维无论问题多少都须执行。故 N∈[1,4] 且 p0_raw==0 时省独立 Agent、2 维转移至 Step 5 兼并；含 P0 或 N≥5 时保留独立 Agent（P0 延迟发现是 Gate 阻塞成本，必须在修复前抓）。
+阈值判定（N 基于原始发现数 raw_count_sum，非修复后剩余数；P0 即使被用户裁决为非问题，p0_raw 仍计原始发现值；不计 p3_raw）：
 
-**档位判定**（N = Step 2 汇总的 p0_raw+p1_raw+p2_raw，基于原始发现数 raw_count_sum，非 disposition 处置后的计数；P0 即使被用户裁决为非问题，p0_raw 仍计原始发现值；Step5 问题数核对的 ≥5/≤4 阈值仅基于 p0_raw+p1_raw+p2_raw（不计 p3_raw）；raw_count_sum 中的 p3 仅作信息记录，不参与转移阈值或核对）：
+- **含 P0 或 N≥11 → 独立监督 Agent（完整 4 维）**：主 Agent 将所有审查 Agent 原始审查报告全文 + 最终合并判断表注入监督 Agent prompt，执行交叉比对：①溯源检查（每条问题能否在原始报告找到来源）②遗漏检测（原始报告有但合并表缺失的发现）③合并去重合理性（该合未合/误合）④判断充分性（接受/拒绝理由是否充分+严重度校准）。输出独立审核报告（每项 [维持/修正/补充] + 理由），主 Agent 据此调整合并判断表输出最终版。输出 `STEP3_EXECUTED`（mode=standard）。仅单一模型可用时同模型执行监督，声明"缺少独立视角"。
 
-**按下列顺序判定，先匹配先适用（N==0 优先匹配 trivial 档，不进入转移档）**
+- **N∈[1,10] 且 p0_raw==0（纯 P1/P2 低危）→ 转移至 Step 5**：**不启动独立监督 Agent**。合并验证的「溯源+遗漏」2 维转移到 Step 5 的 Quick Review Agent 兼并执行（见 Step 5）。主 Agent 输出 `STEP3_EXECUTED`（agents=self，mode=transferred_to_step5，degradation=none——结构重组非能力损失）。合并判断表为 Step 2 版本。
 
-- **N≥5 或 p0_raw≥1（含 P0）→ 独立监督 Agent**：主 Agent 将所有审查 Agent 原始审查报告全文 + 最终合并判断表注入监督 Agent prompt。监督 Agent 执行交叉比对：
-  1. 溯源检查：合并判断表中每条问题是否都能在原始报告中找到对应来源？无法溯源 → [无法溯源]
-  2. 遗漏检测：原始报告中有但合并表中缺失的发现？逐条标注遗漏原因（被合并/被拒绝/被遗漏）
-  3. 合并去重合理性：该合并未合并 → [合并遗漏]；不该合并被误合并 → [过度合并]
-  4. 判断充分性：主 Agent 接受/拒绝理由是否充分？不充分 → [判断存疑] + 建议。严重度校准检查
-  输出独立审核报告（每项 [维持/修正/补充] + 理由 + 建议），主 Agent 据此调整合并判断表输出最终版。监督 Agent 输出 `STEP3_EXECUTED`（**mode=standard**，N≤4 但 p0_raw≥1 时标记块加 `dimensions: [trace, omission]` 仅执行维度1-2；N≥5 时 `dimensions: [trace, omission, merge, judgment]` 完整4维）。
-  维度裁剪：N≥5 → 完整 4 维；N≤4 但 p0_raw≥1 → 仅维度 1-2（溯源+遗漏，P0 阻塞须查但问题总量小）；file_count≥4 触发的 mode=standard（N≤4 且 p0_raw==0）→ 仅维度 1-2 [trace, omission]（问题总量小但跨文件合并漏判风险高）。仅单一模型可用时同模型执行监督，声明"缺少独立视角"。
+- **N==0 → trivial**：主 Agent 输出 `STEP3_EXECUTED`（agents=self，mode=trivial）。Step 4/5 均由主 Agent 自执行输出零问题标记块。
 
-- **N∈[1,4] 且 p0_raw==0（纯 P1/P2 低危）→ 合并验证转移至 Step 5**：**不启动独立监督 Agent**。合并验证的「溯源+遗漏」2 维职责转移到 Step 5 的 Quick Review Agent 兼并执行（修复后对照原始报告补充检查，见 Step 5）。主 Agent 输出 `STEP3_EXECUTED`（agents=self，**mode=transferred_to_step5**，degradation=none——这是结构重组非能力损失，故用 mode 字段而非 degradation）。合并判断表为 Step 2 版本（无独立审核调整）。
-  > 跨文件硬阈值：审查对象跨多文件（file_count≥4）时，**一律保留独立 Step 3**（不受 N≤4 转移豁免）——跨文件合并去重漏判风险与问题数无关，须独立监督。
-
-- **N==0（无 P0/P1/P2 问题）→ trivial**：主 Agent 输出 `STEP3_EXECUTED`（agents=self，**mode=trivial**）。Step 4/5 均由主 Agent 自执行输出零问题标记块（STEP4_EXECUTED agents=self issues_found=0；N==0 时无合并验证对象，仅执行常规一致性通读）。
-
-> **反偷懒**：阈值基于 Step 2 原始汇总数 p*_raw（禁止用修复后剩余数替代）。Step 5 兼并验证时会对照 Step 1 的 `raw_count_sum` 求和——若原始报告实际 ≥5 条但合并表记录 ≤4，或某 Agent RAW_COUNT 显示 p0≥1 但合并表 p0_raw==0（疑似 P0 降级）→ 标记 [问题数存疑]，触发重审：补独立 Step3（mode=standard）交叉验证 → 对新发现问题重修复（Step4）→ 重 Step5。不重跑 Step1-2（审查报告不变）。最终通读 Gate 横切安全网。
+> **反偷懒**：阈值基于 Step 2 原始汇总数 p*_raw（禁止用修复后剩余数替代）。Step 5 兼并验证时对照 Step 1 的 `raw_count_sum` 求和——若原始报告实际 ≥11 条但合并表记录 ≤10，或某 Agent RAW_COUNT 显示 p0≥1 但合并表 p0_raw==0（疑似 P0 降级）→ 标记 [问题数存疑]，触发重审：补独立 Step3（mode=standard）→ 重修复（Step4）→ 重 Step5。
 
 > **标记块格式**：mode 字段（standard|transferred_to_step5|trivial）独立于 degradation，定义见 `refs/protocols.md` 协议 3。转移/trivial 路径由主 Agent 自执行输出（agents=self），属协议 3 主 Agent 规则的合法例外。
 
-**⚠️ 硬约束: Step 4 必须在 Step 3 完成后才能启动。** Step 3 完成的定义按档位分叉：①N≥5 或含 P0（mode=standard）→ Step 3 监督 Agent 完成交叉验证且主 Agent 已将审核调整应用到合并判断表（输出最终版）；②N∈[1,4] 且 p0_raw==0（mode=transferred_to_step5）→ 主 Agent 已输出 STEP3_EXECUTED（转移声明），合并表为 Step 2 版本（合并验证将在 Step 5 兼并执行）；③N==0（mode=trivial）→ 主 Agent 已输出 STEP3_EXECUTED。在对应档位的 Step 3 完成前，禁止启动任何修复子 Agent。并行启动 Step 3 和 Step 4 将导致修复 Agent 拿到未经处理的合并判断表（standard 路径=未经监督审核；转移路径=合并验证延后），修复项可能不准确/不完整。
+**⚠️ 时序硬约束: Step 4 必须在 Step 3 完成后才能启动。** Step 3 完成 = ①mode=standard → 监督 Agent 完成交叉验证 + 主 Agent 已输出最终版合并判断表；②mode=transferred_to_step5 → 主 Agent 已输出转移声明；③mode=trivial → 主 Agent 已输出 STEP3_EXECUTED。对应档位 Step 3 完成前，禁止启动任何修复子 Agent——并行启动将导致修复 Agent 拿到未经监督审核或合并验证延后的合并判断表。
 
 **Step 4 — 子 Agent 执行修复 + 主 Agent 校验**（加强审查子路径裁剪：输出 STEP4_TIER_SKIPPED）
 
@@ -557,13 +517,13 @@ N≤4 转移确认（mode=transferred_to_step5 非 tier 裁剪）: <确认>
 
 **Step 4 退化补偿规则**：当 Step 4 发生退化时（退化声明按标准协议输出，状态判定见 `refs/protocols.md`），Step 5 的 Quick Review Agent 将执行两轮独立验证（见 Step 5 退化补偿规则），以补偿修复视角独立性的损失。**转移路径（mode=transferred_to_step5）下若 Step 4 退化 → 回退为独立 Step 3**：修复不可靠时合并验证必须在修复前完成（不可延迟到 Step 5），此时放弃转移，重新启动独立监督 Agent 交叉验证后再修复。具体：①不回退已修复文件；②基于已修复产物 + Step2 合并判断表启动独立 Step3（mode=standard）交叉验证；③Step3 输出后对'已修复 + Step3 新发现'合并重新执行 Step4；④标记块处理：在原 STEP3_EXECUTED（transferred_to_step5）后追加新的 STEP3_EXECUTED（mode=standard，标注'回退自 transferred_to_step5'），父技能按 protocols 协议3 多标记块规则识别同轮内最后输出为权威
 
-**Step 5 — Quick Review 收尾**（快速层裁剪：输出 `STEP5_TIER_SKIPPED`，Quick Review 职责并入 STEP4 主 Agent 自检。关键层/完整层强制执行——完整层中的加强审查子路径除外：该子路径 recipe=[STEP1-2]，输出 `STEP5_TIER_SKIPPED`）
+**Step 5 — Quick Review 收尾**（关键层/完整层强制执行——完整层中的加强审查子路径除外：该子路径 recipe=[STEP1-2]，输出 `STEP5_TIER_SKIPPED`）
 
 - 独立 Agent（非 Step 4 实施者）通读修复子 Agent 的输出 + 主 Agent 的校验记录
 - **兼并 Step 3 合并验证模式**（当主 Agent 读取到 STEP3_EXECUTED 的 mode=transferred_to_step5 时触发本兼并模式）：Quick Review Agent 的 prompt 额外注入「所有审查 Agent 原始报告全文 + 最终合并判断表（含 disposition 列）+ 账本 rounds[N-2].p*_raw + Step 1 的 raw_count_sum」（注入模板见 `refs/protocols.md` 协议 5）。在修复验证之外，兼并执行 2 维合并验证（溯源+遗漏）+ 1 项问题数核对（共 3 项）：
   1. 溯源检查：合并表每条问题能否在原始报告找到来源？无法溯源 → [无法溯源]
   2. 遗漏检测：原始报告有但合并表缺失的发现？逐条标注（区分 disposition=user_adjudicated 的用户裁决项 vs agent_rejected 的主 Agent 拒绝项（agent_rejected 项 >3 条或占比 >30% 时标记 [拒绝异常]，并入问题数存疑检查）
-  3. **问题数核对（反偷懒）**：对照 raw_count_sum 求和（p0+p1+p2 总和）vs 合并表 p*_raw——若原始报告实际 ≥5 条但合并表记录 ≤4，或某 Agent RAW_COUNT 显示 p0≥1 但合并表 p0_raw==0（疑似 P0 降级 P3）→ 标记 [问题数存疑]，触发重审：补独立 Step3（mode=standard）交叉验证 → 对新发现问题重修复（Step4）→ 重 Step5。不重跑 Step1-2（审查报告不变）
+  3. **问题数核对（反偷懒）**：对照 raw_count_sum 求和（p0+p1+p2 总和）vs 合并表 p*_raw——若原始报告实际 ≥11 条但合并表记录 ≤10，或某 Agent RAW_COUNT 显示 p0≥1 但合并表 p0_raw==0（疑似 P0 降级 P3）→ 标记 [问题数存疑]，触发重审：补独立 Step3（mode=standard）交叉验证 → 对新发现问题重修复（Step4）→ 重 Step5。不重跑 Step1-2（审查报告不变）
   STEP5_EXECUTED 中新增 `notes: 兼并 Step 3 合并验证（溯源+遗漏+问题数核对）` 字段（独立于 degradation）
 - 输出快速检查报告：是否所有问题均已修复？修复是否引入新问题？文档整体一致性是否保持？
 - 仅单一 Agent 可用时，在审查报告中声明限制（缺少独立视角）。降级时 degradation 字段须含退化声明三要素
@@ -662,7 +622,7 @@ Step 5 检查本轮修复质量（单轮范围），最终通读 Gate 检查跨�
 ### 触发时机
 
 当审查进入最终通读环节，**在进入下一环节（如下一 Phase、Gate 3 进入 Phase 4 等）之前**，必须执行最终通读。触发时机按 tier 分支：
-- **快速层/加强审查子路径（STEP5 被裁剪）**：最终通读以主 Agent 自检（快速层 STEP4 自检 / 加强审查 STEP2 合并判断）后执行的轻量通读形式完成——即质量底线第④条所指的"轻量替代"。PASS 四条件相同，但通读范围为变更区域+关联上下文（非全文逐行）。仍须输出 STEP_FINAL_READTHROUGH 标记块（status 注明"轻量替代"）
+- **加强审查子路径（STEP5 被裁剪）**：最终通读以主 Agent STEP2 合并判断后执行的轻量通读形式完成——即质量底线第④条所指的"轻量替代"。PASS 四条件相同，但通读范围为变更区域+关联上下文（非全文逐行）。仍须输出 STEP_FINAL_READTHROUGH 标记块（status 注明"轻量替代"）
 - **关键/完整层**：单轮审查在 Step 5 完成后执行标准最终通读；多轮审查在用户决定不再继续下一轮，或问题已收敛到 P0=0 且 P1≤3 且较上轮无新增 P1，且 Step 5 完成后执行标准最终通读
 
 ### 执行方式
@@ -697,5 +657,3 @@ Step 5 检查本轮修复质量（单轮范围），最终通读 Gate 检查跨�
 - 此 Gate 不可跳过，不设自动循环上限
 
 目的：防止多轮修复累积后在文档中留下残余不一致（如术语两写、废弃引用残留、修复冲突）。多轮审查中每次修复只关注局部，最终通读提供全局一致性检查。
-
-（Gate 触发协议已合并到上方"各 Gate 详细定义表"——该表已含触发者列，为权威定义。）

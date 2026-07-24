@@ -31,26 +31,9 @@ description: Use when the user says "brainstorm this feature", "write the design
 □ 读取 docs/superpowers/specs/ 历史设计文档（如有）
 ```
 
-### Step 0.2: 连环提问澄清需求
+### Step 0.2: 需求澄清
 
-**目的**: 通过多轮对话逐条澄清所有需求细节，不留模糊地带。
-
-**强制规则**:
-1. **一次只问一个问题** — 不批量提问
-2. **参考上下文** — 基于 Step 0.1 的探索结果 + 已有经验文档 + memory + 历史 spec，逐条提出疑问
-3. **覆盖所有细节** — 边界情况、错误路径、非功能需求、隐含假设必须覆盖
-4. **穷尽疑问** — 所有疑问一一提出，直到没有新问题可问才进入下一步
-5. **禁止假设** — 仅以用户明确确认的信息为准；禁止推测或假设用户意图
-
-**提问维度检查表**:
-```
-□ 功能范围: 做什么、不做什么？
-□ 边界情况: 空输入、极端值、并发？
-□ 错误路径: 失败模式、回退策略？
-□ 非功能需求: 性能、兼容性、安全性？
-□ 依赖关系: 影响哪些模块、被哪些模块依赖？
-□ 用户偏好: 风格、优先级、权衡取舍？
-```
+遵循 `superpowers:brainstorming` 的澄清流程（一次一个问题、覆盖边界/错误路径/非功能需求/隐含假设、穷尽疑问、禁止假设——详见该 skill checklist）。基于 Step 0.1 探索结果 + memory + 历史 spec 逐条提问，所有疑问澄清完毕后进入 Step 0.3 持久化。
 
 ### Step 0.3: 持久化需求澄清 + 思路整理
 
@@ -126,8 +109,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 - 审批通过 → 进入 Phase 1
 
 **审批通过后，执行 Gate 0 审查**:
-`Skill({skill: "specpowers:specpowers-review"})` — 对齐检查：design.md vs clarifications/<name>.md。
-> **审查层级提醒**: Gate 0 审查对象为 design.md（设计层面），审查应停留在架构/接口/数据流/错误处理策略层面，不应涉及具体代码实现细节。specpowers-review 提升为独立节的审查层级边界表（横切所有文档类审查，不分 tier）会自动将此约束注入审查 Agent prompt。
+`Skill({skill: "specpowers:specpowers-review"})` — 对齐检查：design.md vs clarifications/<name>.md。审查层级边界由 specpowers-review 横切注入（design 层面，不涉代码实现）。
 Gate 0 返回后，执行 Gate 返回后验证协议（参数: Gate=0, Phase=0）。
 
 ---
@@ -188,8 +170,7 @@ Gate 0 返回后，执行 Gate 返回后验证协议（参数: Gate=0, Phase=0�
 ```
 
 **人工审核通过后，执行 Gate 1 审查**:
-`Skill({skill: "specpowers:specpowers-review"})` — 对齐检查：OpenSpec 四件套（proposal/design/specs/tasks）vs Phase 0 design.md + clarifications。
-> **审查层级提醒**: Gate 1 审查对象包含 proposal（动机/范围层面）、design（架构/接口层面）、specs（需求覆盖层面）、tasks（任务拆解层面），审查应分别停留在各文档对应的抽象层级，不应涉及具体代码实现细节。specpowers-review 提升为独立节的审查层级边界表（横切所有文档类审查，不分 tier）会自动将此约束注入审查 Agent prompt。
+`Skill({skill: "specpowers:specpowers-review"})` — 对齐检查：OpenSpec 四件套（proposal/design/specs/tasks）vs Phase 0 design.md + clarifications。审查层级边界由 specpowers-review 横切注入（各文档对应抽象层级，不涉代码实现）。
 Gate 1 返回后，执行 Gate 返回后验证协议（参数: Gate=1, Phase=1）。
 
 ---
