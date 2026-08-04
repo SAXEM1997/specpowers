@@ -11,7 +11,7 @@ description: Use when the user says "plan the implementation", "bridge OpenSpec 
 > 2. 确认 `docs/superpowers/specs/<name>-design.md` 和 `docs/superpowers/clarifications/<name>.md` 存在（由 specpowers-design 产出）。如不存在，输出 `[PRECHECK_FAILED] Phase 0/1 产物缺失，请先运行 specpowers-design`。
 > 3. 如 `openspec/changes/<name>/` 不存在，OpenSpec 已跳过——以 design doc + clarifications 作为 Phase 2 writing-plans 唯一输入。
 > 4. 检查 `docs/superpowers/plans/<name>.md` 是否已存在——若已存在，询问用户"plan 已存在，是否重新生成？（默认跳过，避免覆盖）"，用户确认跳过则直接进入后续（不重跑 writing-plans）。这是防御 Phase 自动检测行序错误的纵深保护。
-> 5. **Gate 1 确认**：搜索会话上下文中 `[GATE_PASSED] gate=1` 标记，或检查 `.superpowers/.gate-passed-1` 文件（`name=<当前任务>` 匹配）。两者都没有 → Phase 1 Gate 1 未执行，回 specpowers-design Phase 1 完成 Gate 1 后再进入 Phase 2。微小任务跳过此项。
+> 5. **Gate 1 确认**：搜索会话上下文中 `[GATE_PASSED] gate=1` 标记，或检查 `.superpowers/.gate-passed-1` 文件（`name=<当前任务>` 匹配）。两者都没有 → Phase 1 Gate 1 未执行，回 specpowers-design Phase 1 完成 Gate 1 后再进入 Phase 2。微小任务跳过此项。`.superpowers/.phase1-skipped` 存在时跳过此项（Phase 1 已跳过，Gate 1 未执行属预期行为）。
 
 ---
 

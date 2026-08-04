@@ -9,7 +9,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 > **前置检查（必须执行，不可跳过）**: 
 > 1. 确认 specpowers 入口 skill 的全局规则（GitFlow/Checklist/Pitfalls）已在当前会话上下文中可用。如未加载，先 `Skill({skill: "specpowers:specpowers"})` 获取决策树和全局规则。等待加载完成后继续。
 > 2. 确认当前任务模式（Plan: <mode>）。如为微小任务，仅做轻量上下文探索后终止本技能，不执行 Phase 0 完整流程。
-> 3. **Gate 0 确认（Phase 1 入口）**：搜索会话上下文中 `[GATE_PASSED] gate=0` 标记，或检查 `.superpowers/.gate-passed-0` 文件（`name=<当前任务>` 匹配）。两者都没有 → Phase 0 Gate 0 未执行，回 Phase 0 完成 Gate 0 后再进入 Phase 1。微小任务跳过此项（与验证 0 一致）。
+> 3. **Gate 0 确认（仅从 Phase 0 进入 Phase 1 时执行）**：搜索会话上下文中 `[GATE_PASSED] gate=0` 标记，或检查 `.superpowers/.gate-passed-0` 文件（`name=<当前任务>` 匹配）。两者都没有 → Phase 0 Gate 0 未执行，回 Phase 0 Step 0.6 完成 Gate 0 后再进入 Phase 1。Phase 0 起始不适用此项（Gate 0 在 Step 0.6 完成后才输出标记）。微小任务跳过此项（与验证 0 一致）。
 
 ---
 
