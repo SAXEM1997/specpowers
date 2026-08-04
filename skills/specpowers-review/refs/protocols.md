@@ -359,7 +359,7 @@ ref: AgentId=<id>, tokens=<N>
 - tier 序：关键 < 完整（用于 `max()` 比较）
 - `MATRIX`: 本协议上方"路由矩阵"表
 - `RECIPES`: SKILL.md "recipe 表"（代码类完整层按 bucket_class 选 加强审查/UltraReview）
-- UltraReview：代码类完整层复杂/大规模 bucket 的 6-agent recipe（见 SKILL.md）
+- UltraReview：代码类完整层大代码 bucket（中等且file_count≥10/复杂/大规模）的 6-agent recipe（见 SKILL.md）
 
 ```text
 输入: object_type, file_count, line_count (apply 传入)

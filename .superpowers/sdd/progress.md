@@ -1,10 +1,12 @@
-# specpowers-design 拆分 + Review Gate 实施 进度
+# Gate 强化 + 多轮默认继续 + UltraReview 阈值修正 进度
 
-Task 1: complete (commits 94c946b..b41ead0, review clean) — 新建 specpowers-design/SKILL.md (241行)
-Task 2: complete (commits b41ead0..9aeb89e, review clean) — specpowers-plan 缩窄为 Phase 2 only (285→108行)
-Task 3: complete (commits 9aeb89e..30fefe2, review clean) — 入口路由拆分 + Phase自动检测表
-Task 4: complete (commits 30fefe2..ce4b2ac, review clean) — 收敛提醒重写 + Gate触发表同步
-Task 5: complete (commits ce4b2ac..1f23b02, review clean) — 账本结构升级 + 读写时机表两阶段拆分
-Task 6: complete (commits 1f23b02..eab5dad, review clean) — CLAUDE.md + README.md 同步
-Global verification: PASSED (19 design refs | 0 stale | 11 new fields | 0 old thresholds | 5 GATE_BLOCKED | 2 Gate triggers)
-Pushed: 94c946b..eab5dad → origin/master
+BASE: 12dedec
+
+Task 1: complete (106bda4) — UltraReview 阈值≥20→≥10 review SKILL.md
+Task 2: complete (c09d0dd) — bucket_class 函数中等内部≥10分叉 protocols.md
+Task 3: complete (f82d07c) — 多轮默认继续+CONVERGENCE_CHECK review SKILL.md
+Task 4: complete (d8b5320) — 协议7重写默认继续制 protocols.md
+Task 5: complete (f781830) — Gate Token GATE_PASSED+gate-passed文件 review SKILL.md
+Task 6: complete (e955f84) — 验证3+Phase自动检测Gate维度 入口 SKILL.md
+Task 7: complete (ebfc55c) — 4个子技能前置检查Gate确认
+Task 8: complete — 全链路一致性验证 PASSED (7 files GATE_PASSED | 3 files CONVERGENCE_CHECK | 6 files gate-passed | 0 old ≥20 | 0 old advisory)

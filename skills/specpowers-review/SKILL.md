@@ -59,7 +59,7 @@ description: >-
 | 对象类型 × tier | 完整 Full | 关键 Critical |
 |----------------|----------|---------------|
 | **文档类** | 结构+落地+对齐(3 Agent) [STEP1-5] | 对齐 Agent + 监督 Agent [STEP1-5] |
-| **代码类（微小/中小 4-9 bucket）** | **加强审查**：code-review（由 specpowers-apply 执行）+ 对齐单审 [STEP1-2] | **3 独立视角**：code-review（由 specpowers-apply 执行）+ 对齐 Agent + 监督 Agent [STEP1-5] |
+| **代码类（微小(1-3)/中小(4-9) bucket）** | **加强审查**：code-review（由 specpowers-apply 执行）+ 对齐单审 [STEP1-2] | **3 独立视角**：code-review（由 specpowers-apply 执行）+ 对齐 Agent + 监督 Agent [STEP1-5] |
 | **代码类（中大 10-19/复杂/大规模 bucket）** | **UltraReview**(6 Agent: build/code/specs/docs/deps/对齐) [STEP1-5] | 同代码类（微小/中小）关键 |
 
 > bucket_class 映射（与 protocols.md 协议6 对齐）：{微小, 中等且file_count<10}→小代码（加强审查 recipe）；{中等且file_count≥10, 复杂, 大规模}→大代码（UltraReview recipe）
@@ -120,7 +120,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 - 问题清单写入会话上下文账本（主 Agent 内存 dict，见 `refs/protocols.md` 协议 1（会话上下文账本）），跨 Gate 通过主 Agent 注入对齐 Agent prompt
 - 不再写入任何 .review 开头的文件产物
 - 跨会话场景下，审查教训从 .specpowers/review-cache.json 读取（尽力而为缓存，丢失不影响正确性）
-- 每个 Gate 审查完成后均输出收敛提醒
+- 每个 Gate 审查完成后均输出收敛判定（`[CONVERGENCE_CHECK]` 标记）
 - **审查修改与审批的关系**：Gate 审查发现的修改分为两类：
   - (a) **结构性修改**（改变设计意图/架构/接口/数据模型/核心流程）→ 需重新走用户审批
   - (b) **澄清性修改**（消除歧义、补充遗漏、修正措辞、修复格式，不改变设计意图、接口和数据流）→ 免二次审批，直接修改后由主 Agent 确认
@@ -295,7 +295,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 | 审查对象 | 文档（设计/规范/计划等） | 代码（中大/复杂/大规模 bucket） |
 | Agent 数量 | 3（完整层）/ 2（关键层） | 6（仅完整层） |
 | 对齐检查 | 对齐 Agent 专门负责 | 对齐审查 Agent 专门负责（COVERED/MISSING/DRIFT 对照） |
-| 收敛提醒 | 是 | 是 |
+| 收敛判定 | 是 | 是 |
 
 ---
 
@@ -528,7 +528,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 - 输出快速检查报告：是否所有问题均已修复？修复是否引入新问题？文档整体一致性是否保持？
 - 仅单一 Agent 可用时，在审查报告中声明限制（缺少独立视角）。降级时 degradation 字段须含退化声明三要素
 - **收敛判定（强制步骤，不可跳过）**: Step 5 完成后，主 Agent **必须**计算 4 个触发条件（见下方「收敛提醒与硬阻止机制」节）并输出 `[CONVERGENCE_CHECK]` 标记。**加强审查子路径**（STEP5 被裁剪）在 **STEP2 完成后**输出此标记（基于 STEP2 的 raw_count_sum 计算 p*_raw）。无论是否触发，标记必须输出——缺失 = 收敛判定被跳过 = 审查未完成，父技能验证 3 将阻塞。
-- Quick Review 通过后输出收敛提醒
+- Quick Review 通过后执行收敛判定（输出 `[CONVERGENCE_CHECK]` 标记）
 - 完成后输出 `STEP5_EXECUTED` 标记块
 - **退化补偿规则**: 如果 Step 4 发生退化（status: degraded 或 failed），Step 5 的 Quick Review Agent 执行**两轮独立验证**（第一轮: 检查修复质量；第二轮: 独立重新验证修复项）。在两轮之间主 Agent 不干预，以补偿修复视角独立性的损失。两轮验证均在 Step 5 标记块中记录，degradation 字段注明"Step 4 退化 → Step 5 执行两轮补偿验证"。**注意**：转移路径下 Step 4 退化已回退为独立 Step 3（见 Step 4 退化补偿规则），故本两轮补偿不与兼并合并验证叠加
 
@@ -567,7 +567,8 @@ tier=<critical|full>
 1. 从 `[TIER_ROUTING]` 标记中提取 `expected_steps`，动态确定应存在的 STEP 集合（无 `[TIER_ROUTING]` 标记时回退为全集 `[STEP1, STEP2, STEP3, STEP4, STEP5, STEP_FINAL_READTHROUGH]`）
 2. 搜索 `STEP<N>_EXECUTED` 和 `STEP<N>_TIER_SKIPPED` 标记块，确认 `expected_steps` 中的每个 STEP 要么已输出 `_EXECUTED` 标记块，要么已输出 `_TIER_SKIPPED` 标记块
 3. 确认最终通读标记块已输出（缺失时标注"最终通读可能未执行"）
-4. 以 `[SELF_VERIFY]` 标记输出检查结果
+4. 确认 `[CONVERGENCE_CHECK]` 标记已输出（缺失时标注"收敛判定可能未执行"）
+5. 以 `[SELF_VERIFY]` 标记输出检查结果
 
 **自检结果格式**:
 
@@ -640,7 +641,7 @@ Step 5（加强审查子路径为 Step 2）完成后，主 Agent **必须**计�
 - 返回 `[GATE_PASSED]` → 循环退出（收敛达标或用户终止），Gate 通过
 - 返回 `[GATE_BLOCKED]` → P0 未清零，Gate 阻塞
 
-父技能无需理解 `[CONVERGENCE_CHECK]` 或实现循环逻辑——循环完全封装在 review 内部。
+父技能无需实现循环逻辑——循环完全封装在 review 内部（父技能验证 3 仅检查最终返回的标记存在性与语义）。
 
 **用户交互（知情权 + 干预窗口）**：action=continue 时，review 主 Agent 在开始下一轮前向用户输出：
 

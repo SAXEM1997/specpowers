@@ -243,7 +243,7 @@ master (main) ← 始终可部署
 验证链（按顺序执行，任一失败阻止后续。验证 3 仅在 Gate 调用返回 [GATE_PASSED] 或 [GATE_BLOCKED] 时执行——action=continue 时 Gate 尚在 review 内部循环，父技能尚未收到返回）:
 
 验证0: 执行模式检查
-  - 微小任务(tiny): 跳过 design/plan 的 Gate 验证（Gate 3 除外——apply 中 tiny 仍执行验证 1/2）
+  - 微小任务(tiny): 跳过 design/plan 的 Gate 验证（Gate 3 除外——apply 中 tiny 仍执行验证 1/2/3）
   - 非微小任务: 继续验证1
 
 验证1: 标记块完整性
@@ -256,11 +256,11 @@ master (main) ← 始终可部署
   - p0_count=0 → 通过
 
 验证3: 收敛判定完整性
-  - 搜索 [CONVERGENCE_CHECK] 标记
+  - 搜索最后一个 [CONVERGENCE_CHECK] 标记（多轮审查每轮都输出此标记，最后一个为最终判定）
   - 缺失 → 视为审查未完成（收敛判定被跳过），阻塞 Phase
-  - 存在且 action=exit 但 exit_reason 为空 → 阻塞（无理由终止）
-  - 存在且 action=continue → 审查将继续下一轮（预期行为，Gate 调用尚未返回）
-  - 存在且 action=exit 且 exit_reason 非空 → 通过
+  - 最后一个 action=exit 但 exit_reason 为空 → 阻塞（无理由终止）
+  - 最后一个 action=continue → 审查仍在 review 内部循环中（预期行为，Gate 调用尚未返回）
+  - 最后一个 action=exit 且 exit_reason 非空 → 通过
 ```
 
 > 各子技能引用示例: "按入口 Gate 返回后验证协议执行验证链（Gate=1, Phase=1）：验证0→验证1→验证2→验证3。"
