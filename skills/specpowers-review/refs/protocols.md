@@ -442,7 +442,7 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 | 场景 | 条件 | 输出 |
 |------|------|------|
 | 硬阻止 | p0 未清零（修复后仍 p0 > 0） | `[GATE_BLOCKED]` 强制语气 + 修复-重审循环 |
-| 默认继续下一轮 | 下方 4 触发条件任一满足 | `[CONVERGENCE_CHECK]` action=continue + 摘要+干预窗口 |
+| 默认继续下一轮 | 下方 4 触发条件任一满足 | `[CONVERGENCE_CHECK]` action=continue + 摘要 + 干预窗口 |
 | 收敛退出 | 以上均不满足 | `[CONVERGENCE_CHECK]` action=exit + 最终通读 → `[GATE_PASSED]` |
 
 **下一轮 4 触发条件**（任一满足即默认继续）：① p0_raw > 0；② p1_raw ≥ 3；③ p0_raw+p1_raw+p2_raw ≥ 5；④ p0_raw+p1_raw+p2_raw+p3_raw ≥ 10。
