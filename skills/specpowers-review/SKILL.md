@@ -527,7 +527,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
   STEP5_EXECUTED 中新增 `notes: 兼并 Step 3 合并验证（溯源+遗漏+问题数核对）` 字段（独立于 degradation）
 - 输出快速检查报告：是否所有问题均已修复？修复是否引入新问题？文档整体一致性是否保持？
 - 仅单一 Agent 可用时，在审查报告中声明限制（缺少独立视角）。降级时 degradation 字段须含退化声明三要素
-- **收敛判定（强制步骤，不可跳过）**: Step 5 完成后，主 Agent **必须**计算 4 个触发条件（见下方「收敛提醒与硬阻止机制」节）并输出 `[CONVERGENCE_CHECK]` 标记。**加强审查子路径**（STEP5 被裁剪）在 **STEP2 完成后**输出此标记（基于 STEP2 的 raw_count_sum 计算 p*_raw）。无论是否触发，标记必须输出——缺失 = 收敛判定被跳过 = 审查未完成，父技能验证 3 将阻塞。
+- **收敛判定（强制步骤，不可跳过）**: Step 5 完成后，主 Agent **必须**计算 4 个触发条件（见下方「收敛判定与硬阻止机制」节）并输出 `[CONVERGENCE_CHECK]` 标记。**加强审查子路径**（STEP5 被裁剪）在 **STEP2 完成后**输出此标记（基于 STEP2 的 raw_count_sum 计算 p*_raw）。无论是否触发，标记必须输出——缺失 = 收敛判定被跳过 = 审查未完成，父技能验证 3 将阻塞。
 - Quick Review 通过后执行收敛判定（输出 `[CONVERGENCE_CHECK]` 标记）
 - 完成后输出 `STEP5_EXECUTED` 标记块
 - **退化补偿规则**: 如果 Step 4 发生退化（status: degraded 或 failed），Step 5 的 Quick Review Agent 执行**两轮独立验证**（第一轮: 检查修复质量；第二轮: 独立重新验证修复项）。在两轮之间主 Agent 不干预，以补偿修复视角独立性的损失。两轮验证均在 Step 5 标记块中记录，degradation 字段注明"Step 4 退化 → Step 5 执行两轮补偿验证"。**注意**：转移路径下 Step 4 退化已回退为独立 Step 3（见 Step 4 退化补偿规则），故本两轮补偿不与兼并合并验证叠加
@@ -592,7 +592,7 @@ all_present: true|false
 
 ---
 
-## 收敛提醒与硬阻止机制
+## 收敛判定与硬阻止机制
 
 ### 每 Gate 审查+修复完成后输出
 
@@ -621,13 +621,7 @@ Step 5（加强审查子路径为 Step 2）完成后，主 Agent **必须**计�
 
 #### `[CONVERGENCE_CHECK]` 标记格式
 
-```
-[CONVERGENCE_CHECK] triggers=<编号列表|none>, action=<continue|exit>, p0_raw=<N>, p1_raw=<N>, p2_raw=<N>, p3_raw=<N>, exit_reason=<文本|n/a>
-```
-
-- `triggers`：满足的触发条件编号列表（如 `[1,3]`），none 表示无触发
-- `action`：triggers 非空时默认 `continue`；triggers 为空时 `exit`（exit_reason=收敛达标）；用户显式终止时 `exit` + exit_reason
-- `exit_reason`：仅 action=exit 时填写。用户显式终止须记录理由；无触发条件时填 `收敛达标`
+格式定义见 `refs/protocols.md` 协议 7（`[CONVERGENCE_CHECK]` 标记格式节）。字段：triggers（触发条件编号列表|none）、action（continue|exit）、p0_raw/p1_raw/p2_raw/p3_raw（原始发现数）、exit_reason（exit 时填写）。
 
 **无论是否触发，此标记必须输出。** 缺失 = 收敛判定被跳过 = 审查未完成。
 
@@ -646,7 +640,7 @@ Step 5（加强审查子路径为 Step 2）完成后，主 Agent **必须**计�
 **用户交互（知情权 + 干预窗口）**：action=continue 时，review 主 Agent 在开始下一轮前向用户输出：
 
 ```
-📊 Round <N> 审查完成。原始发现 P0:<N> P1:<N> P2:<N> P3:<N>。
+📊 Round <N> 审查完成。原始发现 P0:<p0_raw> P1:<p1_raw> P2:<p2_raw> P3:<p3_raw>。
 触发条件 <编号> 满足，即将开始 Round <N+1>。
 如需终止审查，请说明理由。无反馈则继续。
 ```
@@ -655,7 +649,7 @@ Step 5（加强审查子路径为 Step 2）完成后，主 Agent **必须**计�
 
 #### action=exit 时
 
-触发条件不满足（收敛达标）或用户显式终止后，输出 action=exit + exit_reason，然后执行最终通读 Gate，通过后输出 `[GATE_PASSED]` 标记（见下方「Gate Token 输出」节）。
+触发条件不满足（收敛达标）或用户显式终止后，输出 action=exit + exit_reason，然后执行最终通读 Gate，通过后输出 `[GATE_PASSED]` 标记（见上方「Gate Token 输出」节）。
 
 > **优先级规则**：多条件同时触发时，按条件编号升序显示（1 > 2 > 3 > 4），列出所有触发条件的编号和描述。
 
@@ -663,7 +657,7 @@ Step 5（加强审查子路径为 Step 2）完成后，主 Agent **必须**计�
 
 ## 审查基础设施与协议
 
-> 以下各节定义的协议与数据结构作用于整个审查流程（所有 Gate、所有 Step），非仅收敛提醒场景。此处集中放置以便检索。
+> 以下各节定义的协议与数据结构作用于整个审查流程（所有 Gate、所有 Step），非仅收敛判定场景。此处集中放置以便检索。
 
 ### 协议与数据结构参考
 

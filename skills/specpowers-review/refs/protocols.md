@@ -433,9 +433,9 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 | 9 | **文档类** design.md 1 文件/450 行 round1（假设 ledger 存在） | 完整（3-agent 多模型渐进式） | bucket_doc(450)=复杂 → 矩阵→完整 |
 | 10 | **文档类** plan.md 1 文件/80 行 round1（假设 ledger 存在） | 关键（对齐+监督 2-agent） | bucket_doc(80)=微小 → 矩阵→关键 |
 
-## 协议 7: 收敛提醒与硬阻止输出模板
+## 协议 7: 收敛判定与硬阻止输出模板
 
-> 由 specpowers-review SKILL.md「收敛提醒与硬阻止机制」节引用。
+> 由 specpowers-review SKILL.md「收敛判定与硬阻止机制」节引用。
 
 **输出判定**（依据本轮原始发现数 p0_raw/p1_raw/p2_raw/p3_raw，禁止用修复后剩余数）：
 
