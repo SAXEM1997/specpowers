@@ -10,6 +10,7 @@ description: Use when entering the implementation phase of a specpowers workflow
 > 2. 确认 Plan 模式：若 Plan: tiny → 跳过 plan 存在检查（微小任务无 plan，直接审查变更文件）；否则 → 确认 `docs/superpowers/plans/<name>.md` 存在。如不存在，回 specpowers-plan 生成 plan。
 > 3. 确认 Plan 审查 Gate 已通过（非 tiny 模式，询问已执行，见 specpowers-plan Phase 2 "Plan 审查 Gate"）。如未询问，回 specpowers-plan 完成 Gate 后再进入。
 > 4. 如当前模式为微小任务，仍须加载 specpowers-review 执行 Gate 3 审查（走 specpowers-review 内部级联判定路径）。
+> 5. **Gate 2 确认**：搜索会话上下文中 `[GATE_PASSED] gate=2` 标记，或检查 `.superpowers/.gate-passed-2` 文件（`name=<当前任务>` 匹配）。两者都没有 → Phase 2 Gate 2 未执行，回 specpowers-plan 完成 Gate 2 后再进入 Phase 3。微小任务跳过此项。
 
 **REQUIRED SUB-SKILL:** Skill({skill: "superpowers:subagent-driven-development"})
 **REQUIRED BACKGROUND:** Skill({skill: "superpowers:test-driven-development"})
