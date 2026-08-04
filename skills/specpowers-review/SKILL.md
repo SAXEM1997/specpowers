@@ -534,6 +534,32 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 Step 5 在本轮审查层面检查修复质量（本轮问题是否已彻底修复）；最终通读 Gate 在跨轮累积层面检查全局一致性（多轮修复之间是否有冲突）。
 
+### Gate Token 输出（Gate 通过后）
+
+Gate 审查最终通过（收敛判定 action=exit + 最终通读 PASS）后，review 主 Agent **必须**输出 Gate Token——两层保障：
+
+**第 1 层：会话标记**
+```
+[GATE_PASSED] gate=<N>, round=<N>, tier=<tier>, p0_raw=<N>, p1_raw=<N>, convergence_triggers=<编号列表|none>
+```
+与现有的 `[TIER_ROUTING]`、`STEP<N>_EXECUTED` 同类机制。`[GATE_PASSED]` 仅在 Gate 确实通过后输出；P0 未清零时输出 `[GATE_BLOCKED]`（现有机制不变）。
+
+> **与 `[CONVERGENCE_CHECK]` 的时序关系**：多轮审查进行中时，每轮输出 `[CONVERGENCE_CHECK]` 但不输出 `[GATE_PASSED]`——Gate 尚未最终通过。仅在 action=exit + 最终通读 PASS 后输出 `[GATE_PASSED]`。
+
+**第 2 层：文件标记（后备轨）**
+
+Gate 通过后写入 `.superpowers/.gate-passed-<N>` 文件：
+```
+name=<任务标识符>
+round=<N>
+timestamp=<ISO 8601>
+tier=<critical|full>
+```
+
+跨 Skill 边界、跨上下文压缩时后备。`name` 字段绑定特定任务——入口技能/子技能检查时不仅检查文件存在，还检查 `name` 与当前任务匹配，不匹配视为不存在（防止上一任务残留标记误导）。
+
+> 此文件是 Phase 流转控制标记（语义类似 `.phase1-skipped`），非审查状态产物。
+
 ### 独立调用场景自检
 
 当 specpowers-review 被用户直接调用（非通过 specpowers-design/plan/apply/archive 的 Gate 路由）时，不存在父技能执行双层验证。此时主 Agent 在最后一个 STEP 完成后（加强审查为 STEP2，其他为 STEP5）自行执行标记块完整性检查：
