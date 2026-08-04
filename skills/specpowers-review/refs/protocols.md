@@ -367,7 +367,7 @@ ref: AgentId=<id>, tokens=<N>
   # 文档类 bucket 按 line_count（文档行数与内容复杂度正相关；file_count 对文档无区分度）
   # 代码类 bucket 按 file_count（变更文件数直接反映代码变更范围）
   bucket = (object_type==文档) ? bucket_doc(line_count) : bucket(file_count)
-  bucket_class = (object_type==代码) ? (bucket in {微小,中等} ? 小代码 : 大代码) : null
+  bucket_class = (object_type==代码) ? ((bucket==微小 || (bucket==中等 && file_count<10)) ? 小代码 : 大代码) : null
   round = (!ledger || !ledger[gate_id]) ? 1 : ledger[gate_id].rounds.length + 1   # round 基于【当前 gate_id】的 rounds.length。不同 Gate 的 gate_id 不同，轮次独立计数。gate_id 不存在视为首轮。
   prev_raw = (round >= 2) ? ledger[gate_id].rounds[round-2] : null   # rounds 0-indexed，上一轮索引=round-2
 1. 护栏1(安全优先, early-return): if !ledger || !ledger[gate_id] → return tier=完整, reason="ledger缺失,保守完整"   # 最先, 覆盖手动覆盖
@@ -426,7 +426,8 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 | 3 | 中等 round3 但上轮 p0_raw>0（假设 ledger 存在） | 完整 | 矩阵→关键 → 闸门升级完整（中等未收敛） |
 | 4 | 复杂任意轮（假设 ledger 存在） | 完整 | 矩阵→完整，永不降级 |
 | 5 | 跨会话恢复（ledger 缺失） | 完整 | 护栏1 early-return，覆盖手动覆盖 |
-| 6 | 代码类 4 文件/400 行 round1（假设 ledger 存在） | 完整（加强审查子路径） | 矩阵→完整，bucket=中等→recipe=加强审查 STEP1-2 |
+| 6 | 代码类 4 文件/400 行 round1（假设 ledger 存在） | 完整（加强审查子路径） | 矩阵→完整，bucket=中等且file_count<10→bucket_class=小代码→recipe=加强审查 STEP1-2 |
+| 6b | 代码类 10 文件/400 行 round1（假设 ledger 存在） | 完整（UltraReview 子路径） | 矩阵→完整，bucket=中等但 file_count≥10→bucket_class=大代码→recipe=UltraReview STEP1-5 |
 | 7 | 代码类 3 文件 round2（假设 ledger 存在） | 关键（3 独立视角） | 矩阵→关键，recipe=3 独立视角 |
 | 8 | round1 手动指定关键但 line>500（假设 ledger 存在） | 完整 | 手动→关键 → 行数地板升级完整 |
 | 9 | **文档类** design.md 1 文件/450 行 round1（假设 ledger 存在） | 完整（3-agent 多模型渐进式） | bucket_doc(450)=复杂 → 矩阵→完整 |
