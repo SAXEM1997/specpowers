@@ -442,12 +442,26 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 | 场景 | 条件 | 输出 |
 |------|------|------|
 | 硬阻止 | p0 未清零（修复后仍 p0 > 0） | `[GATE_BLOCKED]` 强制语气 + 修复-重审循环 |
-| 强烈提醒下一轮 | 下方 4 触发条件任一满足 | 强烈建议下一轮 + 上轮对比 |
-| 轻量提醒 | 以上均不满足 | 轻量收敛提醒 |
+| 默认继续下一轮 | 下方 4 触发条件任一满足 | `[CONVERGENCE_CHECK]` action=continue + 摘要+干预窗口 |
+| 收敛退出 | 以上均不满足 | `[CONVERGENCE_CHECK]` action=exit + 最终通读 → `[GATE_PASSED]` |
 
-**下一轮 4 触发条件**（任一满足即强烈提醒）：① p0_raw > 0；② p1_raw ≥ 3；③ p0_raw+p1_raw+p2_raw ≥ 5；④ p0_raw+p1_raw+p2_raw+p3_raw ≥ 10。
+**下一轮 4 触发条件**（任一满足即默认继续）：① p0_raw > 0；② p1_raw ≥ 3；③ p0_raw+p1_raw+p2_raw ≥ 5；④ p0_raw+p1_raw+p2_raw+p3_raw ≥ 10。
 
-> 条件 1（p0_raw > 0）与 `[GATE_BLOCKED]` 独立：P0 已全部修复后 p0_raw 仍 > 0（本轮发现过 P0），Gate 已通过但仍触发下一轮建议。多条件同时触发时按编号升序列出全部。
+> 条件 1（p0_raw > 0）与 `[GATE_BLOCKED]` 独立：P0 已全部修复后 p0_raw 仍 > 0（本轮发现过 P0），Gate 已通过但仍默认继续下一轮。多条件同时触发时按编号升序列出全部。
+
+### `[CONVERGENCE_CHECK]` 标记格式
+
+```
+[CONVERGENCE_CHECK] triggers=<编号列表|none>, action=<continue|exit>, p0_raw=<N>, p1_raw=<N>, p2_raw=<N>, p3_raw=<N>, exit_reason=<文本|n/a>
+```
+
+- `triggers`：满足的触发条件编号列表（如 `[1,3]`），none 表示无触发
+- `action`：triggers 非空时默认 `continue`；triggers 为空时 `exit`（exit_reason=收敛达标）；用户显式终止时 `exit` + exit_reason
+- `exit_reason`：仅 action=exit 时填写。用户显式终止须记录理由；无触发条件时填 `收敛达标`
+
+**无论是否触发，此标记必须输出。** 加强审查子路径（STEP5 被裁剪）在 STEP2 完成后输出此标记。
+
+> **设计理由（writing-skills "Match the Form to the Failure"）**：收敛判定被跳过属于"omits a required element"——正确形式是 structural（REQUIRED field），而非 prohibition 或 prose reminder。`[CONVERGENCE_CHECK]` 是 structural form——必须输出的结构化字段，父技能验证链检查其存在性。
 
 ### 统一输出模板
 
@@ -458,11 +472,15 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 >
 > [p0 未清零时] P0 未清零，审查 Gate 未通过，当前 Phase 被阻塞。specpowers-review 必须执行修复-重审循环（修复子 Agent 修 P0 → 主 Agent 逐条校验 → 重跑 Step 1-5），直到 P0 清零且 P1 总数较上轮不增加。本轮修复+重审中发现的 P1/P2 纳入累积计数。调用方将检查 [GATE_BLOCKED]，P0>0 时拒绝进入下一 Phase。
 >
-> [触发条件任一满足时] ⚠️ 触发条件 <编号+描述>，即使问题已全部修复，仍强烈建议启动下一轮审查（避免修复回归 / 高复杂度变更隐藏缺陷 / 审查盲区累积）。
+> [触发条件任一满足时]
+> 📊 Round <N> 审查完成。原始发现 P0:<p0_raw> P1:<p1_raw> P2:<p2_raw> P3:<p3_raw>。
+> 触发条件 <编号+描述> 满足，即将开始 Round <N+1>。
+> 如需终止审查，请说明理由。无反馈则继续。
+>
+> [触发条件均不满足时]
+> 本轮原始发现问题数未达下一轮触发阈值。审查收敛，可进入最终通读。
 >
 > **上轮对比**（如适用）：上轮 P0:X P1:Y P2:Z P3:W → 本轮 P0:X' P1:Y' P2:Z' P3:W'，趋势：收敛中 ↗ / 持平 → / 恶化 ↘
->
-> 请确认：是否进行下一轮审查？
 >
 > **[DEGRADED]**（旧格式账本缺少 _raw 字段）：不展示上轮对比段，仅展示当轮原始发现数 + 声明"旧格式账本缺少原始发现数，回退独立判断"。
 ```
