@@ -123,6 +123,8 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 | `docs/superpowers/clarifications/<name>.md` + `docs/superpowers/specs/<name>-design.md` 存在，`openspec/changes/<name>/` 不存在 | Phase 0 完成 | specpowers-design |
 | `openspec/changes/<name>/` 存在 | Phase 1 完成 | specpowers-plan (Phase 2) |
 
+> **Gate 标记检查（产物依赖链最终执行点）**：Phase 自动检测在匹配产物状态后，额外检查对应 Gate 的 `.gate-passed-<N>` 文件（`name=<当前任务>` 匹配）。Gate 标记缺失 → 该 Phase 判定无效，回退到上一 Phase 执行 Gate。Gate 0→检查 `.gate-passed-0`（Phase 0 完成且 Gate 0 通过才能进入 Phase 1）；Gate 1→`.gate-passed-1`（Phase 1 完成且 Gate 1 通过才能进入 Phase 2）；以此类推。微小任务跳过 Gate 0/1/2（与验证 0 一致），Gate 3 仍检查。
+
 **微小任务不加载子技能** — 直接在入口 skill 上下文中子代理执行。
 
 > 注：微小任务不加载 design/plan/apply/archive 业务子技能，但 specpowers-review（审查横切）仍加载执行 Gate 3（见 specpowers-apply 前置检查）。
@@ -238,7 +240,7 @@ master (main) ← 始终可部署
 各子技能（design/plan/apply）在 Gate 返回后执行以下验证链。本协议为权威定义，子技能引用本协议并给出本 Gate 特化参数（Gate=N, Phase=N）。
 
 ```
-验证链（按顺序执行，任一失败阻止后续）:
+验证链（按顺序执行，任一失败阻止后续。验证 3 仅在 Gate 调用返回 [GATE_PASSED] 或 [GATE_BLOCKED] 时执行——action=continue 时 Gate 尚在 review 内部循环，父技能尚未收到返回）:
 
 验证0: 执行模式检查
   - 微小任务(tiny): 跳过 design/plan 的 Gate 验证（Gate 3 除外——apply 中 tiny 仍执行验证 1/2）
@@ -252,9 +254,16 @@ master (main) ← 始终可部署
 验证2: P0 硬阻止
   - [GATE_BLOCKED] p0_count>0 → 阻塞，禁止继续
   - p0_count=0 → 通过
+
+验证3: 收敛判定完整性
+  - 搜索 [CONVERGENCE_CHECK] 标记
+  - 缺失 → 视为审查未完成（收敛判定被跳过），阻塞 Phase
+  - 存在且 action=exit 但 exit_reason 为空 → 阻塞（无理由终止）
+  - 存在且 action=continue → 审查将继续下一轮（预期行为，Gate 调用尚未返回）
+  - 存在且 action=exit 且 exit_reason 非空 → 通过
 ```
 
-> 各子技能引用示例: "按入口 Gate 返回后验证协议执行验证链（Gate=1, Phase=1）：验证0→验证1→验证2。"
+> 各子技能引用示例: "按入口 Gate 返回后验证协议执行验证链（Gate=1, Phase=1）：验证0→验证1→验证2→验证3。"
 
 ## 7 个常见 Pitfalls
 
