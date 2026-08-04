@@ -527,6 +527,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
   STEP5_EXECUTED 中新增 `notes: 兼并 Step 3 合并验证（溯源+遗漏+问题数核对）` 字段（独立于 degradation）
 - 输出快速检查报告：是否所有问题均已修复？修复是否引入新问题？文档整体一致性是否保持？
 - 仅单一 Agent 可用时，在审查报告中声明限制（缺少独立视角）。降级时 degradation 字段须含退化声明三要素
+- **收敛判定（强制步骤，不可跳过）**: Step 5 完成后，主 Agent **必须**计算 4 个触发条件（见下方「收敛提醒与硬阻止机制」节）并输出 `[CONVERGENCE_CHECK]` 标记。**加强审查子路径**（STEP5 被裁剪）在 **STEP2 完成后**输出此标记（基于 STEP2 的 raw_count_sum 计算 p*_raw）。无论是否触发，标记必须输出——缺失 = 收敛判定被跳过 = 审查未完成，父技能验证 3 将阻塞。
 - Quick Review 通过后输出收敛提醒
 - 完成后输出 `STEP5_EXECUTED` 标记块
 - **退化补偿规则**: 如果 Step 4 发生退化（status: degraded 或 failed），Step 5 的 Quick Review Agent 执行**两轮独立验证**（第一轮: 检查修复质量；第二轮: 独立重新验证修复项）。在两轮之间主 Agent 不干预，以补偿修复视角独立性的损失。两轮验证均在 Step 5 标记块中记录，degradation 字段注明"Step 4 退化 → Step 5 执行两轮补偿验证"。**注意**：转移路径下 Step 4 退化已回退为独立 Step 3（见 Step 4 退化补偿规则），故本两轮补偿不与兼并合并验证叠加
@@ -570,17 +571,17 @@ all_present: true|false
 
 审查完成后，依据本轮 P0/P1 计数输出对应声明。输出模板见 `refs/protocols.md` 协议 7。
 
-### 下一轮判断（基于原始发现数）
+### 收敛判定（强制输出 + 默认继续制）
 
-Step 5 Quick Review 通过后，依据 **本轮审查原始发现的问题数**（Step 2 汇总时记录的 `p0_raw/p1_raw/p2_raw/p3_raw`）判断是否建议下一轮审查。
+Step 5（加强审查子路径为 Step 2）完成后，主 Agent **必须**计算 4 个触发条件并输出 `[CONVERGENCE_CHECK]` 标记。
 
 > **⚠️ 防偷懒硬约束**: 计算以下 4 个触发条件时，**必须**使用 Step 2 汇总时记录的原始发现问题数
 > （`p0_raw`, `p1_raw`, `p2_raw`, `p3_raw`——来自会话上下文账本 `rounds[N-1].p*_raw`），
 > **禁止**使用修复后剩余计数（`p0`, `p1`, `p2`——来自 `rounds[N-1].p0/p1/p2`）。
 > 原始发现数反映本轮变更的真实影响面——即使所有问题已修复，大规模变更仍有隐藏风险。
-> 使用修复后剩余数替代原始发现数做阈值判断，是最常见的偷懒模式之一（Agent 想尽快结束审查）。
+> 使用修复后剩余数替代原始发现数做阈值判断，是最常见的偷懒模式之一。
 
-4 个触发条件，**任一满足即强烈提醒进行下一轮**：
+4 个触发条件，**任一满足即默认继续下一轮**：
 
 | # | 条件 | 含义 |
 |---|------|------|
@@ -589,7 +590,45 @@ Step 5 Quick Review 通过后，依据 **本轮审查原始发现的问题数**�
 | 3 | p0_raw + p1_raw + p2_raw ≥ 5 | 总问题数达到中等规模 |
 | 4 | p0_raw + p1_raw + p2_raw + p3_raw ≥ 10 | 含风格问题总数很多 |
 
-> 条件 1（p0_raw > 0）与 `[GATE_BLOCKED]` 硬阻止独立：P0 已全部修复后 p0_raw 仍 > 0（本轮发现过 P0），此时 Gate 已通过，但仍触发下一轮建议。
+> 条件 1（p0_raw > 0）与 `[GATE_BLOCKED]` 硬阻止独立：P0 已全部修复后 p0_raw 仍 > 0（本轮发现过 P0），此时 Gate 已通过，但仍默认继续下一轮。
+
+#### `[CONVERGENCE_CHECK]` 标记格式
+
+```
+[CONVERGENCE_CHECK] triggers=<编号列表|none>, action=<continue|exit>, p0_raw=<N>, p1_raw=<N>, p2_raw=<N>, p3_raw=<N>, exit_reason=<文本|n/a>
+```
+
+- `triggers`：满足的触发条件编号列表（如 `[1,3]`），none 表示无触发
+- `action`：triggers 非空时默认 `continue`；triggers 为空时 `exit`（exit_reason=收敛达标）；用户显式终止时 `exit` + exit_reason
+- `exit_reason`：仅 action=exit 时填写。用户显式终止须记录理由；无触发条件时填 `收敛达标`
+
+**无论是否触发，此标记必须输出。** 缺失 = 收敛判定被跳过 = 审查未完成。
+
+> **加强审查子路径覆盖**：加强审查子路径裁剪 STEP5（recipe=[STEP1-2]，输出 STEP5_TIER_SKIPPED）。此子路径的 `[CONVERGENCE_CHECK]` 在 **STEP2 完成后**输出（替代 STEP5 后位置）。验证 3 的搜索逻辑不依赖 STEP5 存在——只要找到 `[CONVERGENCE_CHECK]` 标记即可。
+
+#### 默认继续制（action=continue 时）
+
+触发条件满足时，**默认进入下一轮审查**——不询问"是否继续"，而是通知即将继续并提供干预窗口。
+
+**执行主体**：review 主 Agent 在同一 Skill 调用内部自动循环——action=continue 时回到 Step 0 启动 Round 2。父技能 Gate 调用仅一次返回：
+- 返回 `[GATE_PASSED]` → 循环退出（收敛达标或用户终止），Gate 通过
+- 返回 `[GATE_BLOCKED]` → P0 未清零，Gate 阻塞
+
+父技能无需理解 `[CONVERGENCE_CHECK]` 或实现循环逻辑——循环完全封装在 review 内部。
+
+**用户交互（知情权 + 干预窗口）**：action=continue 时，review 主 Agent 在开始下一轮前向用户输出：
+
+```
+📊 Round <N> 审查完成。原始发现 P0:<N> P1:<N> P2:<N> P3:<N>。
+触发条件 <编号> 满足，即将开始 Round <N+1>。
+如需终止审查，请说明理由。无反馈则继续。
+```
+
+这不是"询问是否继续"（退回到原来的问题），而是"通知即将继续 + 给用户干预窗口"——默认行为是继续，用户需主动干预才能终止。
+
+#### action=exit 时
+
+触发条件不满足（收敛达标）或用户显式终止后，输出 action=exit + exit_reason，然后执行最终通读 Gate，通过后输出 `[GATE_PASSED]` 标记（见下方「Gate Token 输出」节）。
 
 > **优先级规则**：多条件同时触发时，按条件编号升序显示（1 > 2 > 3 > 4），列出所有触发条件的编号和描述。
 
