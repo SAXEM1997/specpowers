@@ -11,7 +11,7 @@ specpowers 是一个 **Claude Code 技能组（Skill Group）**开发项目。�
 ## 技能组架构
 
 ```
-specpowers (入口, 决策模式+路由)
+specpowers (入口, 决策模式+路由+状态机)
   ├── specpowers-design (Phase 0+1)
   ├── specpowers-plan   (Phase 2)
   ├── specpowers-apply  (Phase 3: TDD 实现)
@@ -25,8 +25,9 @@ specpowers (入口, 决策模式+路由)
 
 | 路径 | 用途 |
 |------|------|
-| `skills/specpowers/SKILL.md` | 入口技能 — 决策树、路由表、全局规则（GitFlow/Checklist/Pitfalls） |
-| `skills/specpowers/refs/` | 入口技能 bundled resources（入门指南、项目模板、UltraPlan 提示词等） |
+| `skills/specpowers/SKILL.md` | 入口技能 — 决策树、路由表、全局规则（GitFlow/Checklist/Pitfalls）+ Decision Core（状态机 Step 0-2/决策分类表/Red Flags） |
+| `skills/specpowers/scripts/` | 轻量状态机脚本（workflow-state/guard/hook-validate-token，零依赖）+ hooks 模板（默认不注册） |
+| `skills/specpowers/refs/` | 入口技能 bundled resources（入门指南、项目模板、UltraPlan 提示词、workflow-protocol.json、decision-points.md 等） |
 | `skills/specpowers-design/SKILL.md` | Phase 0+1: brainstorming + propose + Gate 0/1 |
 | `skills/specpowers-plan/SKILL.md` | Phase 2: writing-plans 衔接 + Gate 2 |
 | `skills/specpowers-apply/SKILL.md` | Phase 3: subagent-driven TDD 实现 + Gate 3 审查（code-review + spec-compliance-check） |
@@ -45,6 +46,7 @@ specpowers (入口, 决策模式+路由)
 5. **硬 Gate 链不可跳过**: Phase 4 的四步 Gate（全量测试 → validate → archive → 完整性验证）任一失败强制终止，不允许降级为手动操作。Phase 0-3 各 Gate 通过 Gate Token 产物依赖链强制——`[GATE_PASSED]` 标记 + `.gate-passed-<N>` 文件（含 name 绑定）+ 入口验证 3（收敛判定完整性）+ 4 子技能前置检查 + Phase 自动检测 Gate 维度。
 6. **执行模式硬约束**: Phase 3 必须使用 `subagent-driven-development`（每个 task 独立子 Agent），禁止主 Agent 内联串行执行。specpowers-apply 内置执行模式路由表 + 合理化表 + 违规检测机制对抗长上下文下的内联退化。
 7. **审查防退化机制**: specpowers-review 内置三层防退化防御——审查纪律自检（合理化表 + Red Flags）、多轮审查防偷懒协议（主 Agent 自检）、审查层级边界（两层边界原则——分析不受限，评论受限制）。收敛判定从 advisory 升级为默认继续制（`[CONVERGENCE_CHECK]` 强制标记 + review 内部循环 + 用户干预窗口）。修复阶段默认全量修复 P0-P3（子Agent逐条分析），同文件不并发硬约束防止编辑冲突。
+8. **状态机主导 + hooks 默认 off**: 入口启动协议融合 Decision Core——`node skills/specpowers/scripts/workflow-state.mjs status` 状态机先行判定 Phase，`.gate-passed-<N>` 文件（name 绑定）最终裁决，Phase 自动检测降级为回退路径；5 子技能 Gate 出口调 `workflow-guard.mjs exit <phase> --apply`（token 先写、guard 后调，子技能为唯一责任方）；hooks 默认不注册（模板在 scripts/，启用需显式复制到 .claude/settings.json，与 comet-hook-router 互斥）。微小任务豁免（不 init 状态机，保留轻量行为）。
 
 ## 开发工作流
 
@@ -88,3 +90,20 @@ specpowers (入口, 决策模式+路由)
 - skills 目录下的 `pkg-xmake-template.md` 是 xmake 构建系统的 C/C++ 项目模板，仅在 specpowers 应用于此类项目时作为参考，不是本项目的构建系统。
 - `refs/` 下的文件是技能的 bundled resources，通过 `Skill` 工具加载技能时一并可用。
 - 入口技能的 "7 个常见 Pitfalls" 和 "故障排查" 表是跨所有子技能的共享知识，修改时需评估对子技能的影响。
+
+<comet-ambient-resume>
+<!-- Managed by Comet. Edits inside this block may be replaced by comet init/update. -->
+<!-- Contract: comet.resume_probe.v2 -->
+
+## Comet Ambient Resume
+
+在这个仓库中，开始处理需要改动或调查的任务前，如果可能存在活跃 Comet workflow，把当前用户请求传入只读探针：`comet resume-probe . --stdin --json`。
+
+- 如果用户通过宿主明确调用任意 Comet Skill（例如 `@comet`、`/comet`、`@comet-native` 或 `/comet-hotfix`），显式调用优先于本恢复协议；不要运行 resume probe，直接进入被调用的 Skill。
+- 只信任返回的 `workflow`、`skill` 和 `entrySource`；它们只由项目配置或无配置兼容回退决定。不得扫描或切换另一套 workflow。
+- 如果 probe 返回 `auto_resume`，简短说明选中的 active change，并进入 `nextCommand` 指向的永久入口。不要把状态命令当作恢复入口直接推进。
+- 如果 probe 返回 `ask_user`，只问一个简短问题并等待用户回复。
+- 如果当前请求未明确调用 Comet Skill，且 probe 返回 `out_of_scope` 或 `none`，不要进入 Comet workflow。
+- 如果配置或状态无效且没有 `nextCommand`，停止并报告原因；不要猜测另一个 workflow。
+- 不能只因为存在 active change 就把无关任务挂到该 change。Native 的未提交改动由 Native 入口检查，不由探针自动归因。
+</comet-ambient-resume>
