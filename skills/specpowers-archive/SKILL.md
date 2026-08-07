@@ -8,7 +8,7 @@ description: Use when entering the verification and archiving phase of a specpow
 > **前置检查（必须执行，不可跳过）**:
 > 1. 执行 `Skill({skill: "specpowers:specpowers"})` 加载入口 skill，获取 Post-Task Checklist 和 GitLab Flow 规则。等待加载完成后继续。
 > 2. 确认当前变更的 `<name>`。实现必须已完成（代码已提交）。如当前模式为微小任务，跳过本技能。
-> 3. **Phase1 跳过兼容**: 检查 `.superpowers/.phase1-skipped` — 若存在则 Phase1 已被跳过，无 OpenSpec change 目录；后续 Step 2 (openspec validate) 和 Step 3 (/opsx:archive) 自动跳过。若不存在，按标准路径 `openspec/changes/<name>/` 执行完整 Gate 链。
+> 3. **Phase 1 跳过兼容**: 检查 `.superpowers/.phase1-skipped` — 若存在则 Phase 1 已被跳过，无 OpenSpec change 目录；后续 Step 2（openspec validate）和 Step 3 (/opsx:archive) 自动跳过。若不存在，按标准路径 `openspec/changes/<name>/` 执行完整 Gate 链。
 > 4. **Gate 3 确认**：搜索会话上下文中 `[GATE_PASSED] gate=3` 标记，或检查 `.superpowers/.gate-passed-3` 文件（`name=<当前任务>` 匹配）。两者都没有 → Phase 3 Gate 3 未执行，回 specpowers-apply 完成 Gate 3 后再进入 Phase 4。微小任务跳过此项。
 
 **REQUIRED SUB-SKILL:** Skill({skill: "superpowers:verification-before-completion"})
@@ -55,7 +55,7 @@ fi
 
 ### Step 2: OpenSpec validate Gate
 
-> **Phase1 跳过分支**: 若 `.superpowers/.phase1-skipped` 存在 → 跳过本步骤（Phase1 已跳过，无 OpenSpec change 可验证），直接进入 Step 3 跳过路径。
+> **Phase 1 跳过分支**: 若 `.superpowers/.phase1-skipped` 存在 → 跳过本步骤（Phase 1 已跳过，无 OpenSpec change 可验证），直接进入 Step 3 跳过路径。
 
 ```bash
 # 仅在 .superpowers/.phase1-skipped 不存在时执行
@@ -72,7 +72,7 @@ openspec validate --change <name>
 
 ### Step 3: /opsx:archive（强制命令）
 
-> **Phase1 跳过分支**: 若 `.superpowers/.phase1-skipped` 存在 → 跳过本步骤（Phase1 已跳过，无 OpenSpec change 可归档），直接进入 Step 4（此时 Step 4 仅验证 git commit 存在）。
+> **Phase 1 跳过分支**: 若 `.superpowers/.phase1-skipped` 存在 → 跳过本步骤（Phase 1 已跳过，无 OpenSpec change 可归档），直接进入 Step 4（此时 Step 4 仅验证 git commit 存在）。
 
 ```bash
 # 仅在 .superpowers/.phase1-skipped 不存在时执行
@@ -92,6 +92,7 @@ ARCHIVE_PATH=$(openspec status --change <name> --json 2>/dev/null | grep -o '"ar
 if [ -z "$ARCHIVE_PATH" ]; then
     # 回退：按标准命名规则推断路径
     ARCHIVE_PATH="openspec/changes/archive/$(echo <name> | grep -oP '\d{4}-\d{2}-\d{2}')-<name>/"
+    # 注：此 fallback 从 name 提取日期，跨日归档时可能不准——openspec status 失败时才触发，优先依赖 openspec status --json 的 archivePath
 fi
 
 # 检查 archive 后 changes/ 已清空（Windows: 使用等效 PowerShell/CMD 命令）
@@ -104,9 +105,9 @@ echo "[PASS] 归档目录迁移完成: $ARCHIVE_PATH"
 
 **⚠️ GATE: /opsx:archive 失败 → Phase 4 终止，不允许手动绕过。**
 
-### Step 4: 归档完整性验证（新增，自动执行）
+### Step 4: 归档完整性验证（自动执行）
 
-> **Phase1 跳过分支**: 若 `.superpowers/.phase1-skipped` 存在 → 仅执行检查 4（确认 git commit 存在），跳过 OpenSpec 目录相关检查（检查 1-3），直接输出简化报告。
+> **Phase 1 跳过分支**: 若 `.superpowers/.phase1-skipped` 存在 → 仅执行检查 4（确认 git commit 存在），跳过 OpenSpec 目录相关检查（检查 1-3），直接输出简化报告。
 
 归档命令执行后，确保变更已提交，然后立即验证:
 
@@ -127,7 +128,7 @@ git add openspec/ && (git diff --cached --quiet || git commit -m "chore: archive
 检查4: git log --oneline -1 确认归档 commit 存在（包含 archive <name>）
 ```
 
-**Phase1 跳过路径验证**（`.superpowers/.phase1-skipped` 存在时执行）:
+**Phase 1 跳过路径验证**（`.superpowers/.phase1-skipped` 存在时执行）:
 
 ```
 检查4: git log --oneline -1 确认提交存在（包含 <name>）

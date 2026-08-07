@@ -16,7 +16,7 @@
     "openspec-change.v1": {"artifacts": ["openspec/changes/<name>/proposal.md", "openspec/changes/<name>/design.md", "openspec/changes/<name>/specs/", "openspec/changes/<name>/tasks.md"], "skipArtifact": ".superpowers/.phase1-skipped"},
     "plan.v1": {"artifacts": ["docs/superpowers/plans/<name>.md"]},
     "implementation.v1": {"artifacts": [], "evidence": ["git-committed"]},
-    "archive.v1": {"artifacts": ["openspec/changes/archive/<name>/"], "skipArtifact": ".superpowers/.phase1-skipped"}
+    "archive.v1": {"artifacts": ["openspec/changes/archive/"], "skipArtifact": ".superpowers/.phase1-skipped"}
   },
   "state": {"path": ".superpowers/state.json", "gateTokenDir": ".superpowers/", "gateTokenPrefix": ".gate-passed-"}
 }

@@ -1,7 +1,7 @@
 ---
 name: specpowers
 description: >
-  Use when starting any non-trivial development task (>4 files, multi-step, team project)
+  Use when starting any non-trivial development task (4+ files, multi-step, team project)
   that requires both requirements alignment AND engineering discipline.
   Use when the user mentions: "start new feature", "SDD+TDD workflow",
   "apply OpenSpec tasks", "/specpowers",
@@ -49,7 +49,7 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 ### Step 0：语义化意图检测（每次启动/恢复/压缩后执行）
 
 1. **判定当前 Phase**：运行 `node skills/specpowers/scripts/workflow-state.mjs status`。
-   - 未初始化 → 进入 Step 1（首次启动）；但存在 name-keyed 产物/token（如 docs/superpowers/ 下 name 目录、`.superpowers/.gate-passed-*`）→ 提示 `init --resume-artifacts`（不按全新任务处理）；**微小任务忽略此提示**（微小不 init state.json，缺失属预期，见设计文档决策 3）
+   - 未初始化 → 进入 Step 1（首次启动）；但存在 name-keyed 产物/token（如 docs/superpowers/ 下 name-keyed 产物（clarifications/plans 下的 <name>.md 文件）、`.superpowers/.gate-passed-*`）→ 提示 `init --resume-artifacts`（不按全新任务处理）；**微小任务忽略此提示**（微小不 init state.json，缺失属预期，见设计文档决策 3）
    - 已初始化 → 读 currentPhase + completedPhases + 持久化阻塞原因（对应脚本契约 status 输出的 BLOCKED_REASON 字段）
    - 脚本失败/缺失 → 回退到「Phase 自动检测（回退路径）」表，扫产物文件推断
 2. **意图对齐**：从用户消息判定意图落点。意图超前 → 核对前序 Gate 文件，未过则回前序 Phase；意图回退 → `reset <phase>` 回退。
@@ -61,14 +61,14 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 2. `Plan: <mode>` 写入会话上下文。**首次启动只决策不 init**——init 延迟到 Phase 0 产出 name 后（Phase 0 Step 0.3 之后）执行：`node skills/specpowers/scripts/workflow-state.mjs init --name <name> --mode <mode>` 初始化 state.json
 3. 微小任务特判：豁免规则见设计文档决策 3（不创建 state.json，不走状态机，直接子代理执行）。微小任务跨会话恢复仍按原版产物 + 会话上下文推断，不走状态机（state.json 不存在属预期）
 4. 迁移分支：若产物已存在（如 clarifications/design.md）→ 提示 `init --resume-artifacts --mode <mode>` + `set-name <name>`（name 从产物目录推断或用户提供）（kernel 用户迁移：kernel 的 state.json 路径（`.comet/runs/specpowers-kernel/state.json`）与本脚本读取的 `.superpowers/state.json` 不同，需运行 `init --resume-artifacts` 重建；`.superpowers/.gate-passed-*` 通用，Gate 进度不丢失；已完成归档的 kernel 用户跳过 Phase 4 直接收尾，不重跑 /opsx:archive）
-5. 微小→中等升级分支：微小任务中途升为中等（如变更范围扩大触发运行时升级）→ 补 Phase 0 流程（产生 name 与 design.md）后执行 `init --name <name> --mode medium`（**用 init 而非 --resume-artifacts**，以便 currentPhase=phase0 从头走 Gate 0/1/2 审查）；微小已写的 `.gate-passed-3` 保留——升级后 phase3 由既有 token 自动跳过（**前提：微小 token 的 name= 与新 Phase 0 产出 name 完全匹配；不匹配时 next 会回到 phase3 重新审查**），phase1/2 需追溯补做
+5. 微小→中等升级分支：微小任务中途升为中等（如变更范围扩大触发运行时升级）→ 补 Phase 0 流程（产生 name 与 design.md）后执行 `init --name <name> --mode medium`（**用 init 而非 --resume-artifacts**，以便 currentPhase=phase0 从头走 Gate 0/1/2 审查）；微小已写的 `.gate-passed-3` 保留——升级后 Phase 3 由既有 token 自动跳过（**前提：微小 token 的 name= 与新 Phase 0 产出 name 完全匹配；不匹配时 next 会回到 Phase 3 重新审查**），Phase 1/2 需追溯补做
 
 ### Step 2：推进纪律
 
 - 节点流转：每完成一个 Phase，`node skills/specpowers/scripts/workflow-state.mjs next` 返回 `NEXT: <auto|blocked|manual|done>` + `SKILL: <Skill 工具全名，带 provider 前缀>` + `PHASE: <id>` + `REASON: <文本>`（auto 时 SKILL=下阶段技能；manual 时 SKILL 保持当前待用户决策；blocked 时 SKILL=回退 phase 对应技能；done 时无 SKILL）
 - 出口守卫：每个子技能 Gate 完成后调 `node skills/specpowers/scripts/workflow-guard.mjs exit <phase> --apply`
 - 决策停顿点：见 `refs/decision-points.md`（PP-01..PP-08），必须停顿等用户
-- 恢复规则（移植 kernel Decision Core 的恢复类规则）：恢复时复用已持久化选择（方案选择/跳过决定/worktree 同意/逐条裁决），只呈现未决部分；已持久化选择存于 state.json evidence 字段（跨设备恢复依赖该文件）；换话题先确认继续还是新任务，不得混用 name
+- 恢复规则（移植 kernel Decision Core 的恢复类规则）：恢复时复用已持久化选择（方案选择/跳过决定/worktree 同意/逐条裁决），只呈现未决部分；已持久化选择存于 state.json evidence 字段（跨会话恢复依赖该文件）；换话题先确认继续还是新任务，不得混用 name
 
 ### 决策分类表
 
@@ -186,7 +186,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 | Phase 3 | 中等+ | specpowers-apply | `Skill({skill: "specpowers:specpowers-apply"})` |
 | 审查 | 代码类（由 specpowers-review 内部两级路由自动判定：关键/完整审查）或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers:specpowers-review"})` |
 | Phase 4 | 中等+ | specpowers-archive | `Skill({skill: "specpowers:specpowers-archive"})` |
-| — | 微小 | 不加载子技能（specpowers-review 除外，见下注） | 入口 skill 中直接子代理执行。执行完毕后主 Agent 确认产物并输出完成摘要 |
+| — | 微小 | 不加载子技能（specpowers-review 除外，见上注） | 入口 skill 中直接子代理执行。执行完毕后主 Agent 确认产物并输出完成摘要 |
 
 > 横切规则（Git Flow、Checklist、Pitfalls）保留在本入口技能中，各阶段均需遵守。
 
@@ -350,7 +350,7 @@ master (main) ← 始终可部署
 | Plan 审查 | 执行 Gate 2 审查（强制执行，见 specpowers-plan） | specpowers-plan |
 | 衔接 | "读取 openspec changes/, 用 writing-plans 拆 TDD 计划" | specpowers-plan |
 | 实现 | `Skill({skill: "superpowers:subagent-driven-development"})`（每个 task 一个独立子 Agent） | specpowers-apply |
-| 审查 | Skill({skill: "specpowers:specpowers-review"})（两级路由自动判定） | specpowers-review |
+| 审查 | `Skill({skill: "specpowers:specpowers-review"})`（两级路由自动判定） | specpowers-review |
 | 验证 | `openspec validate --change <name>` + test | specpowers-archive |
 | 归档 | `/opsx:archive`（硬 Gate 链，禁止手动绕过） | specpowers-archive |
 

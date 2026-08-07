@@ -53,6 +53,7 @@ function archiveEvidence(name) {
   const archiveDir = join('openspec', 'changes', 'archive');
   // 宽松匹配：/opsx:archive 产出 archive/YYYY-MM-DD-<name>/ 格式，含 <name> 子串即命中（与 guard exit phase4 检查一致）
   if (existsSync(archiveDir) && readdirSync(archiveDir).some((d) => d.includes(name))) return true;
+  // 注：includes 子串匹配在 name 是另一 change 前缀时可能误命中（如 2026-08-05-foo 命中 2026-08-05-foo-v2）；设计取舍——归档后 name 不变，前缀碰撞概率低
   return skipped1(name) && gitLog(1).includes(name);
 }
 function nodeOf(protocol, id) {

@@ -58,7 +58,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 □ 按主题分组
 
 目的: 即使会话上下文被压缩/清空，澄清细节仍可恢复。
-`<name>` 定义后，贯穿 Phase 0-4 全流程，与 Phase 1 的 OpenSpec `<change-name>` 为同一标识符。
+`<name>` 定义后，贯穿 Phase 0-4 全流程，与 Phase 1 的 OpenSpec `<name>` 为同一标识符。
 ```
 
 **动作3 — 初始化状态机（中等+，微小跳过）**:
@@ -140,7 +140,7 @@ node skills/specpowers/scripts/workflow-guard.mjs exit phase0 --apply
 | `proposal.md` | 动机 ← design doc 概述；范围 ← design doc 架构+组件；排除范围 ← design doc 排除范围 + 审批 Gate 确定 |
 | `design.md` | 技术方案 ← design doc 架构+数据流（补充实现细节）；架构决策 ← design doc 关键决策（补充替代方案+理由） |
 | `specs/*/spec.md` | 增量规范 ← design doc 场景转换为 `### Requirement:` SHALL/MUST 格式；每个 Requirement 包含至少一个"假设/当/则"场景 |
-| `tasks.md` | 任务清单 ← design doc 组件拆解为实现任务（见 specpowers-plan『粒度转换』节） |
+| `tasks.md` | 任务清单 ← design doc 组件拆解为实现任务（见 specpowers-plan「粒度转换」节） |
 
 **不做**: 需求澄清、方案对比、连环提问（Phase 0 已完成）。
 

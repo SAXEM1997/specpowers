@@ -82,6 +82,7 @@ function checkPhase(phaseId, name) {
       const archiveDir = join('openspec', 'changes', 'archive');
       // 宽松匹配：/opsx:archive 产出 archive/YYYY-MM-DD-<name>/ 格式，archive/ 下含 <name> 子串的子目录存在即命中
       const archiveFound = existsSync(archiveDir) && readdirSync(archiveDir).some((d) => d.includes(name));
+      // 注：includes 子串匹配在 name 是另一 change 前缀时可能误命中（如 2026-08-05-foo 命中 2026-08-05-foo-v2）；设计取舍——归档后 name 不变，前缀碰撞概率低
       if (!archiveFound) missing.push(`openspec/changes/archive/ 下无含 <${name}> 的子目录`);
       if (!gitLog('1').includes(`archive ${name}`)) missing.push(`git log --oneline -1 不含 "archive <${name}>"`);
     }

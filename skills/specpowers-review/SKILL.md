@@ -46,7 +46,7 @@ description: >-
 
 > **规模分桶度量（按对象类型区分）**：代码类按 `file_count`（变更文件数，直接反映变更范围）——微小 1-3 / 中等 4-19 / 复杂 20-49 / 大规模 50+。文档类按 `line_count`（文档总行数，行数与内容复杂度正相关）——微小 ≤100 / 中等 101-300 / 复杂 301-600 / 大规模 >600。文档类的 file_count 无区分度（Gate 0/2 始终 1 文件，Gate 1 通常 4-6 文件），改用 line_count 度量内容复杂度。详见 refs/protocols.md 协议 6 `bucket_doc` 函数。
 
-★ 触发收敛闸门（完整算法见协议 6）。两道硬护栏（ledger 缺失→完整、行数地板）+ 收敛闸门。收敛闸门：关键层（中等规模）若上轮 p0_raw>0 → 升级完整。
+★ 触发收敛闸门（完整算法见 refs/protocols.md 协议 6）。两道硬护栏（ledger 缺失→完整、行数地板）+ 收敛闸门。收敛闸门：关键层（中等规模）若上轮 p0_raw>0 → 升级完整。
 
 **手动覆盖关键词**：当前轮用户输入含"关键审查"/"完整审查"→ 手动覆盖设定基础 tier（后续护栏/矩阵/地板/闸门在此基础上只升不降）。匹配范围为当前轮用户输入，不含历史轮次指令；排除否定语境。"UltraReview"→ 文档类映射到完整层 3-agent 多模型渐进式（6-agent 维度 build/code/specs/docs/deps 仅代码类），代码类走 6-agent UltraReview recipe（→ 完整层增强）。
 
@@ -62,7 +62,7 @@ description: >-
 | **代码类（微小/中等(4-9) bucket）** | **加强审查**：code-review（由 specpowers-apply 执行）+ 对齐单审 [STEP1-2] | **3 独立视角**：code-review（由 specpowers-apply 执行）+ 对齐 Agent + 监督 Agent [STEP1-5] |
 | **代码类（中等(10-19)/复杂/大规模 bucket）** | **UltraReview**(6 Agent: build/code/specs/docs/deps/对齐) [STEP1-5] | 同代码类（微小/中等）关键 |
 
-> bucket_class 映射（与 protocols.md 协议6 对齐）：{微小, 中等且file_count<10}→小代码（加强审查 recipe）；{中等且file_count≥10, 复杂, 大规模}→大代码（UltraReview recipe）
+> bucket_class 映射（与 protocols.md 协议 6 对齐）：{微小, 中等且file_count<10}→小代码（加强审查 recipe）；{中等且file_count≥10, 复杂, 大规模}→大代码（UltraReview recipe）
 
 > **STEP→阶段映射（所有 tier 共用）**：
 > - STEP1 = 审查 Agent 并行执行（数量由 tier recipe 决定）
@@ -99,7 +99,7 @@ description: >-
 |------|---------|--------|---------|---------|---------|
 | **Gate 0** | Phase 0 用户审批通过后 | specpowers-design | `design.md` | `clarifications/<name>.md` | 文档类 tier 路由（默认 recipe=多模型渐进式） |
 | **Gate 1** | Phase 1 用户审核通过后 | specpowers-design | proposal/design/specs/tasks | Phase 0 design + clarifications | 文档类 tier 路由（默认 recipe=多模型渐进式） |
-| **Gate 2** | Phase 2 plan 生成后 | specpowers-plan | `plan/<name>.md` | Phase 1 specs + Phase 0 design | 文档类 tier 路由（默认 recipe=多模型渐进式） |
+| **Gate 2** | Phase 2 plan 生成后 | specpowers-plan | `docs/superpowers/plans/<name>.md` | Phase 1 specs + Phase 0 design | 文档类 tier 路由（默认 recipe=多模型渐进式） |
 | **Gate 3** | Phase 3 代码实现完成后 | specpowers-apply | 代码变更 | Phase 2 plan + Phase 1 specs + Phase 0 design | 代码类 tier 路由（recipe 按 bucket 分叉） |
 | **Gate 4** | Phase 4 归档前 | specpowers-archive 内部 | 归档完整性 | — | 现有 hard gate 链，仅标记为 Gate 节点 |
 | **最终通读** | 每 Gate 审查修复完成后 | specpowers-review 内部 | 审查对象全文 | — | 独立 Agent 通读（PASS 四条件） |
@@ -144,7 +144,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 | **proposal.md** | Gate 1 | 动机清晰性、范围完整性、排除范围明确性 | ❌ 实现方案（属于 design.md 范围） |
 | **specs/** | Gate 1 | Requirement 覆盖完整性、场景可测试性、SHALL/MUST 规范性 | ❌ 实现方式（属于 code 范围） |
 | **tasks.md** | Gate 1 | 任务拆解合理性、依赖关系完整性、可执行性（粒度适中/描述清晰/状态明确） | ❌ 具体代码实现细节、代码优化建议（参照 plan 行） |
-| **`plan/<name>.md`** | Gate 2 | 任务拆解合理性、TDD 步骤完整性、依赖关系正确性、实现策略可行性 | ❌ 具体代码写法、函数实现细节、代码优化建议 |
+| **`docs/superpowers/plans/<name>.md`** | Gate 2 | 任务拆解合理性、TDD 步骤完整性、依赖关系正确性、实现策略可行性 | ❌ 具体代码写法、函数实现细节、代码优化建议 |
 | **代码变更** | Gate 3 | 代码正确性、spec 合规性、构建/依赖/文档一致性 | 无（代码级审查允许评论实现细节） |
 
 > **通用原则**: 用代码层面的知识做分析，用设计/规划层面的语言写评论。审查意见应表述为"某个设计决策可能存在问题，因为…（深层分析结论）"，而非"应该这样写代码"。评论边界过窄则遗漏深层问题，过宽则输出对当前 Phase 无价值的实现建议。
@@ -235,7 +235,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 两者均通过方可进入 Phase 4。
 
-**P0 修复机制**：本路径裁剪独立修复子 Agent（STEP4_TIER_SKIPPED），但对齐 Agent 发现 MISSING/DRIFT 标记为 P0 的项时，主 Agent 在 STEP2 合并后对接受的 P0 项**直接执行修复**（主 Agent 内联，非独立子 Agent），修复后重新运行对齐检查直到 P0 清零——避免 [GATE_BLOCKED] 死循环。
+**P0 修复机制**：本路径裁剪独立修复子 Agent（STEP4_TIER_SKIPPED），但对齐 Agent 发现 MISSING/DRIFT 标记为 P0 的项时，主 Agent 在 STEP2 合并后对接受的 P0 项**先经用户逐条确认（问题判定 + 修复方案），确认后直接执行修复**（主 Agent 内联，非独立子 Agent），修复后重新运行对齐检查直到 P0 清零——避免 [GATE_BLOCKED] 死循环。
 
 > **P1/P2/P3 修复策略**：见 Step 4 修复策略统一描述（加强审查子路径裁剪 STEP4，P1/P2/P3 不阻塞 Gate）。
 
@@ -323,7 +323,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 |------|---------|---------------------|
 | Gate 0 | design.md | 取 design.md 行 |
 | Gate 1 | proposal + design + specs + tasks | 取 proposal.md / design.md / specs/ / tasks.md 四行（含 tasks.md 行），合并后注入 |
-| Gate 2 | `plan/<name>.md` | 取 `plan/<name>.md` 行 |
+| Gate 2 | `docs/superpowers/plans/<name>.md` | 取 `docs/superpowers/plans/<name>.md` 行 |
 | Gate 3 | 代码变更 | 取"代码变更"行（评论边界=无） |
 
 注入格式（附加到每个审查 Agent prompt 末尾）：
@@ -346,11 +346,11 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 **0c. 确定 gate_id（轮次隔离）**
 
-按当前触发的 Gate 确定 gate_id（优先用 args 传入的 gate_id）——Gate 0→`gate_0`、Gate 1→`gate_1`、Gate 2→`gate_2`、Gate 3→`gate_3`、独立调用→`standalone`。round 计算基于当前 gate_id 的 rounds（见协议6），不同 Gate 轮次独立计数。⚠️ 不可对不同 Gate 复用同一 gate_id（会导致轮次跨 Gate 累加、路由错误降级）。
+按当前触发的 Gate 确定 gate_id（优先用 args 传入的 gate_id）——Gate 0→`gate_0`、Gate 1→`gate_1`、Gate 2→`gate_2`、Gate 3→`gate_3`、独立调用→`standalone`。round 计算基于当前 gate_id 的 rounds（见协议 6），不同 Gate 轮次独立计数。⚠️ 不可对不同 Gate 复用同一 gate_id（会导致轮次跨 Gate 累加、路由错误降级）。
 
 **0d. 执行 tier 路由**
 
-按 `refs/protocols.md` 协议 6 路由算法执行 tier 路由决策（完整算法见协议 6）。计算完成后，在审查报告开头输出 `[TIER_ROUTING]` 标记，格式：
+按 `refs/protocols.md` 协议 6 路由算法执行 tier 路由决策（完整算法见 refs/protocols.md 协议 6）。计算完成后，在审查报告开头输出 `[TIER_ROUTING]` 标记，格式：
 
 ```
 [TIER_ROUTING] tier=<critical|full>, round=<N>, file_count=<N>, bucket=<微小|中等|复杂|大规模>, line_count=<N>, floor=<tier>, convergence=<passed|failed|n/a>, recipe=<加强审查|UltraReview|3视角|文档3Agent>, reason=<路由路径简述>, expected_steps=[...]
@@ -639,7 +639,7 @@ Step 5（加强审查子路径为 Step 2）完成后，主 Agent **必须**计�
 
 触发条件不满足（收敛达标）或用户显式终止后，输出 action=exit + exit_reason，然后执行最终通读 Gate，通过后输出 `[GATE_PASSED]` 标记（见上方「Gate Token 输出」节）。
 
-> **优先级规则**：多条件同时触发时，按条件编号升序显示（1 > 2 > 3 > 4），列出所有触发条件的编号和描述。
+> **优先级规则**：多条件同时触发时，按条件编号升序显示（1 → 2 → 3 → 4），列出所有触发条件的编号和描述。
 
 ---
 
@@ -671,7 +671,7 @@ Step 5 检查本轮修复质量（单轮范围），最终通读 Gate 检查跨�
 
 当审查进入最终通读环节，**在进入下一环节（如下一 Phase、Gate 3 进入 Phase 4 等）之前**，必须执行最终通读。触发时机按 tier 分支：
 - **加强审查子路径（STEP5 被裁剪）**：最终通读以主 Agent STEP2 合并判断后执行的轻量通读形式完成——即质量底线第④条所指的"轻量替代"。PASS 四条件相同，但通读范围为变更区域+关联上下文（非全文逐行）。仍须输出 STEP_FINAL_READTHROUGH 标记块（status 注明"轻量替代"）
-- **关键/完整层**：单轮审查在 Step 5 完成后执行标准最终通读；多轮审查在用户决定不再继续下一轮，或问题已收敛到 P0=0 且 P1≤3 且较上轮无新增 P1，且 Step 5 完成后执行标准最终通读
+- **关键/完整层**：单轮审查在 Step 5 完成后执行标准最终通读；多轮审查在用户决定不再继续下一轮，或问题已收敛到 P0=0 且 P1<3 且较上轮无新增 P1，且 Step 5 完成后执行标准最终通读
 
 ### 执行方式
 

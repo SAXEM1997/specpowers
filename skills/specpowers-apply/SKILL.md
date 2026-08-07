@@ -8,7 +8,7 @@ description: Use when entering the implementation phase of a specpowers workflow
 > **前置检查（必须执行，不可跳过）**:
 > 1. 执行 `Skill({skill: "specpowers:specpowers"})` 加载入口 skill，获取全局规则。等待加载完成后继续。
 > 2. 确认 Plan 模式：若 Plan: tiny → 跳过 plan 存在检查（微小任务无 plan，直接审查变更文件）；否则 → 确认 `docs/superpowers/plans/<name>.md` 存在。如不存在，回 specpowers-plan 生成 plan。
-> 3. 确认 Gate 2 审查已通过（非 tiny 模式：检查 `[GATE_PASSED] gate=2` 标记或 `.superpowers/.gate-passed-2` 文件）。如未通过，回 specpowers-plan 完成 Gate 2 后再进入。
+> 3. 确认 Gate 2 审查已通过（见 item 5）。
 > 4. 如当前模式为微小任务，仍须加载 specpowers-review 执行 Gate 3 审查（走 specpowers-review 内部路由自动判定）。
 > 5. **Gate 2 确认**：搜索会话上下文中 `[GATE_PASSED] gate=2` 标记，或检查 `.superpowers/.gate-passed-2` 文件（`name=<当前任务>` 匹配）。两者都没有 → Phase 2 Gate 2 未执行，回 specpowers-plan 完成 Gate 2 后再进入 Phase 3。微小任务跳过此项。
 
