@@ -51,6 +51,10 @@ function checkPhase(phaseId, name) {
   const protocol = readProtocol();
   const node = (protocol?.nodes || []).find((x) => x.id === phaseId);
   if (!node) return { missing: [`未知 phaseId: ${phaseId}（protocol.json 无此节点）`], node: null };
+  if (!name) {
+    // name 无法解析时降级：输出 clean GUARD: fail 而非 TypeError 崩溃
+    return { missing: ['name 未设置（state.json 缺失且无 --name 参数）——无法校验 name 绑定与产物路径'], node };
+  }
   const missing = [];
   const skipActive = node.skipIf && skipped1(name);
   // 1) gate token（phase4 无 gate 文件）
@@ -61,6 +65,7 @@ function checkPhase(phaseId, name) {
   for (const out of node.outputs || []) {
     if (phaseId === 'phase4') continue;
     const skipArtifact = protocol?.outputSchemas?.[out]?.skipArtifact;
+    // 注：skipArtifact 当前仅作 truthy 标志，实际豁免条件硬编码为 skipped1() 检查 .phase1-skipped 内容==name（设计"检查矩阵硬编码"原则）
     const skipOut = skipActive || (skipArtifact && skipped1(name));
     for (const a of (protocol?.outputSchemas?.[out]?.artifacts) || []) {
       if (!existsSync(resolvePath(a, name)) && !skipOut) missing.push(resolvePath(a, name));
@@ -102,7 +107,8 @@ if (missing.length) {
   process.exit(1);
 }
 if (!apply) {
-  console.log(`GUARD: pass\nPHASE: ${phaseId}\nCHECKS: 全部通过`);
+  const note = (!name) ? '\nNOTE: name 未设置，name 匹配已跳过' : '';
+  console.log(`GUARD: pass\nPHASE: ${phaseId}\nCHECKS: 全部通过${note}`);
   process.exit(0);
 }
 // --apply：更新 state.json（CAS：currentPhase 必须等于被退出的 phase）

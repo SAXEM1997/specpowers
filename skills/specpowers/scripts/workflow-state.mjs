@@ -105,6 +105,7 @@ function cmdInit(args) {
   const ni = args.indexOf('--name');
   const name = ni >= 0 ? args[ni + 1] : undefined;
   const mi = args.indexOf('--mode');
+  // 注：mode 取值校验在文档层（medium|complex|large），脚本保持哑以支持前向兼容
   const mode = mi >= 0 ? args[mi + 1] : undefined;
   const resume = args.includes('--resume-artifacts');
   const force = args.includes('--force');
@@ -125,7 +126,7 @@ function cmdInit(args) {
   }
   const state = {
     name: name2 || null,
-    currentPhase: resume && completed.length ? PHASES[Math.min(completed.length, 4)] : 'phase0',
+    currentPhase: resume && completed.length ? (PHASES.find((p) => !completed.includes(p)) || 'phase4') : 'phase0',
     completedPhases: completed,
     mode: mode || null,
     blockedReason: null,
@@ -137,6 +138,10 @@ function cmdInit(args) {
 }
 
 function cmdSetName(name) {
+  if (!name) {
+    console.log('参数错误: set-name 需要一个 name 参数');
+    process.exit(2);
+  }
   const st = readState();
   if (st.missing) { console.log('STATE_MISSING'); return; }
   if (st.corrupt) { console.log('STATE_CORRUPT'); return; }

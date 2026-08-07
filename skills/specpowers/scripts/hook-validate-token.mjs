@@ -13,6 +13,7 @@ process.stdin.on('end', () => {
     const toolInput = event.tool_input || {};
     const filePath = event.file_path || toolInput.file_path || '';
     if (!String(filePath).includes('.superpowers/.gate-passed-')) {
+      // 注：子串匹配可能误触发（如 evil/.superpowers/.gate-passed-0），但 guard 为最终裁判，hook 为 best-effort
       console.log(JSON.stringify({ decision: 'approve', reason: '非 gate token 写入' }));
       process.exit(0);
     }
