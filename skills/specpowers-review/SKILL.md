@@ -559,6 +559,8 @@ tier=<critical|full>
 
 > 此文件是 Phase 流转控制标记（语义类似 `.phase1-skipped`），非审查状态产物。独立调用（gate_id=standalone）不输出 Gate Token（无父技能消费）。首次写入前执行 `mkdir -p .superpowers` 确保目录存在。
 
+> **衔接注释（guard 调用）**: token 写入与 guard 调用顺序为 **token 先写、guard 后调**——review 写 `.superpowers/.gate-passed-<N>` 后，由父技能（design/plan/apply/archive）在验证链通过后调 `node skills/specpowers/scripts/workflow-guard.mjs exit phase<N> --apply`（子技能 Gate 出口为唯一 guard 调用责任方）。独立调用 review（gate_id=standalone）不触发 guard。
+
 ### 独立调用场景自检
 
 当 specpowers-review 被用户直接调用（非通过 specpowers-design/plan/apply/archive 的 Gate 路由）时，不存在父技能执行双层验证。此时主 Agent 在最后一个 STEP 完成后（加强审查为 STEP2，其他为 STEP5）自行执行标记块完整性检查：
