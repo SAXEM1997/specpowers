@@ -1,0 +1,18 @@
+# specpowers 可选 hooks 模板（bundled resource）
+# ⚠️ 默认不注册——必须复制到 .claude/settings.json 才生效，不会因技能加载自动生效。
+# ⚠️ 本仓库已安装 comet-hook-router（PreToolUse Write|Edit，fail-closed）——
+#    启用前先处理互斥（由 router 统一承载或显式停用 router）；一次写入事件最多进入一个 workflow Guard。
+hooks:
+  PreToolUse:
+    - matcher: 'Write'
+      hooks:
+        - type: command
+          command: 'node skills/specpowers/scripts/hook-validate-token.mjs'
+          comment: 'specpowers: 写 .superpowers/.gate-passed-* token 时校验 name 绑定（matcher 限定 Write：Edit 修改已有 token 时 PreToolUse 无法拿完整新内容，故不校验 Edit 路径；state.json 缺失时 fail-open，微小模式不阻断）'
+  # 跨 Phase 写入边界检查 hook（较重，每次 Write 触发）——可选扩展，启用前需先实现：
+  # PreToolUse:
+  #   - matcher: 'Write|Edit'
+  #     hooks:
+  #       - type: command
+  #         command: 'node skills/specpowers/scripts/hook-check-phase-boundary.mjs'
+  #         comment: 'specpowers: 检查普通项目文件写入是否越过当前 Phase 边界（未实现）'
