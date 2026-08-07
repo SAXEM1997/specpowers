@@ -248,7 +248,7 @@ Gate Token 输出节增加衔接注释：token 写入与 guard 调用顺序为 t
 | phase3 | .superpowers/.gate-passed-3（name 匹配） | git log 含至少 1 条消息含 `<name>` 的 commit |
 | phase4 | 无 gate 文件 | 正常路径 = `openspec/changes/archive/<name>/` 存在 + `git log --oneline -1` 含 `archive <name>`；skip 路径 = `.superpowers/.phase1-skipped` 内容==name + `git log --oneline -1` 含 `<name>`（末位 commit 为实现 commit，非归档 commit）。（guard 是原版 specpowers-archive Step 4 检查的子集：覆盖检查 1 归档目录迁移 + 检查 4 归档 commit；检查 2/3 由 archive 技能自身完成） |
 
-输出 `GUARD: pass|fail` + PHASE + CHECKS 或 MISSING + REASON。--apply 时通过则更新 state.json（completedPhases 追加 + currentPhase 推进）；**约定：state.json 缺失时——有 --name 则按 --name 校验 name 匹配；无 --name 则跳过 name 匹配、仅按产物检查、输出注明降级；--apply 静默跳过状态更新，退出码语义不变**（正常流程 guard 调用以 state.json 存在为前提，此约定仅覆盖独立调用/降级场景）。--apply 更新前重读校验 currentPhase 未变（compare-and-swap）；CAS 检测到 currentPhase 已变 → 输出 `GUARD: conflict` + 退出码 2（与参数错误共用，注明语义）；并发约定：state.json 单会话独占写入。退出码 pass=0，fail=1，参数错误/CAS 冲突=2。
+输出 `GUARD: pass|fail` + PHASE + CHECKS 或 MISSING + REASON。--apply 时通过则更新 state.json（completedPhases 追加 + currentPhase 推进）；**约定：state.json 缺失时——有 --name 则按 --name 校验 name 匹配；无 --name 则输出 GUARD: fail（name 未设置——无法校验 name 绑定与产物路径，因产物路径内嵌 <name>；fail-closed 策略）；--apply 静默跳过状态更新，退出码语义不变**（正常流程 guard 调用以 state.json 存在为前提，此约定仅覆盖独立调用/降级场景）。--apply 更新前重读校验 currentPhase 未变（compare-and-swap）；CAS 检测到 currentPhase 已变 → 输出 `GUARD: conflict` + 退出码 2（与参数错误共用，注明语义）；并发约定：state.json 单会话独占写入。退出码 pass=0，fail=1，参数错误/CAS 冲突=2。
 
 ### 精简 workflow-protocol.json（~70 行，含完整 JSON，以下样例为紧凑排版示意）
 

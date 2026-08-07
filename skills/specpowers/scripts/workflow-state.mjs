@@ -48,7 +48,7 @@ function skipped1(name) {
 function gateOk(n, name) {
   return n === 1 ? tokenOk(1, name) || skipped1(name) : tokenOk(n, name);
 }
-// 归档证据轻量近似：archive 目录 或（phase1-skipped 且 git log -1 含 name）；git 严格检查由 guard exit phase4 承担
+// 归档证据轻量近似：archive 目录 或（phase1-skipped 且 git log -1 含 name）；正常路径仅查目录存在不校验 git archive commit——git 严格检查由 guard exit phase4 承担
 function archiveEvidence(name) {
   if (existsSync(join('openspec', 'changes', 'archive', name))) return true;
   return skipped1(name) && gitLog(1).includes(name);
@@ -156,7 +156,7 @@ function cmdNext() {
   if (st.corrupt) { console.log('STATE_CORRUPT'); console.log('恢复指引: init --force --resume-artifacts [--name <name>]'); return; }
   const name = st.data.name;
   if (!name) {
-    console.log('NEXT: manual\nSKILL: (当前)\nPHASE: phase0\nREASON: NEED_NAME（state.name 未设置，运行 set-name <name>）');
+    console.log('NEXT: manual\nSKILL: (待定——需先 set-name)\nPHASE: phase0\nREASON: NEED_NAME（state.name 未设置，运行 set-name <name>）');
     return;
   }
   const protocol = readProtocol();

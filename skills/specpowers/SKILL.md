@@ -60,7 +60,7 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 2. `Plan: <mode>` 写入会话上下文。**首次启动只决策不 init**——init 延迟到 Phase 0 产出 name 后（Phase 0 Step 0.3 之后）执行：`node skills/specpowers/scripts/workflow-state.mjs init --name <name> --mode <mode>` 初始化 state.json
 3. 微小任务特判：豁免规则见设计文档决策 3（不创建 state.json，不走状态机，直接子代理执行）。微小任务跨会话恢复仍按原版产物 + 会话上下文推断，不走状态机（state.json 不存在属预期）
 4. 迁移分支：若产物已存在（如 clarifications/design.md）→ 提示 `init --resume-artifacts --mode <mode>` + `set-name <name>`（name 从产物目录推断或用户提供）（kernel 用户迁移：kernel state.json 不被原版读取——运行 init --resume-artifacts 重建；`.superpowers/.gate-passed-*` 通用，Gate 进度不丢失；已完成归档的 kernel 用户跳过 Phase 4 直接收尾，不重跑 /opsx:archive）
-5. 微小→中等升级分支：微小任务中途升为中等（如变更范围扩大触发运行时升级）→ 补 Phase 0 流程（产生 name 与 design.md）后执行 `init --name <name> --mode medium`（**用 init 而非 --resume-artifacts**，以便 currentPhase=phase0 从头走 Gate 0/1/2 审查）；微小已写的 `.gate-passed-3` 保留——升级后 phase3 由既有 token 自动跳过，phase1/2 需追溯补做
+5. 微小→中等升级分支：微小任务中途升为中等（如变更范围扩大触发运行时升级）→ 补 Phase 0 流程（产生 name 与 design.md）后执行 `init --name <name> --mode medium`（**用 init 而非 --resume-artifacts**，以便 currentPhase=phase0 从头走 Gate 0/1/2 审查）；微小已写的 `.gate-passed-3` 保留——升级后 phase3 由既有 token 自动跳过（**前提：微小 token 的 name= 与新 Phase 0 产出 name 完全匹配；不匹配时 next 会回到 phase3 重新审查**），phase1/2 需追溯补做
 
 ### Step 2：推进纪律
 
@@ -337,7 +337,7 @@ master (main) ← 始终可部署
 | 实现中需修改规范 | 暂停 Superpowers，回 OpenSpec 修改 |
 | 多变更并行 | 独立 git worktree |
 | UltraPlan 中途溢出 | `/clear` + 重新加载 openspec 产物 |
-| 跨 session 中断 | > 跨会话中断恢复：按上述 Phase 自动检测表判定当前 Phase 和应加载技能。 |
+| 跨 session 中断 | > 跨会话中断恢复：优先运行 `node skills/specpowers/scripts/workflow-state.mjs status` 状态机判定当前 Phase；脚本不可用时按上述 Phase 自动检测表（回退路径）判定。 |
 | refs/ 缺失 | UltraPlan → 降级中等任务 |
 
 ## 快速上手

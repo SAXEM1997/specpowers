@@ -72,7 +72,7 @@ function checkPhase(phaseId, name) {
     }
   }
   // 3) git 检查（phase3/4）
-  if (phaseId === 'phase3' && !gitLog('100').includes(name)) {
+  if (phaseId === 'phase3' && !gitLog('100').includes(name)) { // 窗口 100 commit：覆盖典型 phase 间隔；极端场景（>100 commit 间隔）可放宽
     missing.push(`git log 无含 <${name}> 的 commit`);
   }
   if (phaseId === 'phase4') {
@@ -114,8 +114,7 @@ if (!apply) {
 // --apply：更新 state.json（CAS：currentPhase 必须等于被退出的 phase）
 const st = readState();
 if (st.missing || st.corrupt) {
-  const noteName = name ? '' : '无 --name，name 匹配已跳过；';
-  console.log(`GUARD: pass\nPHASE: ${phaseId}\nCHECKS: 全部通过\nNOTE: state.json ${st.missing ? '缺失' : '损坏'}，--apply 跳过状态更新${noteName ? '（' + noteName.slice(0, -1) + '）' : ''}`);
+  console.log(`GUARD: pass\nPHASE: ${phaseId}\nCHECKS: 全部通过\nNOTE: state.json ${st.missing ? '缺失' : '损坏'}，--apply 跳过状态更新`);
   process.exit(0);
 }
 if (st.data.currentPhase !== phaseId) {
