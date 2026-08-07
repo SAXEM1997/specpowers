@@ -91,6 +91,9 @@ BASE=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'); 
 
 > 执行入口 `specpowers:specpowers` SKILL.md「Gate 返回后验证协议（横切）」节（参数：Gate=3, Phase=3）。本 Gate 特化：Gate 3, Phase 3, **tiny 不跳过——仍跑 Gate 3 验证**（验证 0 所有模式均继续，与 design/plan 的 tiny 跳过策略不同）。
 
+**验证链通过后（中等+），执行节点出口守卫**（token 已由 review 写入 `.superpowers/.gate-passed-3`；微小模式无 state.json，不调 guard）：
+node skills/specpowers/scripts/workflow-guard.mjs exit phase3 --apply
+
 > **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate，非 Phase 0-4 Gate 体系的组成部分。父技能仅验证 TIER_ROUTING.expected_steps 声明的 STEP 集，不跨边界验证 specpowers-review 的内部 Gate。（设计说明见本节——STEP_FINAL_READTHROUGH 是 review 内部横切 Gate，父技能不跨边界验证）
 
 ---
