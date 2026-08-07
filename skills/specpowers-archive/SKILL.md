@@ -144,6 +144,11 @@ git add openspec/ && (git diff --cached --quiet || git commit -m "chore: archive
 
 全部 PASS → 进入 Step 5。任一 FAIL → Phase 4 终止，人工介入。
 
+全部 PASS 后，执行节点出口守卫（中等+；微小模式无 state.json，跳过本技能不调用）：
+node skills/specpowers/scripts/workflow-guard.mjs exit phase4 --apply
+
+> **注**：guard 是 Step 4 检查的子集（覆盖检查 1 归档目录迁移 + 检查 4 归档 commit；检查 2/3 由本技能自身完成）。
+
 ### Step 5: finishing
 
 ```bash
