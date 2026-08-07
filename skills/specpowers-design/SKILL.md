@@ -61,6 +61,10 @@ description: Use when the user says "brainstorm this feature", "write the design
 `<name>` 定义后，贯穿 Phase 0-4 全流程，与 Phase 1 的 OpenSpec `<change-name>` 为同一标识符。
 ```
 
+**动作3 — 初始化状态机（中等+，微小跳过）**:
+非微小任务执行（name/mode 实参：动作 2 的 `<name>` + 会话上下文 `Plan: <mode>`）：
+node skills/specpowers/scripts/workflow-state.mjs init --name <name> --mode <mode>
+
 ### Step 0.4: 方案探讨 + 设计呈现
 
 **方案探讨**:
@@ -112,6 +116,9 @@ description: Use when the user says "brainstorm this feature", "write the design
 **审批通过后，执行 Gate 0 审查**:
 `Skill({skill: "specpowers:specpowers-review"})` — 对齐检查：design.md vs clarifications/<name>.md。审查层级边界由 specpowers-review 横切注入（design 层面，不涉代码实现）。
 Gate 0 返回后，执行 Gate 返回后验证协议（参数: Gate=0, Phase=0）。
+
+验证链通过后（token 已由 review 写入 `.superpowers/.gate-passed-0`），执行节点出口守卫（中等+；微小无 state.json，不调用）：
+node skills/specpowers/scripts/workflow-guard.mjs exit phase0 --apply
 
 ---
 
@@ -173,6 +180,9 @@ Gate 0 返回后，执行 Gate 返回后验证协议（参数: Gate=0, Phase=0�
 **人工审核通过后，执行 Gate 1 审查**:
 `Skill({skill: "specpowers:specpowers-review"})` — 对齐检查：OpenSpec 四件套（proposal/design/specs/tasks）vs Phase 0 design.md + clarifications。审查层级边界由 specpowers-review 横切注入（各文档对应抽象层级，不涉代码实现）。
 Gate 1 返回后，执行 Gate 返回后验证协议（参数: Gate=1, Phase=1）。
+
+验证链通过后（token 已写入 `.superpowers/.gate-passed-1`，或 `.superpowers/.phase1-skipped` 内容==name 豁免），执行节点出口守卫（中等+）：
+node skills/specpowers/scripts/workflow-guard.mjs exit phase1 --apply
 
 ---
 
