@@ -45,14 +45,60 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 
 ## 启动协议
 
-```
-□ 流程设计: 根据下方决策树确定本次任务执行模式（微小/中等/复杂/大规模）
-□ 持久化计划: 将执行模式写入会话上下文（如 Plan: <mode>），后续每阶段开始校验
-□ 审查级别: 审查级别将在 Gate 执行时由 specpowers-review 根据实际 file_count/line_count/round 动态确定（无需预存）
-□ 子代理上下文: 如需子代理，将对应阶段的 task + spec 填充到子代理独立上下文
-□ 阶段校验: 每 Phase 完成后：输出是否完成？下阶段是否调整？是否偏离计划？复杂度是否超过初始判断（如需升级，更新 Plan: <mode>）？
-□ 并发检查: 多 Agent 任务时，确认目标文件未被其他 Agent 修改后再写入
-```
+### Step 0：语义化意图检测（每次启动/恢复/压缩后执行）
+
+1. **判定当前 Phase**：运行 `node skills/specpowers/scripts/workflow-state.mjs status`。
+   - 未初始化 → 进入 Step 1（首次启动）；但存在 name-keyed 产物/token（如 docs/superpowers/ 下 name 目录、`.superpowers/.gate-passed-*`）→ 提示 `init --resume-artifacts`（不按全新任务处理）；**微小任务忽略此提示**（微小不 init state.json，缺失属预期，见设计文档决策 3）
+   - 已初始化 → 读 currentPhase + completedPhases + 持久化阻塞原因（对应脚本契约 status 输出的 BLOCKED_REASON 字段）
+   - 脚本失败/缺失 → 回退到「Phase 自动检测（回退路径）」表，扫产物文件推断
+2. **意图对齐**：从用户消息判定意图落点。意图超前 → 核对前序 Gate 文件，未过回前序 Phase；意图回退 → `reset <phase>` 回退。
+3. **文件证据最终裁决**：状态机先行判定，state.json 只是索引。最终裁判是 gate 文件（token）——`.superpowers/.gate-passed-<N>`（`name=` 行与当前 `<name>` 完全匹配才算数）；产物文件仅对回退路径与 phase4 有意义。
+
+### Step 1：首次启动决策（只决策不 init）
+
+1. 决策树判定模式（微小/中等/复杂/大规模）
+2. `Plan: <mode>` 写入会话上下文。**首次启动只决策不 init**——init 延迟到 Phase 0 产出 name 后（Phase 0 Step 0.3 之后）执行：`node skills/specpowers/scripts/workflow-state.mjs init --name <name> --mode <mode>` 初始化 state.json
+3. 微小任务特判：豁免规则见设计文档决策 3（不创建 state.json，不走状态机，直接子代理执行）。微小任务跨会话恢复仍按原版产物 + 会话上下文推断，不走状态机（state.json 不存在属预期）
+4. 迁移分支：若产物已存在（如 clarifications/design.md）→ 提示 `init --resume-artifacts --mode <mode>` + `set-name <name>`（name 从产物目录推断或用户提供）（kernel 用户迁移：kernel state.json 不被原版读取——运行 init --resume-artifacts 重建；`.superpowers/.gate-passed-*` 通用，Gate 进度不丢失；已完成归档的 kernel 用户跳过 Phase 4 直接收尾，不重跑 /opsx:archive）
+5. 微小→中等升级分支：微小任务中途升为中等（如变更范围扩大触发运行时升级）→ 补 Phase 0 流程（产生 name 与 design.md）后执行 `init --name <name> --mode medium`（**用 init 而非 --resume-artifacts**，以便 currentPhase=phase0 从头走 Gate 0/1/2 审查）；微小已写的 `.gate-passed-3` 保留——升级后 phase3 由既有 token 自动跳过，phase1/2 需追溯补做
+
+### Step 2：推进纪律
+
+- 节点流转：每完成一个 Phase，`node skills/specpowers/scripts/workflow-state.mjs next` 返回 `NEXT: <auto|blocked|manual|done>` + `SKILL: <Skill 工具全名，带 provider 前缀>` + `PHASE: <id>` + `REASON: <文本>`（auto 时 SKILL=下阶段技能；manual 时 SKILL 保持当前待用户决策；blocked 时 SKILL=回退 phase 对应技能；done 时无 SKILL）
+- 出口守卫：每个子技能 Gate 完成后调 `node skills/specpowers/scripts/workflow-guard.mjs exit <phase> --apply`
+- 决策停顿点：见 `refs/decision-points.md`（PP-01..PP-08），必须停顿等用户
+- 恢复规则（移植 kernel Decision Core 的恢复类规则）：恢复时复用已持久化选择（方案选择/跳过决定/worktree 同意/逐条裁决），只呈现未决部分；已持久化选择存于 state.json evidence 字段（跨设备恢复依赖该文件）；换话题先确认继续还是新任务，不得混用 name
+
+### 决策分类表
+
+| 分类 | 情况 | 处理 |
+|------|------|------|
+| 自动处理 | NEXT: auto（当前应执行 phase 已确定——init 后 phase0 若 PP 未决会先输出 manual，PP 已决或后续 phase 无待决停顿点时输出 auto） | 直接进入该 phase 对应技能 |
+| 自动处理 | Gate 0-3 审查收敛判定 | 默认继续制：通知继续，非询问 |
+| 自动处理 | guard 失败（GUARD: fail，token 已写产物缺失） | 停留当前 phase 补产物 |
+| 自动处理 | next 输出 blocked（completedPhases 有记录但 token 缺失/name 不匹配） | 回到第一个缺有效 token 的 phase |
+| 自动处理 | openspec CLI 不可用 | 自动走跳过路径 |
+| 停止条件 | Phase 4 硬 Gate 链失败 | 报告失败步骤与恢复路径 |
+| 停止条件 | implementer BLOCKED / 状态损坏 | 报告恢复条件 |
+| 手动衔接 | NEXT: manual（下一步需用户决策 PP-01..PP-08 时输出 manual + SKILL 保持当前） | 交还控制权 |
+| 用户决策 | PP-01..PP-08 | 停顿等用户 |
+| 流程结束 | NEXT: done（所有 Phase 完成，archive 证据已记录） | 收尾：Post-Task Checklist + finishing |
+
+本表为决策分类正本；`refs/decision-points.md` 引用本表（不重复定义分类原则，只列停顿点）。
+
+### Red Flags
+
+| Agent 想法 | 实际风险 |
+|---|---|
+| `.gate-passed-N` 文件存在，所以 Gate 通过了 | name 不匹配 = 未通过 |
+| 用户提了需求，澄清算完成了 | 未经审批 = 未完成 |
+| 产物文件都在，这个 Phase 算完成 | 无 gate token = 未通过 |
+| state.json completedPhases 有它，直接走下一步 | state 可能过期；gate 文件缺失按未完成 |
+| 状态机脚本失败，流程卡死 | 回退到 Phase 自动检测表 |
+| 收敛判定问用户是否继续 | 默认继续制：通知不是询问 |
+| 换话题继续记到当前 name 下 | 污染 Gate 链：先确认继续还是新任务 |
+| 全量测试没过，手动 mv change 到 archive | 硬 Gate 链不可降级 |
+| task 简单，内联做掉 | Phase 3 必须每 task 独立子代理 |
 
 ### 子 Agent 启动方式（全局硬约束）
 
@@ -112,6 +158,8 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 完成模式选择后，按当前 Phase 加载对应子技能。
 
 ### Phase 自动检测（跨会话恢复）
+
+> **本节为回退路径**：当 `node skills/specpowers/scripts/workflow-state.mjs status` 失败、脚本缺失或 state.json 损坏时使用。正常运行时由 Step 0 的状态机判定主导。两套机制判定的依据相同（产物文件 + Gate token），结论应一致——不一致时以文件证据为准（状态机先行判定，文件证据最终裁决）。
 
 入口技能按以下产物状态自动判定当前 Phase。行按从上到下顺序求值，首次匹配即停止。`<name>` 由当前任务上下文获取。
 
@@ -177,6 +225,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 | **GitNexus** | AI 代码图谱 | MCP `mcp__gitnexus__query` | ⚠️ |
 | **Understand-Anything** | 架构图 | `/understand` | ⚠️ |
 | **TEST_COMMAND** | 全量测试 | 项目实际测试命令（见下方） | ⚠️ 需手动配置 |
+| **Node.js** | 状态机脚本 | `node --version`（≥18） | ✅（脚本依赖；缺失时回退到 Phase 自动检测，状态机功能不可用） |
 
 > **TEST_COMMAND**: 在项目初始化时配置。specpowers-archive 全量测试门使用此命令。
 > 如未配置，archive 会自动检测：`xmake build` → `make test` → `npm test`。
@@ -217,6 +266,7 @@ master (main) ← 始终可部署
 □ TEST_COMMAND: 全量测试命令（见上方环境准备节，如未配置 archive 自动检测）
 □ QTDIR: Qt 项目需设置（如有）
 □ openspec --version: 确认 OpenSpec CLI 可用
+□ node --version: 状态机脚本依赖（≥18）。缺失时状态机不可用，回退到 Phase 自动检测表（状态机功能降级但不阻塞流程）
 ```
 
 > 配置方式：在入口 skill 上下文或会话中手动定义。TEST_COMMAND 由 specpowers-archive Step 1 读取。
@@ -315,3 +365,5 @@ master (main) ← 始终可部署
 | UltraPlan 代码专家 | `refs/ultraplan-code-expert.md` |
 | UltraPlan 调研专家 | `refs/ultraplan-research-expert.md` |
 | C/C++ 项目模板 | `refs/pkg-xmake-template.md`（仅 xmake 项目参考） |
+| 协议正本 | `refs/workflow-protocol.json` |
+| 停顿点正本 | `refs/decision-points.md` |
