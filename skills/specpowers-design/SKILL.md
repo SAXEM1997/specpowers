@@ -13,7 +13,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 
 ---
 
-## Phase 0: brainstorming 前置阶段（新增）
+## Phase 0: brainstorming 前置阶段
 
 **定位**: 使用 `superpowers:brainstorming` 技能，承担需求澄清+方案设计+用户审批。替代原 `/opsx:explore` + propose 前半部分。brainstorming 的上下文探索步骤完全覆盖 `/opsx:explore`，后者不再独立调用。
 
@@ -64,6 +64,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 **动作3 — 初始化状态机（中等+，微小跳过）**:
 非微小任务执行（name/mode 实参：动作 2 的 `<name>` + 会话上下文 `Plan: <mode>`）：
 node skills/specpowers/scripts/workflow-state.mjs init --name <name> --mode <mode>
+mode 取值：medium（中等）/ complex（复杂）/ large（大规模）
 
 ### Step 0.4: 方案探讨 + 设计呈现
 
@@ -122,7 +123,7 @@ node skills/specpowers/scripts/workflow-guard.mjs exit phase0 --apply
 
 ---
 
-## Phase 1: propose 格式转换+强制对照（改造）
+## Phase 1: propose 格式转换+强制对照
 
 **定位**: Phase 1 从"需求澄清+方案设计+生成规范"收窄为"**格式转换+强制对照验证**"。读取 Phase 0 审批通过的设计文档，转换为 OpenSpec 结构化格式。
 
@@ -139,7 +140,7 @@ node skills/specpowers/scripts/workflow-guard.mjs exit phase0 --apply
 | `proposal.md` | 动机 ← design doc 概述；范围 ← design doc 架构+组件；排除范围 ← design doc 排除范围 + 审批 Gate 确定 |
 | `design.md` | 技术方案 ← design doc 架构+数据流（补充实现细节）；架构决策 ← design doc 关键决策（补充替代方案+理由） |
 | `specs/*/spec.md` | 增量规范 ← design doc 场景转换为 `### Requirement:` SHALL/MUST 格式；每个 Requirement 包含至少一个"假设/当/则"场景 |
-| `tasks.md` | 任务清单 ← design doc 组件拆解为实现任务（参考粒度转换表） |
+| `tasks.md` | 任务清单 ← design doc 组件拆解为实现任务（见 specpowers-plan『粒度转换』节） |
 
 **不做**: 需求澄清、方案对比、连环提问（Phase 0 已完成）。
 
@@ -165,7 +166,7 @@ node skills/specpowers/scripts/workflow-guard.mjs exit phase0 --apply
 
 **规则**: MISSING/DRIFT 项修复后重新对照，直到全部 COVERED。
 
-### Step 1.3: 人工审核（强化）
+### Step 1.3: 人工审核
 
 ```
 □ design.md 与 brainstorming 审批的设计一致？
@@ -200,8 +201,6 @@ specpowers-plan Phase 2 衔接时需适配此场景：无 openspec/ 产物时，
 ---
 
 ## Gate 验证协议
-
-> **验证链由入口 `specpowers:specpowers` SKILL.md「Gate 返回后验证协议（横切）」节权威定义（H1 精简）。本技能仅保留 Gate 0/1 特化参数行（Gate=0/1, Phase=0/1, tiny 跳过全部验证）**
 
 ### Gate 返回后验证协议（Phase 0-1 Gate 通用）
 

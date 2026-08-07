@@ -8,8 +8,8 @@ description: Use when entering the implementation phase of a specpowers workflow
 > **前置检查（必须执行，不可跳过）**:
 > 1. 执行 `Skill({skill: "specpowers:specpowers"})` 加载入口 skill，获取全局规则。等待加载完成后继续。
 > 2. 确认 Plan 模式：若 Plan: tiny → 跳过 plan 存在检查（微小任务无 plan，直接审查变更文件）；否则 → 确认 `docs/superpowers/plans/<name>.md` 存在。如不存在，回 specpowers-plan 生成 plan。
-> 3. 确认 Plan 审查 Gate 已通过（非 tiny 模式，询问已执行，见 specpowers-plan Phase 2 "Plan 审查 Gate"）。如未询问，回 specpowers-plan 完成 Gate 后再进入。
-> 4. 如当前模式为微小任务，仍须加载 specpowers-review 执行 Gate 3 审查（走 specpowers-review 内部级联判定路径）。
+> 3. 确认 Gate 2 审查已通过（非 tiny 模式：检查 `[GATE_PASSED] gate=2` 标记或 `.superpowers/.gate-passed-2` 文件）。如未通过，回 specpowers-plan 完成 Gate 2 后再进入。
+> 4. 如当前模式为微小任务，仍须加载 specpowers-review 执行 Gate 3 审查（走 specpowers-review 内部路由自动判定）。
 > 5. **Gate 2 确认**：搜索会话上下文中 `[GATE_PASSED] gate=2` 标记，或检查 `.superpowers/.gate-passed-2` 文件（`name=<当前任务>` 匹配）。两者都没有 → Phase 2 Gate 2 未执行，回 specpowers-plan 完成 Gate 2 后再进入 Phase 3。微小任务跳过此项。
 
 **REQUIRED SUB-SKILL:** Skill({skill: "superpowers:subagent-driven-development"})
@@ -94,7 +94,7 @@ BASE=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'); 
 **验证链通过后（中等+），执行节点出口守卫**（token 已由 review 写入 `.superpowers/.gate-passed-3`；微小模式无 state.json，不调 guard）：
 node skills/specpowers/scripts/workflow-guard.mjs exit phase3 --apply
 
-> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate，非 Phase 0-4 Gate 体系的组成部分。父技能仅验证 TIER_ROUTING.expected_steps 声明的 STEP 集，不跨边界验证 specpowers-review 的内部 Gate。（设计说明见本节——STEP_FINAL_READTHROUGH 是 review 内部横切 Gate，父技能不跨边界验证）
+> **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate，非 Phase 0-4 Gate 体系的组成部分。父技能仅验证 TIER_ROUTING.expected_steps 声明的 STEP 集，不跨边界验证 specpowers-review 的内部 Gate。
 
 ---
 

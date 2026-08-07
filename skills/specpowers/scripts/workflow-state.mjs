@@ -2,7 +2,7 @@
 // specpowers 轻量状态机：status / next / init / set-name / reset
 // 零外部依赖（纯 Node.js 标准库）。cwd = 项目根。state.json 只是索引——gate 文件（token）是最终裁判。
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const STATE_PATH = '.superpowers/state.json';
@@ -50,7 +50,9 @@ function gateOk(n, name) {
 }
 // 归档证据轻量近似：archive 目录 或（phase1-skipped 且 git log -1 含 name）；正常路径仅查目录存在不校验 git archive commit——git 严格检查由 guard exit phase4 承担
 function archiveEvidence(name) {
-  if (existsSync(join('openspec', 'changes', 'archive', name))) return true;
+  const archiveDir = join('openspec', 'changes', 'archive');
+  // 宽松匹配：/opsx:archive 产出 archive/YYYY-MM-DD-<name>/ 格式，含 <name> 子串即命中（与 guard exit phase4 检查一致）
+  if (existsSync(archiveDir) && readdirSync(archiveDir).some((d) => d.includes(name))) return true;
   return skipped1(name) && gitLog(1).includes(name);
 }
 function nodeOf(protocol, id) {
@@ -105,7 +107,7 @@ function cmdInit(args) {
   const ni = args.indexOf('--name');
   const name = ni >= 0 ? args[ni + 1] : undefined;
   const mi = args.indexOf('--mode');
-  // 注：mode 取值校验在文档层（medium|complex|large），脚本保持哑以支持前向兼容
+  // 注：mode 取值校验在文档层（medium|complex|large），脚本不做校验以支持前向兼容
   const mode = mi >= 0 ? args[mi + 1] : undefined;
   const resume = args.includes('--resume-artifacts');
   const force = args.includes('--force');
@@ -132,6 +134,8 @@ function cmdInit(args) {
     blockedReason: null,
     evidence: {}
   };
+  // 全新项目可能尚无 .superpowers/ 目录，先建目录再写 state.json（否则 writeFileSync ENOENT 崩溃）
+  mkdirSync(TOKEN_DIR, { recursive: true });
   writeState(state);
   console.log(`INIT done (name=${name2 || '未提供'} mode=${mode || '未提供'} resume=${resume} completed=${completed.join(',') || 'none'})`);
   if (resume && !name2) console.log('HINT: 产物已存在但未提供 --name，请运行 set-name <name>');

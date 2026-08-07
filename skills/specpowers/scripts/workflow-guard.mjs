@@ -3,7 +3,7 @@
 // 零外部依赖（fs/path + child_process 查 git）。cwd = 项目根。
 // 检查矩阵硬编码（gate 文件 + name 匹配）；产物路径/skipIf 从 protocol.json 读取；git 检查（phase3/4）由本脚本承担。
 import { execSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const STATE_PATH = '.superpowers/state.json';
@@ -52,14 +52,14 @@ function checkPhase(phaseId, name) {
   const node = (protocol?.nodes || []).find((x) => x.id === phaseId);
   if (!node) return { missing: [`未知 phaseId: ${phaseId}（protocol.json 无此节点）`], node: null };
   if (!name) {
-    // name 无法解析时降级：输出 clean GUARD: fail 而非 TypeError 崩溃
+    // name 无法解析时降级：输出 GUARD: fail 而非 TypeError 崩溃
     return { missing: ['name 未设置（state.json 缺失且无 --name 参数）——无法校验 name 绑定与产物路径'], node };
   }
   const missing = [];
   const skipActive = node.skipIf && skipped1(name);
   // 1) gate token（phase4 无 gate 文件）
   if (phaseId !== 'phase4' && !tokenOk(node.gate, name) && !skipActive) {
-    missing.push(`gate token .gate-passed-${node.gate}（name=${name || '(未提供)'}）`);
+    missing.push(`gate token .gate-passed-${node.gate}（name=${name}）`);
   }
   // 2) 产物（skip 路径豁免）；phase4 跳过 outputSchemas 产物循环——archive.v1.artifacts 已由下方显式检查覆盖，避免重复报告同一条
   for (const out of node.outputs || []) {
@@ -73,13 +73,16 @@ function checkPhase(phaseId, name) {
   }
   // 3) git 检查（phase3/4）
   if (phaseId === 'phase3' && !gitLog('100').includes(name)) { // 窗口 100 commit：覆盖典型 phase 间隔；极端场景（>100 commit 间隔）可放宽
-    missing.push(`git log 无含 <${name}> 的 commit`);
+    missing.push(`git log 中无含 <${name}> 的 commit`);
   }
   if (phaseId === 'phase4') {
     if (skipped1(name)) {
       if (!gitLog('1').includes(name)) missing.push(`git log --oneline -1 不含 <${name}>`);
     } else {
-      if (!existsSync(join('openspec', 'changes', 'archive', name))) missing.push(`openspec/changes/archive/<${name}>/ 不存在`);
+      const archiveDir = join('openspec', 'changes', 'archive');
+      // 宽松匹配：/opsx:archive 产出 archive/YYYY-MM-DD-<name>/ 格式，archive/ 下含 <name> 子串的子目录存在即命中
+      const archiveFound = existsSync(archiveDir) && readdirSync(archiveDir).some((d) => d.includes(name));
+      if (!archiveFound) missing.push(`openspec/changes/archive/ 下无含 <${name}> 的子目录`);
       if (!gitLog('1').includes(`archive ${name}`)) missing.push(`git log --oneline -1 不含 "archive <${name}>"`);
     }
   }
@@ -107,8 +110,8 @@ if (missing.length) {
   process.exit(1);
 }
 if (!apply) {
-  const note = (!name) ? '\nNOTE: name 未设置，name 匹配已跳过' : '';
-  console.log(`GUARD: pass\nPHASE: ${phaseId}\nCHECKS: 全部通过${note}`);
+  // name 在 checkPhase 前置已保证非空（为空会走 fail 分支 exit 1），此处无 name 未设置分支
+  console.log(`GUARD: pass\nPHASE: ${phaseId}\nCHECKS: 全部通过`);
   process.exit(0);
 }
 // --apply：更新 state.json（CAS：currentPhase 必须等于被退出的 phase）

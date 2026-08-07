@@ -12,6 +12,8 @@
 | phase3（子代理 TDD 实现） | specpowers-apply | PP-06, PP-07, PP-08 |
 | phase4（验证与归档） | specpowers-archive | （无——硬 Gate 链失败是停止条件，非决策点） |
 
+> **evidence 写入机制**：各 PP 决策确定后，由主 Agent 直接编辑 `.superpowers/state.json` 的 `evidence` 字段（JSON 对象，按 `{phaseN: {"PP-0X": {decision: ...}}}` 结构追加）。workflow-state.mjs 的 `next` 命令读取该字段判定 manual（PP 未决）vs auto（PP 已决）。当前版本无独立脚本命令写入 evidence——主 Agent 在完成 PP 决策后手动编辑 state.json。
+
 ## 用户停顿点定义
 
 ### PP-01（phase0）：方案选择
@@ -24,7 +26,7 @@
 ### PP-02（phase0）：设计逐段审批 + design.md 整体审批（硬 Gate）
 
 - **触发条件**（两个实例，同一决策类型）：①每个设计段落呈现后（架构/数据流/接口/错误处理/测试策略）等待审批；②design.md 写入并自审完成后（Step 0.6 整体审批硬 Gate）。
-- **用户可选择项**：①通过 → 下一段/整体 → Gate 0 审查；②修改（提出意见）→ 回 Step 0.5 修订 → 重新自审 → 再次 Step 0.6 审批。
+- **用户可选择项**：①通过 → 下一段（逐段审批）；全部段落通过后 → Step 0.6 整体审批；整体通过 → Gate 0 审查；②修改（提出意见）→ 回 Step 0.5 修订 → 重新自审 → 再次 Step 0.6 审批。
 - **证据写入位置**：`.superpowers/state.json` evidence（`{"phase0": {"PP-02": {"decision": "approved"}}}`）；整体通过 + Gate 0 后由 review 写 `.superpowers/.gate-passed-0`（`name=<name>`）。
 - **不可绕过**：Step 0.6 硬 Gate 不可跳过，未审批不得进入 Phase 1；逐段审批不可合并成一次整体汇报。
 
@@ -58,7 +60,7 @@
 
 ### PP-07（phase3）：计划冲突裁决（plan 文本 vs 审查发现）
 
-- **触发条件**：任务预扫描（dispatch 前 batched 问题）或任务审查/修复循环发现 finding 与 plan 文本冲突（which governs）。
+- **触发条件**：任务预扫描（dispatch 前 batched 问题）或任务审查/修复循环发现 finding 与 plan 文本冲突（以哪个为准）。
 - **用户可选择项**：①plan 文本优先 → 按 plan 执行（finding 标注 plan-mandated）；②finding 优先 → 修订 plan 并修复；③保持现状并记录 ruling → 该 finding 记入 ledger 不再进入修复循环。
 - **证据写入位置**：SDD ledger（`.superpowers/sdd/<plan>/progress.md`）+ state.json evidence（`{"phase3": {"PP-07": {"decision": "plan-first"}}}`）。
 - **不可绕过**：禁止自行丢弃 plan 冲突型 finding；每个裁决必须有 ledger 记录。
@@ -72,5 +74,4 @@
 
 ## 自动处理与停止条件摘要
 
-- **自动处理（直接推进，不询问）**：上下文探索、澄清问答、自审修复、格式转换、MISSING 机械补充、Gate 前置检查失败回退、Gate 0-3 审查收敛（默认继续制，通知而非询问）、执行模式路由、子代理任务循环、任务修复循环 R≤5、breaker 裁决（非 load-bearing）、Phase 4 硬 Gate 链推进、finishing。
-- **停止条件（只报告恢复条件，不发明选项）**：implementer BLOCKED（load-bearing）、R=5 后 load-bearing finding、全量测试失败（恢复=回 Phase 3 systematic-debugging）、validate 失败（恢复=回 Phase 1 或 Phase 3）、/opsx:archive 失败（恢复=根因修复后从 archive 重试）、归档完整性 FAIL（人工介入）、state.json 缺失/损坏（恢复=init --force --resume-artifacts 重建）。
+> 自动处理/停止条件/手动衔接的分类正本见入口 SKILL.md「决策分类表」节，本文件不再重复列项。本节仅补充入口表未列的项：自动处理含任务修复循环 R≤5、breaker 裁决（非 load-bearing）、finishing；停止条件恢复路径含 implementer BLOCKED（load-bearing）、R=5 后 load-bearing finding、全量测试失败（恢复=回 Phase 3 systematic-debugging）、validate 失败（恢复=回 Phase 1 或 Phase 3）、/opsx:archive 失败（恢复=根因修复后从 archive 重试）、归档完整性 FAIL（人工介入）、state.json 缺失/损坏（恢复=init --force --resume-artifacts 重建）。

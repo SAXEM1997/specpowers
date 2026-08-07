@@ -63,7 +63,6 @@ Gate 2 返回后，执行 Gate 返回后验证协议（参数: Gate=2, Phase=2�
 验证链通过后（token 已写入 `.superpowers/.gate-passed-2`），执行节点出口守卫（中等+）：
 node skills/specpowers/scripts/workflow-guard.mjs exit phase2 --apply
 
-
 **OpenSpec 跳过场景适配**: 如 openspec/changes/<name>/ 不存在（Phase 1 已跳过），Phase 2 writing-plans 衔接时使用以下简化输入集：
 - docs/superpowers/specs/<name>-design.md
 - docs/superpowers/clarifications/<name>.md

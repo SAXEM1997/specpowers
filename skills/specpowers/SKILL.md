@@ -1,12 +1,13 @@
 ---
 name: specpowers
 description: >
-  Use when starting any non-trivial development task (>5 files, multi-step, team project)
+  Use when starting any non-trivial development task (>4 files, multi-step, team project)
   that requires both requirements alignment AND engineering discipline.
   Use when the user mentions: "start new feature", "SDD+TDD workflow",
   "apply OpenSpec tasks", "/specpowers",
   "engineering development with specs",
-  "OpenSpec and Superpowers together".
+  "OpenSpec and Superpowers together",
+  "resume specpowers task", "continue previous workflow".
   Do NOT use for: single-file bugfixes without existing OpenSpec specs,
   typo corrections, one-off scripts, pure configuration changes.
 ---
@@ -19,7 +20,7 @@ specpowers 融合 OpenSpec（规范驱动开发）+ Superpowers（测试驱动�
 
 - **OpenSpec** 防止需求偏离（做了不需要的东西）
 - **Superpowers** 防止实现缺陷（需要的东西做错了）
-- **specpowers** 防止两者脱节：通过衔接指令集（bridge）将 OpenSpec 产物转换为 Superpowers 输入
+- **specpowers** 防止三者脱节，以状态机驱动 Phase 流转：通过衔接指令集（bridge）将 OpenSpec 产物转换为 Superpowers 输入
 
 ### 职责分工
 
@@ -51,7 +52,7 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
    - 未初始化 → 进入 Step 1（首次启动）；但存在 name-keyed 产物/token（如 docs/superpowers/ 下 name 目录、`.superpowers/.gate-passed-*`）→ 提示 `init --resume-artifacts`（不按全新任务处理）；**微小任务忽略此提示**（微小不 init state.json，缺失属预期，见设计文档决策 3）
    - 已初始化 → 读 currentPhase + completedPhases + 持久化阻塞原因（对应脚本契约 status 输出的 BLOCKED_REASON 字段）
    - 脚本失败/缺失 → 回退到「Phase 自动检测（回退路径）」表，扫产物文件推断
-2. **意图对齐**：从用户消息判定意图落点。意图超前 → 核对前序 Gate 文件，未过回前序 Phase；意图回退 → `reset <phase>` 回退。
+2. **意图对齐**：从用户消息判定意图落点。意图超前 → 核对前序 Gate 文件，未过则回前序 Phase；意图回退 → `reset <phase>` 回退。
 3. **文件证据最终裁决**：状态机先行判定，state.json 只是索引。最终裁判是 gate 文件（token）——`.superpowers/.gate-passed-<N>`（`name=` 行与当前 `<name>` 完全匹配才算数）；产物文件仅对回退路径与 phase4 有意义。
 
 ### Step 1：首次启动决策（只决策不 init）
@@ -59,7 +60,7 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 1. 决策树判定模式（微小/中等/复杂/大规模）
 2. `Plan: <mode>` 写入会话上下文。**首次启动只决策不 init**——init 延迟到 Phase 0 产出 name 后（Phase 0 Step 0.3 之后）执行：`node skills/specpowers/scripts/workflow-state.mjs init --name <name> --mode <mode>` 初始化 state.json
 3. 微小任务特判：豁免规则见设计文档决策 3（不创建 state.json，不走状态机，直接子代理执行）。微小任务跨会话恢复仍按原版产物 + 会话上下文推断，不走状态机（state.json 不存在属预期）
-4. 迁移分支：若产物已存在（如 clarifications/design.md）→ 提示 `init --resume-artifacts --mode <mode>` + `set-name <name>`（name 从产物目录推断或用户提供）（kernel 用户迁移：kernel state.json 不被原版读取——运行 init --resume-artifacts 重建；`.superpowers/.gate-passed-*` 通用，Gate 进度不丢失；已完成归档的 kernel 用户跳过 Phase 4 直接收尾，不重跑 /opsx:archive）
+4. 迁移分支：若产物已存在（如 clarifications/design.md）→ 提示 `init --resume-artifacts --mode <mode>` + `set-name <name>`（name 从产物目录推断或用户提供）（kernel 用户迁移：kernel 的 state.json 路径（`.comet/runs/specpowers-kernel/state.json`）与本脚本读取的 `.superpowers/state.json` 不同，需运行 `init --resume-artifacts` 重建；`.superpowers/.gate-passed-*` 通用，Gate 进度不丢失；已完成归档的 kernel 用户跳过 Phase 4 直接收尾，不重跑 /opsx:archive）
 5. 微小→中等升级分支：微小任务中途升为中等（如变更范围扩大触发运行时升级）→ 补 Phase 0 流程（产生 name 与 design.md）后执行 `init --name <name> --mode medium`（**用 init 而非 --resume-artifacts**，以便 currentPhase=phase0 从头走 Gate 0/1/2 审查）；微小已写的 `.gate-passed-3` 保留——升级后 phase3 由既有 token 自动跳过（**前提：微小 token 的 name= 与新 Phase 0 产出 name 完全匹配；不匹配时 next 会回到 phase3 重新审查**），phase1/2 需追溯补做
 
 ### Step 2：推进纪律
@@ -75,7 +76,7 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 |------|------|------|
 | 自动处理 | NEXT: auto（当前应执行 phase 已确定——init 后 phase0 若 PP 未决会先输出 manual，PP 已决或后续 phase 无待决停顿点时输出 auto） | 直接进入该 phase 对应技能 |
 | 自动处理 | Gate 0-3 审查收敛判定 | 默认继续制：通知继续，非询问 |
-| 自动处理 | guard 失败（GUARD: fail，token 已写产物缺失） | 停留当前 phase 补产物 |
+| 自动处理 | guard 失败（GUARD: fail，token 或产物缺失） | 停留当前 phase 补产物 |
 | 自动处理 | next 输出 blocked（completedPhases 有记录但 token 缺失/name 不匹配） | 回到第一个缺有效 token 的 phase |
 | 自动处理 | openspec CLI 不可用 | 自动走跳过路径 |
 | 停止条件 | Phase 4 硬 Gate 链失败 | 报告失败步骤与恢复路径 |
@@ -91,7 +92,7 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 | Agent 想法 | 实际风险 |
 |---|---|
 | `.gate-passed-N` 文件存在，所以 Gate 通过了 | name 不匹配 = 未通过 |
-| 用户提了需求，澄清算完成了 | 未经审批 = 未完成 |
+| 用户提了需求，澄清过就算完成了 | 未经审批 = 未完成 |
 | 产物文件都在，这个 Phase 算完成 | 无 gate token = 未通过 |
 | state.json completedPhases 有它，直接走下一步 | state 可能过期；gate 文件缺失按未完成 |
 | 状态机脚本失败，流程卡死 | 回退到 Phase 自动检测表 |
@@ -145,7 +146,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 └── 大规模任务（50+ 文件）
     ├── Phase 0: brainstorming 完整流程
     ├── Phase 1: propose 格式转换+强制对照验证
-    ├── Phase 2: 中等模式用 writing-plans；复杂/大规模可由用户手动触发 UltraPlan（用户可手动加载 refs/ultraplan-*.md）/ Workflow，plan skill 本身仅覆盖中等模式
+    ├── Phase 2: 同复杂任务 Phase 2
     ├── Phase 3: Workflow 编排子代理
     ├── Phase 4: 硬 Gate 链归档
     容错: Workflow 不可用 → 降级复杂任务
@@ -185,7 +186,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 | Phase 3 | 中等+ | specpowers-apply | `Skill({skill: "specpowers:specpowers-apply"})` |
 | 审查 | 代码类（由 specpowers-review 内部两级路由自动判定：关键/完整审查）或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers:specpowers-review"})` |
 | Phase 4 | 中等+ | specpowers-archive | `Skill({skill: "specpowers:specpowers-archive"})` |
-| — | 微小 | 不加载子技能 | 入口 skill 中直接子代理执行。执行完毕后主 Agent 确认产物并输出完成摘要 |
+| — | 微小 | 不加载子技能（specpowers-review 除外，见下注） | 入口 skill 中直接子代理执行。执行完毕后主 Agent 确认产物并输出完成摘要 |
 
 > 横切规则（Git Flow、Checklist、Pitfalls）保留在本入口技能中，各阶段均需遵守。
 
@@ -337,7 +338,7 @@ master (main) ← 始终可部署
 | 实现中需修改规范 | 暂停 Superpowers，回 OpenSpec 修改 |
 | 多变更并行 | 独立 git worktree |
 | UltraPlan 中途溢出 | `/clear` + 重新加载 openspec 产物 |
-| 跨 session 中断 | > 跨会话中断恢复：优先运行 `node skills/specpowers/scripts/workflow-state.mjs status` 状态机判定当前 Phase；脚本不可用时按上述 Phase 自动检测表（回退路径）判定。 |
+| 跨会话中断 | 跨会话中断恢复：优先运行 `node skills/specpowers/scripts/workflow-state.mjs status` 状态机判定当前 Phase；脚本不可用时按上述 Phase 自动检测表（回退路径）判定。 |
 | refs/ 缺失 | UltraPlan → 降级中等任务 |
 
 ## 快速上手
@@ -346,7 +347,7 @@ master (main) ← 始终可部署
 |------|------|------|
 | brainstorming | `Skill({skill: "specpowers:specpowers-design"})`（Phase 0，需求澄清+方案设计） | specpowers-design |
 | propose | `Skill({skill: "specpowers:specpowers-design"})`（Phase 1，格式转换+强制对照） | specpowers-design |
-| Plan 审查 | 询问用户是否审查 plan（Phase 2 Gate） | specpowers-plan |
+| Plan 审查 | 执行 Gate 2 审查（强制执行，见 specpowers-plan） | specpowers-plan |
 | 衔接 | "读取 openspec changes/, 用 writing-plans 拆 TDD 计划" | specpowers-plan |
 | 实现 | `Skill({skill: "superpowers:subagent-driven-development"})`（每个 task 一个独立子 Agent） | specpowers-apply |
 | 审查 | Skill({skill: "specpowers:specpowers-review"})（两级路由自动判定） | specpowers-review |

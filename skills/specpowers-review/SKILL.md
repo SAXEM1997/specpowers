@@ -16,12 +16,12 @@ description: >-
 
 ## 术语说明
 
-- **主 Agent**：specpowers-review 技能内部的协调 Agent，调度子 Agent、合并审查结果、执行修复。与入口技能 specpowers 的 Agent 区分
+- **主 Agent**：specpowers-review 技能内部的协调 Agent，调度子 Agent、合并审查结果、执行修复。与入口技能 specpowers 的 Agent 区分。
 - **用户**：人类开发者（审批修复方案），非调用方 Agent。
 
 ## 审查决策树
 
-审查类型由本 skill 内部按「对象类型 → recipe（对象类型×tier 对应的 Agent 编排与 STEP 集合，见下方 recipe 表；代码类完整层按 bucket 分叉子路径）查找」自动判定，用户可手动覆盖。
+审查类型由本 skill 内部按「对象类型 → recipe（对象类型×tier 对应的 Agent 编排与 STEP 集合，见下方 recipe 表；代码类完整层按 bucket 分叉子路径）」查找，自动判定，用户可手动覆盖。
 
 ```text
 审查对象类型?
@@ -44,11 +44,11 @@ description: >-
 | 复杂 | 完整 | 完整 | 完整 |
 | 大规模 | 完整 | 完整 | 完整 |
 
-> **规模分桶度量（按对象类型区分）**：代码类按 `file_count`（变更文件数，直接反映变更范围）——微小 1-3 / 中等 4-19 / 复杂 20-49 / 大规模 50+。文档类按 `line_count`（文档总行数，行数与内容复杂度正相关）——微小 ≤100 / 中等 101-300 / 复杂 301-600 / 大规模 >600。文档类的 file_count 无区分度（Gate 0/2 始终 1 文件，Gate 1 通常 4-6 文件），改用 line_count 度量内容复杂度。详见协议 6 `bucket_doc` 函数。
+> **规模分桶度量（按对象类型区分）**：代码类按 `file_count`（变更文件数，直接反映变更范围）——微小 1-3 / 中等 4-19 / 复杂 20-49 / 大规模 50+。文档类按 `line_count`（文档总行数，行数与内容复杂度正相关）——微小 ≤100 / 中等 101-300 / 复杂 301-600 / 大规模 >600。文档类的 file_count 无区分度（Gate 0/2 始终 1 文件，Gate 1 通常 4-6 文件），改用 line_count 度量内容复杂度。详见 refs/protocols.md 协议 6 `bucket_doc` 函数。
 
 ★ 触发收敛闸门（完整算法见协议 6）。两道硬护栏（ledger 缺失→完整、行数地板）+ 收敛闸门。收敛闸门：关键层（中等规模）若上轮 p0_raw>0 → 升级完整。
 
-**手动覆盖关键词**：当前轮用户输入含"关键审查"/"完整审查"→ 手动覆盖设定基础 tier（后续护栏/矩阵/地板/闸门在此基础上只升不降）。匹配范围为当前轮用户输入，不含历史轮次指令；排除否定语境。"UltraReview"→ 文档类映射到完整层 3-agent 多模型渐进式（→ 完整层；6-agent 维度 build/code/specs/docs/deps 仅适用代码类，文档类无对应定义），代码类走 6-agent UltraReview recipe（→ 完整层增强）。
+**手动覆盖关键词**：当前轮用户输入含"关键审查"/"完整审查"→ 手动覆盖设定基础 tier（后续护栏/矩阵/地板/闸门在此基础上只升不降）。匹配范围为当前轮用户输入，不含历史轮次指令；排除否定语境。"UltraReview"→ 文档类映射到完整层 3-agent 多模型渐进式（6-agent 维度 build/code/specs/docs/deps 仅代码类），代码类走 6-agent UltraReview recipe（→ 完整层增强）。
 
 "项目创建或变更"指涉及项目配置文件（package.json / Cargo.toml / go.mod / CMakeLists.txt / Makefile / pom.xml / docker-compose.yml 等）、构建脚本、目录结构调整的变更。判断标准：变更涉及项目基础设施层面（而非仅业务代码），即归入此类。
 
@@ -117,7 +117,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 - 每个 Gate 不可跳过
 - Gate 未通过（存在 P0，见下方 UltraReview 审查规则节 P0 阻塞规则权威定义）→ 禁止进入下一 Phase
 - Gate 发现 P1/P2 → 记录后允许通过
-- 问题清单写入会话上下文账本（主 Agent 内存 dict，见 `refs/protocols.md` 协议 1（会话上下文账本）），跨 Gate 通过主 Agent 注入对齐 Agent prompt
+- 问题清单写入会话上下文账本（主 Agent 内存 dict，见 `refs/protocols.md` 协议 1（会话上下文账本）），跨 Gate 通过主 Agent 注入对齐 Agent prompt。
 - 不再写入任何 .review 开头的文件产物
 - 跨会话场景下，审查教训从 .specpowers/review-cache.json 读取（尽力而为缓存，丢失不影响正确性）
 - 每个 Gate 审查完成后均输出收敛判定（`[CONVERGENCE_CHECK]` 标记）
@@ -144,7 +144,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 | **proposal.md** | Gate 1 | 动机清晰性、范围完整性、排除范围明确性 | ❌ 实现方案（属于 design.md 范围） |
 | **specs/** | Gate 1 | Requirement 覆盖完整性、场景可测试性、SHALL/MUST 规范性 | ❌ 实现方式（属于 code 范围） |
 | **tasks.md** | Gate 1 | 任务拆解合理性、依赖关系完整性、可执行性（粒度适中/描述清晰/状态明确） | ❌ 具体代码实现细节、代码优化建议（参照 plan 行） |
-| **plan/\<name\>.md** | Gate 2 | 任务拆解合理性、TDD 步骤完整性、依赖关系正确性、实现策略可行性 | ❌ 具体代码写法、函数实现细节、代码优化建议 |
+| **`plan/<name>.md`** | Gate 2 | 任务拆解合理性、TDD 步骤完整性、依赖关系正确性、实现策略可行性 | ❌ 具体代码写法、函数实现细节、代码优化建议 |
 | **代码变更** | Gate 3 | 代码正确性、spec 合规性、构建/依赖/文档一致性 | 无（代码级审查允许评论实现细节） |
 
 > **通用原则**: 用代码层面的知识做分析，用设计/规划层面的语言写评论。审查意见应表述为"某个设计决策可能存在问题，因为…（深层分析结论）"，而非"应该这样写代码"。评论边界过窄则遗漏深层问题，过宽则输出对当前 Phase 无价值的实现建议。
@@ -157,7 +157,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 ### 创建审查团队
 
-除现有 5 个审查 Agent 外，新增第 6 个维度——对齐审查 Agent：
+除现有 5 个审查 Agent 外，还有对齐审查 Agent（第 6 个维度）：
 
 | 维度 | prompt 要点 |
 |------|-----------|
@@ -170,7 +170,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 对齐审查 Agent 的对照方法复用多模型渐进式审查中"对齐 Agent 对照方法"协议（逐条提取→逐一查找→输出对照表）。COVERED=需求点有对应且语义一致；MISSING=完全无对应（P1）；DRIFT=有对应但语义偏离（P0）。
 
-> **STEP 兼容性说明**: 对齐审查 Agent 在 Step A 与其他 5 个审查 Agent 并行启动，产出在 Step B-C 中与其他报告一同去重合并，不产生独立 STEP 标记块。STEP 标记块体系（STEP1-STEP5）不变，STEP1_EXECUTED 的 agents 列表从 5 个扩展为 6 个。
+> **STEP 兼容性说明**: 对齐审查 Agent 在 Step A 与其他 5 个审查 Agent 并行启动，产出在 Step B-C 中与其他报告一同去重合并，不产生独立 STEP 标记块。STEP 标记块体系（STEP1-STEP5）不变，STEP1_EXECUTED 的 agents 列表含 6 个维度。
 >
 > **UltraReview Steps A-F → STEP 映射**：Steps A-B → STEP1（并行审查+报告汇总）/ Steps C-D → STEP2（逐条判断+合并判断表）/ Step D' = 通用 Step 3 在 UltraReview 流程的插入点（非 A-F 独立 Step，执行独立监督 Agent 交叉验证，输出 STEP3_EXECUTED）/ Step E → 用户审批（STEP4 前置环节）/ Step F → STEP4（执行修复+输出 STEP4_EXECUTED）。映射覆盖 STEP1-4（STEP5 Quick Review 由通用审查流程 Step 5 覆盖，非 A-F 协议）。
 
@@ -183,7 +183,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 - P1（不阻塞 Gate 通过）：重要问题——性能退化、代码异味、文档过时、错误处理缺失
 - P2（记录待办）：改进建议——重构机会、可读性优化、测试覆盖增强
 - P3（记录待办）：风格问题——命名规范、格式一致性、注释完善
-- **P0 阻塞规则（权威定义，全文档唯一权威来源）**: P0 > 0 → Gate 未通过，禁止进入下一 Phase；P0 必须全部修复且通过重审方可放行。P1/P2/P3 不阻塞 Gate 通过。其余各处 P0 阻塞引用均以此处为准（修复范围见下方"Gate 通过标准 vs 修复范围"）
+- **P0 阻塞规则（权威定义，全文档唯一权威来源）**: P0 > 0 → Gate 未通过，禁止进入下一 Phase；P0 必须全部修复且通过重审方可放行。P1/P2/P3 不阻塞 Gate 通过。其余各处 P0 阻塞引用均以此处为准（修复范围见下方"Gate 通过标准 vs 修复范围"）。
 
 > **Gate 通过标准 vs 修复范围**: 以上为 Gate 通过标准（阻塞判定——什么情况下 Gate 不通过）。修复阶段的修复范围见 Step 4 "修复策略"（或 UltraReview Step F——两路径共享同一修复策略）——默认全量修复 P0-P3，不受此阻塞标准限制。例如：P2/P3 "不阻塞 Gate 通过" 意味着即使有未修复的 P2/P3 也可以进入下一 Phase，但修复阶段仍默认修复它们（用户可显式跳过）。
 
@@ -231,7 +231,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 1. **specpowers-apply 内部 code-review**：通过标准为无 P0 问题
 2. **specpowers-review 对齐 Agent 单审**：对齐检查，通过标准为无 MISSING 或 DRIFT 标记为 P0 的项
 
-主 Agent 构造对齐 Agent 的审查 prompt 时，注入 spec-compliance-check（OpenSpec 规范逐条对照协议，输出 COVERED/MISSING/DRIFT）的逐条对照协议（读取 specs/ → 逐条检查 Requirement → 输出 [COVERED/MISSING/DRIFT] 对照表），确保对齐检查覆盖原双重审查的规范合规维度。
+主 Agent 构造对齐 Agent 的审查 prompt 时，注入 spec-compliance-check（OpenSpec 规范逐条对照协议，输出 COVERED/MISSING/DRIFT），确保对齐检查覆盖原双重审查的规范合规维度。
 
 两者均通过方可进入 Phase 4。
 
@@ -323,7 +323,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 |------|---------|---------------------|
 | Gate 0 | design.md | 取 design.md 行 |
 | Gate 1 | proposal + design + specs + tasks | 取 proposal.md / design.md / specs/ / tasks.md 四行（含 tasks.md 行），合并后注入 |
-| Gate 2 | plan/\<name\>.md | 取 plan/\<name\>.md 行 |
+| Gate 2 | `plan/<name>.md` | 取 `plan/<name>.md` 行 |
 | Gate 3 | 代码变更 | 取"代码变更"行（评论边界=无） |
 
 注入格式（附加到每个审查 Agent prompt 末尾）：
@@ -399,7 +399,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 ### 多轮审查防偷懒协议（主 Agent 自检）
 
-> **⚠️ 本协议针对主 Agent 自身，非子 Agent。** 子 Agent 每次启动拥有干净上下文——它不知道前面进行了几轮审查、不会因为"已审过多轮"而偷懒。真正会偷懒的是已完成多轮审查、上下文已腐化的**主 Agent**——它积累了大量会话上下文，经历过多次"审查→修复→重审"循环，自然倾向于"快速过一遍"或"跳过一些步骤赶紧结束"。
+> **⚠️ 本协议针对主 Agent 自身，非子 Agent。** 子 Agent 每次启动拥有干净上下文——它不知道前面进行了几轮审查、不会因为"已审过多轮"而偷懒。真正会偷懒的是已完成多轮审查、上下文已腐化的**主 Agent**——它积累了大量会话上下文，经历过多次"审查→修复→重审"循环，自然倾向于"快速过一遍"或"跳过一些步骤草草结束"。
 > 
 > 以下协议在审查进入第 2 轮及以后时适用。主 Agent 在每轮开始前逐条自检。
 > 
@@ -421,10 +421,10 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 > 
 > 如匹配任一行 → 立即按右列纠正。每个 Step 独立完整执行。
 
-2. **逐项核对合理化表左列**（上方"审查纪律自检 → 合理化表"）——检查自己是否计划跳过某步骤、是否计划缩减审查范围、是否计划以轮次为由加速。如匹配任一行 → 立即按右列纠正。
-3. **逐项核对 Red Flags 自检清单**（上方"审查纪律自检 → Red Flags 自检清单"），确认每个 Step 的执行前提条件满足。
-4. **子 Agent prompt 完整性**：每个审查 Agent prompt 含 Step 1 完整性指令？→ 不含 → 补注后启动
-5. 自检完成后，在审查报告中记录: `[ANTI_LAZINESS_SELF_CHECK] round=<N>, passed=true`
+3. **逐项核对合理化表左列**（上方"审查纪律自检 → 合理化表"）——检查自己是否计划跳过某步骤、是否计划缩减审查范围、是否计划以轮次为由加速。如匹配任一行 → 立即按右列纠正。
+4. **逐项核对 Red Flags 自检清单**（上方"审查纪律自检 → Red Flags 自检清单"），确认每个 Step 的执行前提条件满足。
+5. **子 Agent prompt 完整性**：每个审查 Agent prompt 含 Step 1 完整性指令？→ 不含 → 补注后启动
+6. 自检完成后，在审查报告中记录: `[ANTI_LAZINESS_SELF_CHECK] round=<N>, passed=true`
 
 **违规检测（主 Agent 检查子 Agent 报告完整性）**: 主 Agent 在 Step 2 合并时，逐章/逐文件检查每个审查 Agent 的报告是否覆盖了审查对象的全部内容。发现章节/文件遗漏 → 该 Agent 的报告标记为不完整，要求该 Agent 补充审查遗漏部分后再进入合并流程。**注意**：子 Agent 不会故意偷懒（干净上下文），但可能因 prompt 中审查对象描述不完整而遗漏章节——主 Agent 的违规检测是捕获这类遗漏的最后防线。
 
@@ -665,7 +665,7 @@ Step 5（加强审查子路径为 Step 2）完成后，主 Agent **必须**计�
 
 ### 与 Step 5 的关系
 
-Step 5 检查本轮修复质量（单轮范围），最终通读 Gate 检查跨轮累积一致性（全局范围）。在多轮审查的最后一轮，Step 5 和最终通读 Gate 先后执行，Step 5 先（本轮修复验证），最终通读 Gate 后（全局一致性检查）。单轮审查中，Step 5 完成后立即执行最终通读 Gate，两者的检查维度互补（Step 5 检查问题修复情况，最终通读检查全文一致性）。
+Step 5 检查本轮修复质量（单轮范围），最终通读 Gate 检查跨轮累积一致性（全局范围）。在多轮审查的最后一轮，Step 5 和最终通读 Gate 先后执行，Step 5 先（本轮修复验证），最终通读 Gate 后（全局一致性检查）。单轮审查中，Step 5 完成后立即执行最终通读 Gate。
 
 ### 触发时机
 
