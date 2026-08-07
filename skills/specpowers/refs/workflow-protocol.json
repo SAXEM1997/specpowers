@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "kind": "specpowers",
+  "name": "specpowers",
+  "goal": "SDD+TDD 工程化开发方法论：Phase 0-4 全流程 + Gate Token 产物依赖链。",
+  "nodes": [
+    {"id": "phase0", "label": "Phase 0: 需求澄清与设计", "skill": "specpowers:specpowers-design", "gate": 0, "outputs": ["clarifications.v1", "design-doc.v1"], "skipIf": null, "pausePoints": ["PP-01", "PP-02"]},
+    {"id": "phase1", "label": "Phase 1: OpenSpec 格式转换", "skill": "specpowers:specpowers-design", "gate": 1, "outputs": ["openspec-change.v1"], "skipIf": ".superpowers/.phase1-skipped", "pausePoints": ["PP-03", "PP-04"]},
+    {"id": "phase2", "label": "Phase 2: 衔接计划", "skill": "specpowers:specpowers-plan", "gate": 2, "outputs": ["plan.v1"], "skipIf": null, "pausePoints": ["PP-05"]},
+    {"id": "phase3", "label": "Phase 3: 子代理 TDD 实现", "skill": "specpowers:specpowers-apply", "gate": 3, "outputs": ["implementation.v1"], "skipIf": null, "pausePoints": ["PP-06", "PP-07", "PP-08"]},
+    {"id": "phase4", "label": "Phase 4: 验证与归档", "skill": "specpowers:specpowers-archive", "gate": null, "outputs": ["archive.v1"], "skipIf": null, "pausePoints": [], "hardGateChain": ["full-test", "openspec-validate", "opsx-archive", "integrity-verify"]}
+  ],
+  "outputSchemas": {
+    "clarifications.v1": {"artifacts": ["docs/superpowers/clarifications/<name>.md"]},
+    "design-doc.v1": {"artifacts": ["docs/superpowers/specs/<name>-design.md"]},
+    "openspec-change.v1": {"artifacts": ["openspec/changes/<name>/proposal.md", "openspec/changes/<name>/design.md", "openspec/changes/<name>/specs/", "openspec/changes/<name>/tasks.md"], "skipArtifact": ".superpowers/.phase1-skipped"},
+    "plan.v1": {"artifacts": ["docs/superpowers/plans/<name>.md"]},
+    "implementation.v1": {"artifacts": [], "evidence": ["git-committed"]},
+    "archive.v1": {"artifacts": ["openspec/changes/archive/<name>/"], "skipArtifact": ".superpowers/.phase1-skipped"}
+  },
+  "state": {"path": ".superpowers/state.json", "gateTokenDir": ".superpowers/", "gateTokenPrefix": ".gate-passed-"}
+}
