@@ -1,0 +1,28 @@
+id: mode-routing-medium
+title: 中等任务路由——多文件功能开发应识别为中等模式
+description: |
+  用户使用 SDD+TDD 工作流触发 specpowers，描述一个涉及 8 个文件的中等任务。
+  入口技能应将其判定为「中等任务」，从 Phase 0 开始完整 SDD+TDD 流程。
+
+input:
+  prompt: |
+    我要用 SDD+TDD 工作流开发一个新的用户认证模块，涉及以下变更：
+    - 数据库迁移脚本
+    - 用户模型
+    - 认证中间件
+    - API 端点（登录/注册/刷新）
+    - 前端登录表单
+    - 前端注册表单
+    - 单元测试
+    - 集成测试
+    总共约 8 个文件，需要跨模块协作。请评估执行模式。
+
+expect:
+  must_contain:
+    - "中等"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["中等", "Phase 0", "design"]

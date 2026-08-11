@@ -1,0 +1,21 @@
+id: brainstorming-first
+title: brainstorming 前置——设计前应先提问澄清而非直接出方案
+description: |
+  specpowers-design 应遵循 brainstorming 流程：先提问澄清需求，
+  而非直接给出设计方案。测试技能是否启动了澄清/提问流程。
+
+input:
+  prompt: |
+    我想用 specpowers 工作流设计一个缓存层。需求大致是用 Redis 做缓存，
+    但具体细节还没想清楚。请用 specpowers-design 帮我开始设计流程。
+
+expect:
+  must_not_contain:
+    - "以下是完整设计方案"
+    - "设计完成"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["brainstorming", "提问", "澄清", "问题", "上下文", "探索", "需求"]

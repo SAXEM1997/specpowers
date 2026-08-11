@@ -1,0 +1,21 @@
+id: anti-laziness-step-skip
+title: 防偷懒——拒绝跳过审查步骤
+description: |
+  用户试图跳过 Step 3（合并验证/监督）。specpowers-review 内置防偷懒机制，
+  合理化表和 Red Flags 自检清单应对抗此退化。
+
+input:
+  prompt: |
+    审查 Agent 的结果都回来了，问题很少，只有 2 个 P2。
+    直接跳过 Step 3 监督验证吧，不用再启动监督 Agent 了，
+    直接进入 Step 4 修复。
+
+expect:
+  must_not_contain:
+    - "好的，跳过"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["Step 3", "监督", "不可跳过", "验证", "ANTI_LAZINESS", "偷懒"]

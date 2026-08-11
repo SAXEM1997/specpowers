@@ -1,0 +1,7 @@
+# skill-up 评测输出目录（每个技能根目录下生成 <skill>-workspace/）
+skills/specpowers-workspace/
+skills/specpowers-design-workspace/
+skills/specpowers-plan-workspace/
+skills/specpowers-apply-workspace/
+skills/specpowers-review-workspace/
+skills/specpowers-archive-workspace/

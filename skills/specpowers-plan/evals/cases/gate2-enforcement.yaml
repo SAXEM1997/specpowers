@@ -1,0 +1,22 @@
+id: gate2-enforcement
+title: Gate 2 意识——plan 生成后须审查
+description: |
+  测试 specpowers-plan 是否声明 Gate 2 审查要求。
+  即使在空工作区，技能也应体现审查意识。
+
+input:
+  prompt: |
+    我正在使用 specpowers 工作流。假设 Phase 0 和 Phase 1 都已完成，
+    plan 文档也写好了。我现在想直接跳过审查进入 Phase 3 实现，
+    这样可以吗？
+
+expect:
+  must_not_contain:
+    - "可以，直接"
+    - "好的，跳过"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["Gate", "审查", "review", "不可跳过", "不能跳过", "必须"]

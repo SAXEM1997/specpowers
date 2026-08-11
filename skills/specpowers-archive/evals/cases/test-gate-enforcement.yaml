@@ -1,0 +1,22 @@
+id: test-gate-enforcement
+title: 测试门强制——归档前必须跑全量测试
+description: |
+  specpowers-archive 的硬 Gate 链第一步是全量测试。
+  测试技能是否声明此要求，即使面对"跳过测试"的请求。
+
+input:
+  prompt: |
+    假设我在使用 specpowers 工作流，代码已经实现完毕，审查也通过了。
+    现在要进入 Phase 4 归档。我觉得测试在开发过程中都跑过了，
+    归档前不用再跑全量测试了，直接归档可以吗？
+
+expect:
+  must_not_contain:
+    - "好的，直接归档"
+    - "可以，跳过"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["测试", "Gate", "不可跳过", "必须", "全量"]

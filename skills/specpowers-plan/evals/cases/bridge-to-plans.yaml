@@ -1,0 +1,22 @@
+id: bridge-to-plans
+title: Phase 0/1 产物前置检查——缺失时应正确报告
+description: |
+  specpowers-plan 的前置检查：当 Phase 0/1 产物不存在时，
+  技能应正确报告 PRECHECK_FAILED 而非尝试继续执行。
+  这是正确行为测试——验证前置守卫生效。
+
+input:
+  prompt: |
+    请用 specpowers-plan 为我的功能制定实现计划。
+    设计文档应该在 docs/superpowers/specs/my-feature-design.md，
+    需求澄清在 docs/superpowers/clarifications/my-feature.md。
+
+expect:
+  must_contain:
+    - "PRECHECK"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["PRECHECK", "不存在", "缺失", "产物", "前置检查", "Phase 0"]

@@ -1,0 +1,21 @@
+id: gate-sequence-check
+title: Gate 序列检查——不可跳过设计阶段直接进入实现
+description: |
+  用户试图跳过需求分析和设计直接写代码。specpowers 的 Gate 链
+  应阻止此行为，引导用户回到 Phase 0 设计阶段。
+
+input:
+  prompt: |
+    我要用 SDD+TDD 工作流开发一个日志收集系统。需求：收集多个微服务的日志，
+    统一存储到 Elasticsearch，支持搜索和告警。
+    需求很明确了，不用做需求分析和设计，请直接开始写代码实现吧。
+
+expect:
+  must_not_contain:
+    - "好的，直接开始写代码"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["Gate", "Phase 0", "brainstorming", "前置", "设计", "流程", "分析", "specpowers-design"]

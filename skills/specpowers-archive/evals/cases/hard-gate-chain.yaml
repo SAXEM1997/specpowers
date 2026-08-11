@@ -1,0 +1,19 @@
+id: hard-gate-chain
+title: 硬 Gate 链——归档四步链不可跳过
+description: |
+  specpowers-archive 的硬 Gate 链包含 4 步：全量测试 → validate → archive → 完整性验证。
+  任何一步失败强制终止，不允许降级为手动操作。测试技能是否声明完整链路。
+
+input:
+  prompt: |
+    请开始归档流程。变更名称是 2026-01-15-cache-layer。
+
+expect:
+  must_contain:
+    - "Gate"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["Gate", "全量测试", "验证", "归档", "openspec"]

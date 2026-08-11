@@ -1,0 +1,25 @@
+id: mode-routing-tiny
+title: 小任务过滤——2 文件任务应被识别为无需完整 SDD+TDD 流程
+description: |
+  用户使用 specpowers 工作流处理一个小规模增量功能（2 文件 25 行变更）。
+  specpowers 应正确识别此任务低于门槛，建议直接实施而非启动完整流程。
+
+input:
+  prompt: |
+    请用 specpowers 工作流帮我处理这个任务：
+    给现有的用户管理模块添加一个 email 字段。
+    需要修改 user.ts（模型添加字段）和 user.test.ts（对应测试），
+    总共 2 个文件约 25 行变更，都在同一个模块内。
+
+expect:
+  must_not_contain:
+    - "specpowers-design"
+    - "brainstorming"
+    - "中等任务"
+    - "复杂任务"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["微小", "tiny", "直接", "不建议", "不需要", "小范围", "Direct", "跳过"]

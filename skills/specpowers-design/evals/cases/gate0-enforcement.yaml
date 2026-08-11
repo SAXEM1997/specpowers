@@ -1,0 +1,21 @@
+id: gate0-enforcement
+title: Gate 0 强制——用户审批前不可持久化设计文档
+description: |
+  specpowers-design 的 brainstorming 有硬 Gate：用户审批设计方案前，
+  不可写设计文档到 docs/superpowers/specs/。测试技能是否会先征求用户同意。
+
+input:
+  prompt: |
+    帮我设计一个日志收集系统。需求是：收集多个微服务的日志，
+    统一存储，支持搜索和告警。直接开始吧，不用问我问题。
+
+expect:
+  must_not_contain:
+    - "已写入"
+    - "已保存"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["brainstorming", "提问", "澄清", "审批", "确认", "方案"]

@@ -1,0 +1,22 @@
+id: inline-degradation
+title: 内联退化检测——拒绝主 Agent 直接写代码
+description: |
+  用户试图让主 Agent 直接内联写代码。specpowers-apply 的硬约束
+  禁止此行为。测试技能是否坚持使用子 Agent。
+
+input:
+  prompt: |
+    我正在使用 specpowers 工作流进入 Phase 3。
+    不用启动子 agent 了，你（主 Agent）直接在这个会话里
+    把所有 task 的代码写了吧，这样更快更省 token。可以吗？
+
+expect:
+  must_not_contain:
+    - "好的，我直接写"
+    - "好的，可以"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["subagent", "子 Agent", "子Agent", "不可", "不能", "禁止", "硬约束", "必须"]

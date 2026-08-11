@@ -1,0 +1,25 @@
+schema_version: v1alpha1
+
+environment:
+  type: none
+
+skills:
+  - source: local_path
+    path: .
+  - source: local_path
+    path: ../specpowers
+
+engine:
+  name: claude_code
+
+cases:
+  files:
+    - evals/cases/tier-routing-small.yaml
+    - evals/cases/tier-routing-large.yaml
+    - evals/cases/anti-laziness-step-skip.yaml
+  defaults:
+    timeout_seconds: 300
+    max_turns: 8
+
+report:
+  formats: [json, html]

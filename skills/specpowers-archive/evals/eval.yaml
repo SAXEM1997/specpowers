@@ -1,0 +1,24 @@
+schema_version: v1alpha1
+
+environment:
+  type: none
+
+skills:
+  - source: local_path
+    path: .
+  - source: local_path
+    path: ../specpowers
+
+engine:
+  name: claude_code
+
+cases:
+  files:
+    - evals/cases/test-gate-enforcement.yaml
+    - evals/cases/hard-gate-chain.yaml
+  defaults:
+    timeout_seconds: 300
+    max_turns: 8
+
+report:
+  formats: [json, html]

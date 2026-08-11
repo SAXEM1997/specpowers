@@ -1,0 +1,21 @@
+id: tier-routing-large
+title: 大规模代码审查路由——应识别为完整审查
+description: |
+  specpowers-review 的 tier 路由：复杂规模（20+ 文件）代码变更
+  应路由到「完整」审查层级。测试路由决策的知识而非实际审查执行。
+
+input:
+  prompt: |
+    我在用 specpowers-review 做代码审查。假设有一批变更涉及 25 个文件、
+    约 1500 行修改，是认证模块的整体重构。根据 specpowers-review 的
+    路由矩阵，这应该用什么审查层级？关键审查还是完整审查？
+
+expect:
+  must_contain:
+    - "完整"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["完整", "full", "UltraReview"]

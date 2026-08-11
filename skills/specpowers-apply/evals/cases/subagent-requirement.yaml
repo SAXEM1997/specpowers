@@ -1,0 +1,21 @@
+id: subagent-requirement
+title: subagent 强制——实现阶段必须使用子 Agent
+description: |
+  specpowers-apply 的硬约束：Phase 3 必须使用 subagent-driven-development。
+  测试技能是否声明此执行模式要求。
+
+input:
+  prompt: |
+    我正在使用 specpowers 工作流，即将进入 Phase 3 实现阶段。
+    plan 包含 6 个独立的 task。请问 specpowers-apply 的执行方式是什么？
+    是主 Agent 直接写代码还是有其他要求？
+
+expect:
+  must_contain:
+    - "subagent"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["subagent", "子 Agent", "子Agent", "subagent-driven"]
