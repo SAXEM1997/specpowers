@@ -117,8 +117,8 @@ Phase 4: 验证 + 归档
 | **Claude Code** | 运行环境 | `claude --version` |
 | **OpenSpec CLI** | SDD 规范管理 | `openspec --version` |
 | **Superpowers** | TDD 技能组 | `/skills` 包含 `superpowers:*` |
-| **GitNexus** (可选) | 代码知识图谱 | MCP `gitnexus_query` |
-| **Understand-Anything** (可选) | 架构分析 | `/understand` 命令 |
+| **CodeGraph** (可选) | 代码知识图谱 | 仓库根 `.codegraph/` 目录 / MCP `codegraph_explore` |
+| **Graphify** (可选) | 多模态知识图谱（架构理解） | `/graphify` 命令 |
 
 ### 安装 specpowers
 

@@ -82,8 +82,8 @@ specpowers (入口, 决策模式+路由+状态机)
 |------|------|---------|
 | **OpenSpec CLI** | SDD 规范管理 | `openspec --version` |
 | **Superpowers** | TDD 技能组 | `/skills` 列表中包含 `superpowers:*` |
-| **GitNexus** (MCP) | 代码知识图谱 | MCP `gitnexus_query` 可用 |
-| **Understand-Anything** | 架构分析 | `/understand` 命令可用 |
+| **CodeGraph** | 代码知识图谱 | 仓库根 `.codegraph/` 目录存在 / MCP `codegraph_explore` 可用 |
+| **Graphify** | 多模态知识图谱（架构理解） | `/graphify` 命令可用 |
 
 ## 注意事项
 

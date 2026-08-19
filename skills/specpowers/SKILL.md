@@ -223,8 +223,8 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 |------|------|---------|------|
 | **OpenSpec** | SDD | `openspec --version` | ✅ |
 | **Superpowers** | TDD | `/skills` 含 `superpowers:*` | ✅ |
-| **GitNexus** | AI 代码图谱 | MCP `mcp__gitnexus__query` | ⚠️ |
-| **Understand-Anything** | 架构图 | `/understand` | ⚠️ |
+| **CodeGraph** | 代码知识图谱 | 仓库根存在 `.codegraph/` 目录（MCP `codegraph_explore` / shell `codegraph explore`） | ⚠️ |
+| **Graphify** | 多模态知识图谱（代码+文档，架构理解） | `/graphify` 命令可用 | ⚠️ |
 | **TEST_COMMAND** | 全量测试 | 项目实际测试命令（见下方） | ⚠️ 需手动配置 |
 | **Node.js** | 状态机脚本 | `node --version`（≥18） | ✅（脚本依赖；缺失时回退到 Phase 自动检测，状态机功能不可用） |
 
@@ -256,8 +256,8 @@ master (main) ← 始终可部署
 
 | 工具 | Phase 1 | Phase 3 修改前 | Phase 3 commit 前 | Phase 4 |
 |------|---------|-------------|------------------|---------|
-| **GitNexus** | `query` 理解代码 | `impact` 影响分析 | `detect_changes` 验证 | `detect_changes` 确认 |
-| **Understand-Anything** | `/understand` 架构图 | — | — | 更新图谱 |
+| **CodeGraph** | `codegraph_explore` 理解代码（符号源码+调用路径） | `codegraph_explore` 影响分析（含 blast radius 受影响调用方） | —（file watcher 自动同步图谱，无需手动命令） | `codegraph_explore` 复查关键符号依赖 |
+| **Graphify** | `/graphify` 构建图谱 + `/graphify explain` 理解架构 | — | — | `/graphify` 重建/更新图谱（可提交团队共享） |
 
 ## Pre-Flight Check
 
