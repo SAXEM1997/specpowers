@@ -3,12 +3,16 @@
 // 零外部依赖（纯 Node.js 标准库）。cwd = 项目根。state.json 只是索引——gate 文件（token）是最终裁判。
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const STATE_PATH = '.superpowers/state.json';
 const TOKEN_DIR = '.superpowers';
 const TOKEN_PREFIX = '.gate-passed-';
-const PROTOCOL_PATH = 'skills/specpowers/refs/workflow-protocol.json';
+// 技能资产（refs/）按脚本自身位置解析——项目内安装与 plugins cache 加载均成立；cwd 旧路径仅兜底
+const SELF_DIR = dirname(fileURLToPath(import.meta.url));
+const PROTOCOL_SELF = join(SELF_DIR, '..', 'refs', 'workflow-protocol.json');
+const PROTOCOL_PATH = existsSync(PROTOCOL_SELF) ? PROTOCOL_SELF : 'skills/specpowers/refs/workflow-protocol.json';
 const PHASES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase4'];
 
 function readJson(p) {
@@ -165,6 +169,12 @@ function cmdNext() {
     return;
   }
   const protocol = readProtocol();
+  // protocol 不可读时显式降级为 manual——停顿点判定依赖 protocol，静默继续会跳过用户决策确认（NEXT: auto 恒真）
+  if (!protocol) {
+    console.log('PROTOCOL_MISSING（refs/workflow-protocol.json 不存在或损坏——技能资产加载失败，停顿点与路由判定不可靠）');
+    console.log(`NEXT: manual\nSKILL: (待定——先修复 protocol 加载)\nPHASE: ${st.data.currentPhase || 'phase0'}\nREASON: PROTOCOL_MISSING`);
+    return;
+  }
   const completed = st.data.completedPhases || [];
   const clear = () => writeState({ ...st.data, blockedReason: null });
   // 1) blocked：completedPhases 记录但 gate 文件缺失/name 不匹配

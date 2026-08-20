@@ -4,12 +4,16 @@
 // 检查矩阵硬编码（gate 文件 + name 匹配）；产物路径/skipIf 从 protocol.json 读取；git 检查（phase3/4）由本脚本承担。
 import { execSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const STATE_PATH = '.superpowers/state.json';
 const TOKEN_DIR = '.superpowers';
 const TOKEN_PREFIX = '.gate-passed-';
-const PROTOCOL_PATH = 'skills/specpowers/refs/workflow-protocol.json';
+// 技能资产（refs/）按脚本自身位置解析——项目内安装与 plugins cache 加载均成立；cwd 旧路径仅兜底
+const SELF_DIR = dirname(fileURLToPath(import.meta.url));
+const PROTOCOL_SELF = join(SELF_DIR, '..', 'refs', 'workflow-protocol.json');
+const PROTOCOL_PATH = existsSync(PROTOCOL_SELF) ? PROTOCOL_SELF : 'skills/specpowers/refs/workflow-protocol.json';
 const PHASES = ['phase0', 'phase1', 'phase2', 'phase3', 'phase4'];
 
 function readJson(p) {
@@ -49,7 +53,8 @@ function gitLog(n) {
 
 function checkPhase(phaseId, name) {
   const protocol = readProtocol();
-  const node = (protocol?.nodes || []).find((x) => x.id === phaseId);
+  if (!protocol) return { missing: ['protocol.json 加载失败（refs/workflow-protocol.json 不存在或损坏）——gate/产物检查无法执行'], node: null };
+  const node = (protocol.nodes || []).find((x) => x.id === phaseId);
   if (!node) return { missing: [`未知 phaseId: ${phaseId}（protocol.json 无此节点）`], node: null };
   if (!name) {
     // name 无法解析时降级：输出 GUARD: fail 而非 TypeError 崩溃

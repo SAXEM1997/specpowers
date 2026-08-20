@@ -1,5 +1,6 @@
 # specpowers 可选 hooks 模板（bundled resource）
 # ⚠️ 默认不注册——必须复制到 .claude/settings.json 才生效，不会因技能加载自动生效。
+# 注：command 中 skills/specpowers/ 为技能基目录——项目内安装即原样可用；从 plugins cache 加载时需替换为实际 Base directory（hook command 在项目 cwd 执行，不会自动解析插件缓存路径）。
 # ⚠️ 本仓库已安装 comet-hook-router（PreToolUse Write|Edit，fail-closed）——
 #    启用前先处理互斥（由 router 统一承载或显式停用 router）；一次写入事件最多进入一个 workflow Guard。
 hooks:

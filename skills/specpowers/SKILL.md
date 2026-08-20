@@ -46,6 +46,8 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 
 ## 启动协议
 
+> **脚本路径解析（全技能组通用）**：本技能组可能从项目内（`skills/specpowers/`）或 plugins cache（插件缓存目录）加载。所有 `node skills/specpowers/scripts/<script>` 指令中，`skills/specpowers/` 指技能基目录——以加载技能时看到的 Base directory 为准替换（如 `~/.claude/plugins/cache/<marketplace>/<plugin>/<hash>/skills/specpowers/`）。脚本内部对 refs/ 技能资产按自身位置解析（不依赖 cwd）；`.superpowers/` 等项目状态路径仍相对应用项目根（cwd）。
+
 ### Step 0：语义化意图检测（每次启动/恢复/压缩后执行）
 
 1. **判定当前 Phase**：运行 `node skills/specpowers/scripts/workflow-state.mjs status`。
