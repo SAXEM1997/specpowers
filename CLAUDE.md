@@ -46,7 +46,7 @@ specpowers (入口, 决策模式+路由+状态机)
 5. **硬 Gate 链不可跳过**: Phase 4 的四步 Gate（全量测试 → validate → archive → 完整性验证）任一失败强制终止，不允许降级为手动操作。Phase 0-3 各 Gate 通过 Gate Token 产物依赖链强制——`[GATE_PASSED]` 标记 + `.gate-passed-<N>` 文件（含 name 绑定）+ 入口验证 3（收敛判定完整性）+ 4 子技能前置检查 + Phase 自动检测 Gate 维度。
 6. **执行模式硬约束**: Phase 3 必须使用 `subagent-driven-development`（每个 task 独立子 Agent），禁止主 Agent 内联串行执行。specpowers-apply 内置执行模式路由表 + 合理化表 + 违规检测机制对抗长上下文下的内联退化。
 7. **审查防退化机制**: specpowers-review 内置三层防退化防御——审查纪律自检（合理化表 + Red Flags）、多轮审查防偷懒协议（主 Agent 自检）、审查层级边界（两层边界原则——分析不受限，评论受限制）。收敛判定从 advisory 升级为默认继续制（`[CONVERGENCE_CHECK]` 强制标记 + review 内部循环 + 用户干预窗口）。修复阶段默认全量修复 P0-P3（子Agent逐条分析），同文件不并发硬约束防止编辑冲突。
-8. **状态机主导 + hooks 默认 off**: 入口启动协议融合 Decision Core——`node skills/specpowers/scripts/workflow-state.mjs status` 状态机先行判定 Phase，`.gate-passed-<N>` 文件（name 绑定）最终裁决，Phase 自动检测降级为回退路径；4 个子技能（design/plan/apply/archive）Gate 出口调 `workflow-guard.mjs exit <phase> --apply`（token 先写、guard 后调，子技能为唯一责任方）；hooks 默认不注册（模板在 scripts/，启用需显式复制到 .claude/settings.json，与 comet-hook-router 互斥）。微小任务豁免（不 init 状态机，保留轻量行为）。
+8. **状态机主导 + hooks 默认 off**: 入口启动协议融合 Decision Core——`node <SKILL_BASE>/scripts/workflow-state.mjs status`（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）状态机先行判定 Phase，`.gate-passed-<N>` 文件（name 绑定）最终裁决，Phase 自动检测降级为回退路径；4 个子技能（design/plan/apply/archive）Gate 出口调 `workflow-guard.mjs exit <phase> --apply`（token 先写、guard 后调，子技能为唯一责任方）；hooks 默认不注册（模板在 scripts/，启用需显式复制到 .claude/settings.json，与 comet-hook-router 互斥）。微小任务豁免（不 init 状态机，保留轻量行为）。
 
 ## 开发工作流
 

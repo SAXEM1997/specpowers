@@ -7,7 +7,7 @@ description: Use when the user says "plan the implementation", "bridge OpenSpec 
 # specpowers-plan: 衔接阶段
 
 > **前置检查（必须执行，不可跳过）**: 
-> 1. 确认 specpowers 入口 skill 的全局规则（GitFlow/Checklist/Pitfalls）已在当前会话上下文中可用。如未加载，先 `Skill({skill: "specpowers:specpowers"})` 获取决策树和全局规则。等待加载完成后继续。
+> 1. 执行 `Skill({skill: "specpowers:specpowers"})` 加载入口 skill，获取决策树和全局规则（GitFlow/Checklist/Pitfalls）。等待加载完成后继续。
 > 2. 确认 `docs/superpowers/specs/<name>-design.md` 和 `docs/superpowers/clarifications/<name>.md` 存在（由 specpowers-design 产出）。如不存在，输出 `[PRECHECK_FAILED] Phase 0/1 产物缺失，请先运行 specpowers-design`。
 > 3. 如 `openspec/changes/<name>/` 不存在，OpenSpec 已跳过——以 design doc + clarifications 作为 Phase 2 writing-plans 唯一输入。
 > 4. 检查 `docs/superpowers/plans/<name>.md` 是否已存在——若已存在，询问用户"plan 已存在，是否重新生成？（默认跳过，避免覆盖）"，用户确认跳过则直接进入后续（不重跑 writing-plans）。这是防御 Phase 自动检测行序错误的纵深保护。
@@ -61,7 +61,8 @@ description: Use when the user says "plan the implementation", "bridge OpenSpec 
 Gate 2 返回后，执行 Gate 返回后验证协议（参数: Gate=2, Phase=2）。
 
 验证链通过后（token 已写入 `.superpowers/.gate-passed-2`），执行节点出口守卫（中等+）：
-node skills/specpowers/scripts/workflow-guard.mjs exit phase2 --apply
+node <SKILL_BASE>/scripts/workflow-guard.mjs exit phase2 --apply
+（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）
 
 **OpenSpec 跳过场景适配**: 如 openspec/changes/<name>/ 不存在（Phase 1 已跳过），Phase 2 writing-plans 衔接时使用以下简化输入集：
 - docs/superpowers/specs/<name>-design.md

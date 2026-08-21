@@ -15,6 +15,7 @@ cases:
     - evals/cases/mode-routing-tiny.yaml
     - evals/cases/mode-routing-medium.yaml
     - evals/cases/gate-sequence-check.yaml
+    - evals/cases/mode-routing-tiny-incremental.yaml
   defaults:
     timeout_seconds: 300
     max_turns: 8

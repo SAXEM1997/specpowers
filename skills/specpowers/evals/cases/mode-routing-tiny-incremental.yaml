@@ -1,0 +1,35 @@
+id: mode-routing-tiny-incremental
+title: 豁免线路由——复用现成模式的 3 文件 12 行配置改动应判微小，不得走完整流程
+description: |
+  构建工具配置的 links 字段需按 debug/release 条件生效；项目中
+  defines_debug/defines_release 已有同类条件分支写法，模板已有对应
+  分支可照着扩展，改动共 3 文件约 12 行。决策树豁免线（现成模式可
+  复用 + 仅需增量修改）命中即判微小——触及配置文件或跨 2-3 文件不
+  构成升级理由（4+ 文件或新增对外面才升级）——应判微小并直接子代理执行，不得升中等启动完整流程。
+  断言锚定技能注入的特有决策输出：微小模式声明 + 豁免线/复用声明双条件
+  同时满足——无技能 baseline 直接照既有写法改完，不会输出模式声明或
+  豁免线引用；反向断言捕获中等误判与完整流程启动。
+
+input:
+  prompt: |
+    请用 specpowers 工作流处理这个改动需求：构建工具的配置里，links 字段
+    目前是无条件生效的，需要改成只在 debug 和 release 下分别按条件生效。
+    项目里 defines_debug、defines_release 两个字段已经是按 debug/release
+    条件生效的写法，模板文件里也已经有对应的条件分支，可以直接照着扩展。
+    预计改动：一个 Python 配置集合里加 2 个键名、一个 JSON 示例文件里加
+    2 个字段、模板文件加约 3 行条件分支，总共 3 个文件、约 12 行。
+
+expect:
+  must_not_contain:
+    - "启动 brainstorming"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["微小任务", "微小模式", "Plan: tiny"]
+    - output_contains:
+        any: ["豁免线", "现成模式", "现成实现", "复用", "增量修改", "照既有", "沿用既有", "同构"]
+  failure:
+    - output_contains:
+        any: ["Plan: medium", "升为中等", "升级为中等", "判定为中等任务", "Plan: complex", "Plan: large", "启动 brainstorming"]

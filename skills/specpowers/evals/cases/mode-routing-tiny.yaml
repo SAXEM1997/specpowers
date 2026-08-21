@@ -1,8 +1,11 @@
 id: mode-routing-tiny
-title: 小任务过滤——2 文件任务应被识别为无需完整 SDD+TDD 流程
+title: 模式路由（微小）——2 文件 25 行任务应输出微小模式声明并直接子代理执行
 description: |
-  用户使用 specpowers 工作流处理一个小规模增量功能（2 文件 25 行变更）。
-  specpowers 应正确识别此任务低于门槛，建议直接实施而非启动完整流程。
+  用户使用 specpowers 工作流处理 2 文件 25 行的单模块增量功能。
+  技能应在决策树中判定为「微小任务」并显式输出模式声明，跳过完整
+  Phase 0-4 流程。断言锚定技能注入的特有决策输出（微小任务/tiny 模式
+  声明）：无技能 baseline 直接改代码，不会输出模式声明，也不会启动
+  brainstorming 等完整流程动作。
 
 input:
   prompt: |
@@ -13,13 +16,13 @@ input:
 
 expect:
   must_not_contain:
-    - "specpowers-design"
-    - "brainstorming"
-    - "中等任务"
-    - "复杂任务"
+    - "启动 brainstorming"
 
 judge:
   type: rule_based
   success:
     - output_contains:
-        any: ["微小", "tiny", "直接", "不建议", "不需要", "小范围", "Direct", "跳过"]
+        any: ["微小任务", "微小模式", "Plan: tiny"]
+  failure:
+    - output_contains:
+        any: ["Plan: medium", "升为中等", "升级为中等", "判定为中等任务", "Plan: complex", "Plan: large"]

@@ -7,7 +7,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 # specpowers-design: 设计+propose 阶段
 
 > **前置检查（必须执行，不可跳过）**: 
-> 1. 确认 specpowers 入口 skill 的全局规则（GitFlow/Checklist/Pitfalls）已在当前会话上下文中可用。如未加载，先 `Skill({skill: "specpowers:specpowers"})` 获取决策树和全局规则。等待加载完成后继续。
+> 1. 执行 `Skill({skill: "specpowers:specpowers"})` 加载入口 skill，获取决策树和全局规则（GitFlow/Checklist/Pitfalls）。等待加载完成后继续。
 > 2. 确认当前任务模式（Plan: <mode>）。如为微小任务，仅做轻量上下文探索后终止本技能，不执行 Phase 0 完整流程。
 > 3. **Gate 0 确认（仅从 Phase 0 进入 Phase 1 时执行）**：搜索会话上下文中 `[GATE_PASSED] gate=0` 标记，或检查 `.superpowers/.gate-passed-0` 文件（`name=<当前任务>` 匹配）。两者都没有 → Phase 0 Gate 0 未执行，回 Phase 0 Step 0.6 完成 Gate 0 后再进入 Phase 1。Phase 0 起始不适用此项（Gate 0 在 Step 0.6 完成后才输出标记）。微小任务跳过此项（与验证 0 一致）。
 
@@ -63,7 +63,8 @@ description: Use when the user says "brainstorm this feature", "write the design
 
 **动作3 — 初始化状态机（中等+，微小跳过）**:
 非微小任务执行（name/mode 实参：动作 2 的 `<name>` + 会话上下文 `Plan: <mode>`）：
-node skills/specpowers/scripts/workflow-state.mjs init --name <name> --mode <mode>
+node <SKILL_BASE>/scripts/workflow-state.mjs init --name <name> --mode <mode>
+（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）
 mode 取值：medium（中等）/ complex（复杂）/ large（大规模）
 
 ### Step 0.4: 方案探讨 + 设计呈现
@@ -119,7 +120,8 @@ mode 取值：medium（中等）/ complex（复杂）/ large（大规模）
 Gate 0 返回后，执行 Gate 返回后验证协议（参数: Gate=0, Phase=0）。
 
 验证链通过后（token 已由 review 写入 `.superpowers/.gate-passed-0`），执行节点出口守卫（中等+；微小无 state.json，不调用）：
-node skills/specpowers/scripts/workflow-guard.mjs exit phase0 --apply
+node <SKILL_BASE>/scripts/workflow-guard.mjs exit phase0 --apply
+（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）
 
 ---
 
@@ -183,7 +185,8 @@ node skills/specpowers/scripts/workflow-guard.mjs exit phase0 --apply
 Gate 1 返回后，执行 Gate 返回后验证协议（参数: Gate=1, Phase=1）。
 
 验证链通过后（token 已写入 `.superpowers/.gate-passed-1`，或 `.superpowers/.phase1-skipped` 内容==name 豁免），执行节点出口守卫（中等+）：
-node skills/specpowers/scripts/workflow-guard.mjs exit phase1 --apply
+node <SKILL_BASE>/scripts/workflow-guard.mjs exit phase1 --apply
+（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）
 
 ---
 

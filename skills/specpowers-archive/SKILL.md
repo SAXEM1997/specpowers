@@ -50,6 +50,7 @@ else
     exit 1
 fi
 ```
+> **结果核查（原始输出）**: 判定本 Gate 通过/失败必须读测试命令的原始输出，不得以摘要代理输出为准——摘要工具（如 rtk）可能吞掉输出尾部的 `, N errors`/`FAILED` 后缀。输出尾部含 `N errors`/`FAILED` 或退出码非 0 → 一律视为失败，走 Gate 回退；不确定时用原始命令重跑或读完整输出文件。
 > **xmake 多 target 项目**: `xmake build` 使用默认构建规则；如项目有多个 target，需在 `TEST_COMMAND` 中显式指定（如 `TEST_COMMAND="xmake build <target> && xmake test"`）。
 > 如自动检测失败，在 specpowers entry skill 的 Pre-Flight Check 中手动定义 TEST_COMMAND。
 
@@ -70,22 +71,34 @@ openspec validate --change <name>
 
 **⚠️ GATE: 返回非 0 → 强制回 Phase 1（spec 修复）或 Phase 3（实现修复），不可跳过。**
 
-### Step 3: /opsx:archive（强制命令）
+### Step 3: 归档（强制步骤，默认 `/opsx:archive`）
 
 > **Phase 1 跳过分支**: 若 `.superpowers/.phase1-skipped` 存在 → 跳过本步骤（Phase 1 已跳过，无 OpenSpec change 可归档），直接进入 Step 4（此时 Step 4 仅验证 git commit 存在）。
 
-```bash
-# 仅在 .superpowers/.phase1-skipped 不存在时执行
-# <name> 由当前任务上下文获取，避免多活跃 change 时交互选择打断硬 Gate 链
+**环境检查（执行载体选择，入口称『载体降级链』）**: `/opsx:archive` 是斜杠命令（非 shell 命令），仅在本仓库 `.claude/commands/opsx/` 或 openspec 插件注册了该命令的会话中可用——不要假设应用项目中存在。可用性以当前会话实际可用的 slash command 列表为准，按降级链选择载体：
+1. 会话 slash command 列表含 `/opsx:archive`（或 openspec 插件等价命令）→ 用该命令执行
+2. 命令不可用 → 若**项目根**存在 `.claude/commands/opsx/archive.md`（dogfooding 本仓库或项目自带）→ Read 并按其定义步骤逐条执行（artifact/tasks 完成度检查 → delta sync 评估 → `mkdir -p archive` + `mv` 归档——等价完整流程，非裸 `mv`）；项目根无此文件（应用项目常见）→ 直接进入第 3 级
+3. 该文件不存在或不可读 → openspec CLI 直接执行 `openspec archive <name> -y`（-y 跳过交互确认，agent 非 TTY 场景必需；命令名以项目实际 openspec 安装为准）
+
+> 降级的是执行载体（哪个命令做归档），不是归档步骤本身——任一载体执行后，违规检测与 Gate 判定不变，本步骤不可跳过。
+> 第 3 级归档后若 git log 最近 commit 不含 `archive <name>`（openspec 自动 commit 消息格式可能不同），按 Step 4 的 commit 命令补一次 `chore: archive <name>`——guard exit phase4 的归档 commit 检查依赖此消息。
+
+通过会话 slash command 调用（非 shell 命令——不要在 bash 中执行）：
+
+```
 /opsx:archive <name>
 ```
 
-**禁止以下行为**:
-- ❌ 手动 `mv openspec/changes/<name>/ → archive/`
-- ❌ 手动编辑 `openspec/specs/` 合并 delta
-- ❌ 使用其他命令替代 `/opsx:archive`
+- 仅在 `.superpowers/.phase1-skipped` 不存在时执行
+- `<name>` 由当前任务上下文获取，避免多活跃 change 时交互选择打断硬 Gate 链
+- 命令不可用时按上方「环境检查（载体降级链）」选择等价载体
 
-**违规检测**: /opsx:archive 执行后，运行以下检查：
+**禁止以下行为**:
+- ❌ 手动 `mv openspec/changes/<name>/ → archive/`（降级链第 2 级的完整流程除外）
+- ❌ 手动编辑 `openspec/specs/` 合并 delta
+- ❌ 使用降级链之外的命令替代归档命令
+
+**违规检测**: 归档命令执行后（任一载体），运行以下检查：
 ```bash
 # 用 openspec status 获取实际归档路径（避免硬编码日期格式）
 ARCHIVE_PATH=$(openspec status --change <name> --json 2>/dev/null | grep -o '"archivePath":"[^"]*"' | cut -d'"' -f4)
@@ -103,7 +116,7 @@ echo "[PASS] 归档目录迁移完成: $ARCHIVE_PATH"
 ```
 > Windows 环境：`bash` 命令需 Git Bash 执行，或将 `test` 替换为 `if exist`（CMD）/ `Test-Path`（PowerShell）。
 
-**⚠️ GATE: /opsx:archive 失败 → Phase 4 终止，不允许手动绕过。**
+**⚠️ GATE: 归档失败（含降级链全部载体不可用）→ Phase 4 终止，不允许手动绕过。**
 
 ### Step 4: 归档完整性验证（自动执行）
 
@@ -146,7 +159,8 @@ git add openspec/ && (git diff --cached --quiet || git commit -m "chore: archive
 全部 PASS → 进入 Step 5。任一 FAIL → Phase 4 终止，人工介入。
 
 全部 PASS 后，执行节点出口守卫（中等+；微小模式无 state.json，跳过本技能不调用）：
-node skills/specpowers/scripts/workflow-guard.mjs exit phase4 --apply
+node <SKILL_BASE>/scripts/workflow-guard.mjs exit phase4 --apply
+（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）
 
 > **注**：guard 是 Step 4 检查的子集（覆盖检查 1 归档目录迁移 + 检查 4 归档 commit；检查 2/3 由本技能自身完成）。
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // specpowers token 校验 hook（PreToolUse，仅写 .superpowers/.gate-passed-* 时触发）
-// state.json 缺失（微小模式）→ fail-open + 警告（与设计文档决策 3 微小仍写 .gate-passed-3 一致）
+// state.json 缺失（微小模式）→ fail-open + 警告（与 kernel-fusion 设计文档决策 3 微小仍写 .gate-passed-3 一致）
 // state.json 存在 → 校验 name 绑定（token 内容必须含 name=<state.name>）
 // stdout JSON: {"decision": "approve"|"block", "reason": "..."}
 import { existsSync, readFileSync } from 'node:fs';

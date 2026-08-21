@@ -51,6 +51,7 @@ COMMIT -> git commit
 ```
 
 **规则: 测试未通过前不得编写实现代码；测试通过后方可提交。**
+**结果核查（原始输出）**: 判定测试通过/失败必须读测试命令的原始输出，不得以摘要代理输出为准——摘要工具（如 rtk）可能吞掉输出尾部的 `, N errors`/`FAILED` 后缀。输出尾部含 `N errors`/`FAILED` 或退出码非 0 → 一律视为失败；不确定时用原始命令重跑或读完整输出文件。
 **产出隔离**: 测试和验证阶段的产出保存到任务指定的输出目录。如任务为设计+测试而未要求实现，只写测试和设计文档，不修改项目源文件。
 
 **测试用例数指引**: 单文件 ≤ 5 用例（正常+边界+错误路径）；复杂功能每 scenario ≤ 2 用例。
@@ -92,7 +93,8 @@ BASE=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'); 
 > 执行入口 `specpowers:specpowers` SKILL.md「Gate 返回后验证协议（横切）」节（参数：Gate=3, Phase=3）。本 Gate 特化：Gate 3, Phase 3, **tiny 不跳过——仍跑 Gate 3 验证**（验证 0 所有模式均继续，与 design/plan 的 tiny 跳过策略不同）。
 
 **验证链通过后（中等+），执行节点出口守卫**（token 已由 review 写入 `.superpowers/.gate-passed-3`；微小模式无 state.json，不调 guard）：
-node skills/specpowers/scripts/workflow-guard.mjs exit phase3 --apply
+node <SKILL_BASE>/scripts/workflow-guard.mjs exit phase3 --apply
+（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）
 
 > **设计说明 — STEP_FINAL_READTHROUGH 不在此验证范围内**: 最终通读 Gate 是 specpowers-review 的内部横切 Gate，非 Phase 0-4 Gate 体系的组成部分。父技能仅验证 TIER_ROUTING.expected_steps 声明的 STEP 集，不跨边界验证 specpowers-review 的内部 Gate。
 

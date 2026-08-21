@@ -46,12 +46,12 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 
 ## 启动协议
 
-> **脚本路径解析（全技能组通用）**：本技能组可能从项目内（`skills/specpowers/`）或 plugins cache（插件缓存目录）加载。所有 `node skills/specpowers/scripts/<script>` 指令中，`skills/specpowers/` 指技能基目录——以加载技能时看到的 Base directory 为准替换（如 `~/.claude/plugins/cache/<marketplace>/<plugin>/<hash>/skills/specpowers/`）。脚本内部对 refs/ 技能资产按自身位置解析（不依赖 cwd）；`.superpowers/` 等项目状态路径仍相对应用项目根（cwd）。
+> **脚本路径解析（全技能组通用）**：本技能组可能从项目内（`skills/specpowers/`）或 plugins cache（插件缓存目录）加载。定义占位符 **`<SKILL_BASE>` = 技能基目录（加载本技能时显示的 Base directory；项目内安装即 `skills/specpowers/`，plugins cache 即插件缓存路径，如 `~/.claude/plugins/cache/<marketplace>/<plugin>/<hash>/skills/specpowers/`）**。下文所有 `node <SKILL_BASE>/scripts/...` 指令中的 `<SKILL_BASE>` 均须先替换再执行。脚本内部对 refs/ 技能资产按自身位置解析（不依赖 cwd）；`.superpowers/` 等项目状态路径仍相对应用项目根（cwd）。子技能（design/plan/apply/archive/review）被单独加载时，Base directory 显示的是子技能自身目录——`<SKILL_BASE>` 一律取**入口技能**基目录（即子技能目录的兄弟目录 `specpowers/`），不是当前加载技能的目录。
 
 ### Step 0：语义化意图检测（每次启动/恢复/压缩后执行）
 
-1. **判定当前 Phase**：运行 `node skills/specpowers/scripts/workflow-state.mjs status`。
-   - 未初始化 → 进入 Step 1（首次启动）；但存在 name-keyed 产物/token（如 docs/superpowers/ 下 name-keyed 产物（clarifications/plans 下的 <name>.md 文件）、`.superpowers/.gate-passed-*`）→ 提示 `init --resume-artifacts`（不按全新任务处理）；**微小任务忽略此提示**（微小不 init state.json，缺失属预期，见设计文档决策 3）
+1. **判定当前 Phase**：运行 `node <SKILL_BASE>/scripts/workflow-state.mjs status`。
+   - 未初始化 → 进入 Step 1（首次启动）；但存在 name-keyed 产物/token（如 docs/superpowers/ 下 name-keyed 产物（clarifications/plans 下的 <name>.md 文件）、`.superpowers/.gate-passed-*`）→ 提示 `init --resume-artifacts`（不按全新任务处理）；**微小任务忽略此提示**（微小不 init state.json，缺失属预期，见 kernel-fusion 设计文档决策 3）
    - 已初始化 → 读 currentPhase + completedPhases + 持久化阻塞原因（对应脚本契约 status 输出的 BLOCKED_REASON 字段）
    - 脚本失败/缺失 → 回退到「Phase 自动检测（回退路径）」表，扫产物文件推断
 2. **意图对齐**：从用户消息判定意图落点。意图超前 → 核对前序 Gate 文件，未过则回前序 Phase；意图回退 → `reset <phase>` 回退。
@@ -60,15 +60,15 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 ### Step 1：首次启动决策（只决策不 init）
 
 1. 决策树判定模式（微小/中等/复杂/大规模）
-2. `Plan: <mode>` 写入会话上下文。**首次启动只决策不 init**——init 延迟到 Phase 0 产出 name 后（Phase 0 Step 0.3 之后）执行：`node skills/specpowers/scripts/workflow-state.mjs init --name <name> --mode <mode>` 初始化 state.json
-3. 微小任务特判：豁免规则见设计文档决策 3（不创建 state.json，不走状态机，直接子代理执行）。微小任务跨会话恢复仍按原版产物 + 会话上下文推断，不走状态机（state.json 不存在属预期）
+2. `Plan: <mode>` 写入会话上下文。**首次启动只决策不 init**——init 延迟到 Phase 0 产出 name 后（Phase 0 Step 0.3 之后）执行：`node <SKILL_BASE>/scripts/workflow-state.mjs init --name <name> --mode <mode>` 初始化 state.json
+3. 微小任务特判：状态机豁免规则见 kernel-fusion 设计文档（docs/superpowers/specs/2026-08-06-kernel-fusion-design.md）决策 3（不创建 state.json，不走状态机，直接子代理执行；区别于决策树的豁免线——那条是模式判定规则）。微小任务跨会话恢复仍按原版产物 + 会话上下文推断，不走状态机（state.json 不存在属预期）
 4. 迁移分支：若产物已存在（如 clarifications/design.md）→ 提示 `init --resume-artifacts --mode <mode>` + `set-name <name>`（name 从产物目录推断或用户提供）（kernel 用户迁移：kernel 的 state.json 路径（`.comet/runs/specpowers-kernel/state.json`）与本脚本读取的 `.superpowers/state.json` 不同，需运行 `init --resume-artifacts` 重建；`.superpowers/.gate-passed-*` 通用，Gate 进度不丢失；已完成归档的 kernel 用户跳过 Phase 4 直接收尾，不重跑 /opsx:archive）
 5. 微小→中等升级分支：微小任务中途升为中等（如变更范围扩大触发运行时升级）→ 补 Phase 0 流程（产生 name 与 design.md）后执行 `init --name <name> --mode medium`（**用 init 而非 --resume-artifacts**，以便 currentPhase=phase0 从头走 Gate 0/1/2 审查）；微小已写的 `.gate-passed-3` 保留——升级后 Phase 3 由既有 token 自动跳过（**前提：微小 token 的 name= 与新 Phase 0 产出 name 完全匹配；不匹配时 next 会回到 Phase 3 重新审查**），Phase 1/2 需追溯补做
 
 ### Step 2：推进纪律
 
-- 节点流转：每完成一个 Phase，`node skills/specpowers/scripts/workflow-state.mjs next` 返回 `NEXT: <auto|blocked|manual|done>` + `SKILL: <Skill 工具全名，带 provider 前缀>` + `PHASE: <id>` + `REASON: <文本>`（auto 时 SKILL=下阶段技能；manual 时 SKILL 保持当前待用户决策；blocked 时 SKILL=回退 phase 对应技能；done 时无 SKILL）
-- 出口守卫：每个子技能 Gate 完成后调 `node skills/specpowers/scripts/workflow-guard.mjs exit <phase> --apply`
+- 节点流转：每完成一个 Phase，`node <SKILL_BASE>/scripts/workflow-state.mjs next` 返回 `NEXT: <auto|blocked|manual|done>` + `SKILL: <Skill 工具全名，带 provider 前缀>` + `PHASE: <id>` + `REASON: <文本>`（auto 时 SKILL=下阶段技能；manual 时 SKILL 保持当前待用户决策；blocked 时 SKILL=回退 phase 对应技能；done 时无 SKILL）
+- 出口守卫：每个子技能 Gate 完成后调 `node <SKILL_BASE>/scripts/workflow-guard.mjs exit <phase> --apply`
 - 决策停顿点：见 `refs/decision-points.md`（PP-01..PP-08），必须停顿等用户
 - 恢复规则（移植 kernel Decision Core 的恢复类规则）：恢复时复用已持久化选择（方案选择/跳过决定/worktree 同意/逐条裁决），只呈现未决部分；已持久化选择存于 state.json evidence 字段（跨会话恢复依赖该文件）；换话题先确认继续还是新任务，不得混用 name
 
@@ -102,6 +102,7 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 | 换话题继续记到当前 name 下 | 污染 Gate 链：先确认继续还是新任务 |
 | 全量测试没过，手动 mv change 到 archive | 硬 Gate 链不可降级 |
 | task 简单，内联做掉 | Phase 3 必须每 task 独立子代理 |
+| 改动碰到配置字段、跨 2-3 文件，所以要升中等 | 豁免线优先：现成模式可复用+仅需增量修改仍判微小；但新增对外面（新增接口/新开配置面/跨模块契约变更）或 4+ 文件仍升级 |
 
 ### 子 Agent 启动方式（全局硬约束）
 
@@ -119,16 +120,22 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 **specpowers 标准流程（SDD+TDD, Phase 0-4）是所有任务的骨干流程**。
 已触发 specpowers 后按本决策树选择执行模式。微小任务为 specpowers 内部退化模式。
 Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路由。
+微小判定顺序：先查豁免线（完整规则见下方决策树微小分支），再查规模与排除条件。
+边界判定：向既有 API 加向后兼容可选参数＝既有面内加字段（判微小候选）；函数签名/语义破坏性变化＝契约变更（升中等）。
+改既有配置键的取值语义（如类型变化）跨模块消费者可见＝契约变更；仅在既有键内加新键值条目＝既有面内。
 
 ```
-├── 微小任务（1-3 文件，< 50 行变更，单模块，不涉及接口/配置/跨文件）
-│   ─ 或: 功能已有现有实现、仅需增量修改
+├── 微小任务（1-3 文件，< 50 行变更，单模块，未新增对外面——无新增接口/无新开配置面/无跨模块契约变更）
+│   ─ 豁免线（优先判定，先于排除条件）: 已有现成实现或现成模式可复用、仅需增量修改 → 判微小；
+│     须指认具体既有同构实现（同文件/同模块的文件/符号/配置段），无法指认则不适用豁免线；
+│     不放宽规模上限（4+ 文件）与新增对外面——命中任一仍升中等。
+│     在既有面内加字段/加行不构成升级理由；「既有面」不含跨模块共享结构/协议——向共享结构加字段属跨模块契约变更，不享豁免线
 │   ├── Phase 0: 轻量上下文探索（Read 目标文件确认功能状态）
 │   ├── Phase 1: 跳过
 │   ├── Phase 2: 跳过
 │   ├── Phase 3: 子代理直接执行
 │   ├── Phase 4: 跳过
-│   ⚠ 4+ 文件或跨模块 → 升为中等任务（4 文件归中等，中等范围 4-19）
+│   ⚠ 4+ 文件或新增对外面（新增接口/新开配置面/跨模块契约变更）→ 升为中等任务（4 文件归中等，中等范围 4-19）
 │
 ├── 中等任务（4-19 文件）← specpowers 默认
 │   ├── Phase 0: brainstorming 完整流程（需求澄清+方案设计+审批 Gate）
@@ -154,7 +161,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
     容错: Workflow 不可用 → 降级复杂任务
 ```
 
-**运行时升级**: 每 Phase 完成时复查复杂度——如实际文件数/跨模块范围超出初始判断，更新 `Plan: <mode>` 并重新路由到下阶段对应模式。
+**运行时升级**: 每 Phase 完成时复查复杂度——实际文件数超出初始判断，或出现新增对外面（新增接口/新开配置面/跨模块契约变更）时，更新 `Plan: <mode>` 并重新路由到下阶段对应模式；仅在既有面内改配置/加字段不触发升级。
 
 ## 阶段路由
 
@@ -162,7 +169,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 
 ### Phase 自动检测（跨会话恢复）
 
-> **本节为回退路径**：当 `node skills/specpowers/scripts/workflow-state.mjs status` 失败、脚本缺失或 state.json 损坏时使用。正常运行时由 Step 0 的状态机判定主导。两套机制判定的依据相同（产物文件 + Gate token），结论应一致——不一致时以文件证据为准（状态机先行判定，文件证据最终裁决）。
+> **本节为回退路径**：当 `node <SKILL_BASE>/scripts/workflow-state.mjs status` 失败、脚本缺失或 state.json 损坏时使用。正常运行时由 Step 0 的状态机判定主导。两套机制判定的依据相同（产物文件 + Gate token），结论应一致——不一致时以文件证据为准（状态机先行判定，文件证据最终裁决）。
 
 入口技能按以下产物状态自动判定当前 Phase。行按从上到下顺序求值，首次匹配即停止。`<name>` 由当前任务上下文获取。
 
@@ -340,7 +347,7 @@ master (main) ← 始终可部署
 | 实现中需修改规范 | 暂停 Superpowers，回 OpenSpec 修改 |
 | 多变更并行 | 独立 git worktree |
 | UltraPlan 中途溢出 | `/clear` + 重新加载 openspec 产物 |
-| 跨会话中断 | 跨会话中断恢复：优先运行 `node skills/specpowers/scripts/workflow-state.mjs status` 状态机判定当前 Phase；脚本不可用时按上述 Phase 自动检测表（回退路径）判定。 |
+| 跨会话中断 | 跨会话中断恢复：优先运行 `node <SKILL_BASE>/scripts/workflow-state.mjs status` 状态机判定当前 Phase；脚本不可用时按上述 Phase 自动检测表（回退路径）判定。 |
 | refs/ 缺失 | UltraPlan → 降级中等任务 |
 
 ## 快速上手
@@ -354,7 +361,7 @@ master (main) ← 始终可部署
 | 实现 | `Skill({skill: "superpowers:subagent-driven-development"})`（每个 task 一个独立子 Agent） | specpowers-apply |
 | 审查 | `Skill({skill: "specpowers:specpowers-review"})`（两级路由自动判定） | specpowers-review |
 | 验证 | `openspec validate --change <name>` + test | specpowers-archive |
-| 归档 | `/opsx:archive`（硬 Gate 链，禁止手动绕过） | specpowers-archive |
+| 归档 | `/opsx:archive`（硬 Gate 链；命令不可用时走 specpowers-archive Step 3 载体降级链——降级的是执行载体，归档步骤本身不可跳过） | specpowers-archive |
 
 > 小改动无需 specpowers 全流程："帮我修复 xxx.cpp 的编译错误" → 直接子代理执行。
 

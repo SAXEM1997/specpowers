@@ -28,7 +28,7 @@ description: >-
 ├── 文档类（proposal / design / plan / spec / skill / README / 架构文档 / clarifications）
 │   └── 两级 tier 路由（关键/完整）→ recipe（见下方 recipe 表文档类行）
 │       用户可手动指定"UltraReview"→ 完整层 3-agent 多模型渐进式审查（6-agent 维度 build/code/specs/docs/deps 仅代码类，文档类映射到 3-agent）。
-│       文档类 UltraReview 不走 tier 路由，但仍须经护栏 1（ledger 缺失 early-return 完整，见 refs/protocols.md 协议 1）
+│       文档类 UltraReview 不走 tier 路由，但仍须经护栏 1（ledger 缺失 early-return 完整，见 refs/protocols.md 协议 6（护栏 1））
 │
 └── 代码类（实现代码 / 项目结构 / 构建配置 / 项目创建或变更）
     └── 两级 tier 路由（关键/完整）→ recipe（见下方 recipe 表代码类行，按 bucket 分叉）
@@ -155,20 +155,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 > **文档类注意事项**: 文档类手动指定 UltraReview 时映射到完整层 3-agent 多模型渐进式（6-agent 维度 build/code/specs/docs/deps 仅适用代码类，文档类无对应定义）。详见审查决策树和手动覆盖关键词说明。
 
-### 创建审查团队
-
-除现有 5 个审查 Agent 外，还有对齐审查 Agent（第 6 个维度）：
-
-| 维度 | prompt 要点 |
-|------|-----------|
-| build-reviewer | 检查构建系统配置正确性 |
-| code-reviewer | 检查源码修改、编码、include 路径 |
-| specs-reviewer | 逐条对照 OpenSpec specs/ 检查合规性 |
-| docs-reviewer | 检查文档和记忆一致性 |
-| deps-reviewer | 检查依赖路径和库命名 |
-| **对齐审查 Agent** | 逐条对照 plan + specs + design，输出 COVERED/MISSING/DRIFT 对照表 |
-
-对齐审查 Agent 的对照方法复用多模型渐进式审查中"对齐 Agent 对照方法"协议（逐条提取→逐一查找→输出对照表）。COVERED=需求点有对应且语义一致；MISSING=完全无对应（P1）；DRIFT=有对应但语义偏离（P0）。
+> **详细协议移出（创建审查团队 + Steps A-F）**: 6-agent 审查团队定义（build/code/specs/docs/deps/对齐六维度 prompt 要点 + 对齐审查 Agent 对照方法与 COVERED/MISSING/DRIFT 语义）与主 Agent 逐条分析协议 Steps A-F（A 确认全部子 Agent 完成 → B 去重合并 → C 逐条判断 → D 输出合并判断表 → E 用户审批（硬 Gate）→ F 执行修复）详见 `refs/protocols.md` 协议 8。执行 UltraReview recipe 时 Read 协议 8 获取逐步细节；未路由到 UltraReview 时无需读取。
 
 > **STEP 兼容性说明**: 对齐审查 Agent 在 Step A 与其他 5 个审查 Agent 并行启动，产出在 Step B-C 中与其他报告一同去重合并，不产生独立 STEP 标记块。STEP 标记块体系（STEP1-STEP5）不变，STEP1_EXECUTED 的 agents 列表含 6 个维度。
 >
@@ -185,44 +172,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 - P3（记录待办）：风格问题——命名规范、格式一致性、注释完善
 - **P0 阻塞规则（权威定义，全文档唯一权威来源）**: P0 > 0 → Gate 未通过，禁止进入下一 Phase；P0 必须全部修复且通过重审方可放行。P1/P2/P3 不阻塞 Gate 通过。其余各处 P0 阻塞引用均以此处为准（修复范围见下方"Gate 通过标准 vs 修复范围"）。
 
-> **Gate 通过标准 vs 修复范围**: 以上为 Gate 通过标准（阻塞判定——什么情况下 Gate 不通过）。修复阶段的修复范围见 Step 4 "修复策略"（或 UltraReview Step F——两路径共享同一修复策略）——默认全量修复 P0-P3，不受此阻塞标准限制。例如：P2/P3 "不阻塞 Gate 通过" 意味着即使有未修复的 P2/P3 也可以进入下一 Phase，但修复阶段仍默认修复它们（用户可显式跳过）。
-
-### 主 Agent 逐条分析协议
-
-（收集完所有子 Agent 报告后执行）
-
-**Step A — 确认全部子 Agent 已完成**
-- 检查 6 个审查维度均有报告产出，如有缺失等待或重试
-
-**Step B — 去重合并**
-- 收集全部子 Agent 评审报告
-- 相同问题（同一文件+同一符号+同一问题类型）→ 合并为一条，标注: 来源 = [code-reviewer, specs-reviewer]
-- 冲突结论（如 code-reviewer 说 P0，specs-reviewer 说 P3）→ 标注冲突，不做自动裁决，提级用户判断
-
-**Step C — 逐条判断**（不可批量——批量判断忽略问题间差异，每条问题的接受/拒绝依据不同，须独立评估）
-- 对每条合并后的问题，主 Agent 判断: 接受 / 拒绝 / 部分接受
-- 每条必须写原因（不能批量同意/拒绝）。原因需具体到问题本身，不可使用模板化措辞
-- 严重度校准: 取所有来源中最高级
-
-**Step D — 输出合并判断表**
-
-| # | 问题 | 来源 | 严重度 | 判断 | disposition | 原因 | 修改方案 |
-|---|------|------|--------|------|-------------|------|---------|
-| 1 | ...  | code,specs | P0 | 接受 | agent_accepted | ... | ... |
-| 2 | ...  | specs      | P2 | 拒绝 | agent_rejected | ... | 不适用 |
-| 3 | ...  | code,specs | P0/P3 | 冲突 | user_adjudicated | ... | 待用户裁决 |
-
-**Step E — 用户审批**（硬 Gate）
-- 用户逐条确认合并判断表
-- 冲突项由用户裁决
-- 审批通过后方可执行修复
-
-**Step F — 执行修复**（与多模型渐进式 Step 4 修复策略一致）
-- 默认全量修复 P0/P1/P2/P3（修复范围见下方"Gate 通过标准 vs 修复范围"；用户可显式指定跳过）
-- P0 项须人工确认后修改
-- 启动独立修复子 Agent，逐条分析判断并执行修复
-- 修复后运行全文 grep 验证残留
-- 增量审查: 仅读取变更区域及上下文
+> **Gate 通过标准 vs 修复范围**: 以上为 Gate 通过标准（阻塞判定——什么情况下 Gate 不通过）。修复阶段的修复范围见 Step 4 "修复策略"（或 UltraReview Step F——两路径共享同一修复策略，A-F 协议见 `refs/protocols.md` 协议 8）——默认全量修复 P0-P3，不受此阻塞标准限制。例如：P2/P3 "不阻塞 Gate 通过" 意味着即使有未修复的 P2/P3 也可以进入下一 Phase，但修复阶段仍默认修复它们（用户可显式跳过）。
 
 ## 加强审查（代码类 recipe，微小/中等(file_count<10) bucket 完整层）
 
@@ -283,9 +233,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 2. 结构审查 Agent：优先使用强推理能力模型，关注完整性/一致性分析
 3. 落地审查 Agent：优先使用快速模型，关注边界/兼容性检查——快速模型在细节问题（列对齐解析、转义字符、边界值处理）上常有意外发现
 4. 对齐审查 Agent：优先使用与前两者不同的模型，关注逐条对照+错漏检测的中等推理任务
-5. **降级策略**：
-   - 仅两个模型可用时：结构 + 对齐使用不同模型，落地与对齐共用模型。落地审查先行执行，其完整审查报告（问题列表 + 严重度 + 证据 + 边界条件检查结果）作为对齐 Agent 的额外输入（追加到对齐 Agent 的审查 prompt 中），以补偿模型重叠带来的视角损失。
-   - 仅单一模型可用时：三个 Agent 串行执行（非并行），顺序为 落地 → 对齐 → 结构（落地发现的具体问题为后续 Agent 提供上下文），在审查报告中声明"单一模型，缺少独立视角交叉验证"。
+5. **降级策略**：仅两个模型/仅单一模型可用时的部署与串行顺序细则见 `refs/protocols.md` 协议 4「模型多样性降级细则」。
 6. 如在 TeamCreate/子 Agent 环境中执行，优先使用不同子 Agent 分配不同模型。
 
 ### 与 UltraReview 的分工
@@ -342,7 +290,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 **0c-pre. 解析调用参数（args）**
 
-父技能（specpowers-apply/design/plan）调用 specpowers-review 时通过 `args` 传递参数。主 Agent 从 args 提取：`gate_id`（Gate 0-3 / standalone）、`file_count`（待审查文件数）、`line_count`（修改总行数）、code-review 结果（代码类 Gate 3 由 apply 注入，作为对齐 Agent 的代码质量维度输入）。这些值用于下方 0c gate_id 确定 + 0d tier 路由（file_count/line_count 是路由算法输入）。无 args 时（独立调用）由主 Agent 自行计算 file_count/line_count（见独立调用场景自检节）。
+父技能（specpowers-apply/design/plan）调用 specpowers-review 时通过 `args` 传递参数。主 Agent 从 args 提取：`gate_id`（Gate 0-3 / standalone）、`file_count`（待审查文件数）、`line_count`（修改总行数）、code-review 结果（代码类 Gate 3 由 apply 注入，作为对齐 Agent 的代码质量维度输入）。这些值用于下方 0c gate_id 确定 + 0d tier 路由（file_count/line_count 是路由算法输入）。无 args 时（独立调用）由主 Agent 自行计算 file_count/line_count（见 `refs/protocols.md` 协议 3「独立调用场景自检」）。
 
 **0c. 确定 gate_id（轮次隔离）**
 
@@ -358,7 +306,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 
 `expected_steps` 由 tier recipe 决定，见上方 recipe 表。路由完成后，按 expected_steps 执行对应 Step。
 
-> expected_steps 仅含 tier recipe 的 STEP（STEP1-5）；STEP_FINAL_READTHROUGH 为横切 Gate，独立于 expected_steps 检查（父技能**不**跨边界验证此横切 Gate；由 review 内部主 Agent 自执行 + 独立调用场景 [SELF_VERIFY] 兜底）。
+> expected_steps 仅含 tier recipe 的 STEP（STEP1-5）；STEP_FINAL_READTHROUGH 为横切 Gate，独立于 expected_steps 检查（父技能**不**跨边界验证此横切 Gate；由 review 内部主 Agent 自执行 + 独立调用场景 [SELF_VERIFY] 兜底，自检细则见 `refs/protocols.md` 协议 3「独立调用场景自检」）。
 
 > 在启动审查 Agent 前，主 Agent 先完成以下自检——以下列出的每一项合理化都是实际审查中观察到的 Agent 跳过模式。
 
@@ -392,6 +340,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 □ Step 4: 所有 P0 修复均已逐条校验？→ 不清楚 → 先校验
 □ Step 5: Quick Review Agent 非 Step 4 实施者？→ 是同一 Agent → 退化声明
 □ 最终通读: 全文术语一致？无废弃引用？→ 不确定 → 全文 grep 验证（详见 Step 4 逐条校验）
+□ 本轮判定过测试/命令结果？→ 必须核查原始输出（非摘要代理输出）——摘要工具（如 rtk）可能吞掉尾部 `, N errors`/`FAILED` 后缀；输出尾部含 `N errors`/`FAILED` 或非零退出码即视为失败，不确定时用原始命令重跑或读完整输出文件
 □ 本轮有退化场景？→ 有 → 退化声明含三要素（缺失能力|尝试记录|降级依据）且 status 非 complete？
 □ 本轮是第 ≥2 轮审查？→ 主 Agent 是否已完成多轮防偷懒自检（合理化表逐条确认 + 自检提醒注入 + Red Flags 全量核对）？检查审查报告中是否有 `[ANTI_LAZINESS_SELF_CHECK] round=<N>, passed=true` 记录
 □ 审查 Agent 的报告覆盖了全部章节/文件？→ 执行违规检测（详见下方"多轮审查防偷懒协议 → 违规检测"）——逐章/逐文件核对，不可粗略估计
@@ -535,61 +484,11 @@ Step 5 在本轮审查层面检查修复质量（本轮问题是否已彻底修�
 
 ### Gate Token 输出（Gate 通过后）
 
-Gate 审查最终通过（收敛判定 action=exit + 最终通读 PASS）后，review 主 Agent **必须**输出 Gate Token——两层保障：
-
-**第 1 层：会话标记**
-```
-[GATE_PASSED] gate=<N>, round=<N>, tier=<tier>, p0_raw=<N>, p1_raw=<N>, convergence_triggers=<编号列表|none>
-```
-与现有的 `[TIER_ROUTING]`、`STEP<N>_EXECUTED` 同类机制。`[GATE_PASSED]` 仅在 Gate 确实通过后输出；P0 未清零时输出 `[GATE_BLOCKED]`（现有机制不变）。
-
-> **与 `[CONVERGENCE_CHECK]` 的时序关系**：多轮审查进行中时，每轮输出 `[CONVERGENCE_CHECK]` 但不输出 `[GATE_PASSED]`——Gate 尚未最终通过。仅在 action=exit + 最终通读 PASS 后输出 `[GATE_PASSED]`。
-
-**第 2 层：文件标记（后备轨）**
-
-Gate 通过后写入 `.superpowers/.gate-passed-<N>` 文件：
-```
-name=<任务标识符>
-round=<N>
-timestamp=<ISO 8601>
-tier=<critical|full>
-```
-
-跨 Skill 边界、跨上下文压缩时后备。`name` 字段绑定特定任务——入口技能/子技能检查时不仅检查文件存在，还检查 `name` 与当前任务匹配，不匹配视为不存在（防止上一任务残留标记误导）。
-
-> 此文件是 Phase 流转控制标记（语义类似 `.phase1-skipped`），非审查状态产物。独立调用（gate_id=standalone）不输出 Gate Token（无父技能消费）。首次写入前执行 `mkdir -p .superpowers` 确保目录存在。
-
-> **衔接注释（guard 调用）**: token 写入与 guard 调用顺序为 **token 先写、guard 后调**——review 写 `.superpowers/.gate-passed-<N>` 后，由父技能（design/plan/apply/archive）在验证链通过后调 `node skills/specpowers/scripts/workflow-guard.mjs exit phase<N> --apply`（子技能 Gate 出口为唯一 guard 调用责任方）。独立调用 review（gate_id=standalone）不触发 guard。
+Gate 审查最终通过（收敛判定 action=exit + 最终通读 PASS）后，review 主 Agent **必须**输出 Gate Token（两层保障）：第 1 层会话标记 `[GATE_PASSED] gate=<N>, round=<N>, tier=<tier>, p0_raw=<N>, p1_raw=<N>, convergence_triggers=<编号列表|none>`（P0 未清零时输出 `[GATE_BLOCKED]`，现有机制不变）；第 2 层文件标记 `.superpowers/.gate-passed-<N>`（`name=<任务标识符>` 绑定 + round + timestamp + tier，跨 Skill 边界/跨上下文压缩后备，首次写入前 `mkdir -p .superpowers`）。完整格式定义、与 `[CONVERGENCE_CHECK]` 的时序关系、guard 调用衔接注释（token 先写、guard 后调）见 `refs/protocols.md` 协议 3「Gate Token 输出」。独立调用（gate_id=standalone）不输出 Gate Token。
 
 ### 独立调用场景自检
 
-当 specpowers-review 被用户直接调用（非通过 specpowers-design/plan/apply/archive 的 Gate 路由）时，不存在父技能执行双层验证。此时主 Agent 在最后一个 STEP 完成后（加强审查为 STEP2，其他为 STEP5）自行执行标记块完整性检查：
-
-1. 从 `[TIER_ROUTING]` 标记中提取 `expected_steps`，动态确定应存在的 STEP 集合（无 `[TIER_ROUTING]` 标记时回退为全集 `[STEP1, STEP2, STEP3, STEP4, STEP5, STEP_FINAL_READTHROUGH]`）
-2. 搜索 `STEP<N>_EXECUTED` 和 `STEP<N>_TIER_SKIPPED` 标记块，确认 `expected_steps` 中的每个 STEP 要么已输出 `_EXECUTED` 标记块，要么已输出 `_TIER_SKIPPED` 标记块
-3. 确认最终通读标记块已输出（缺失时标注"最终通读可能未执行"）
-4. 确认 `[CONVERGENCE_CHECK]` 标记已输出（缺失时标注"收敛判定可能未执行"）
-5. 以 `[SELF_VERIFY]` 标记输出检查结果
-
-**自检结果格式**:
-
-```[SELF_VERIFY]
-verified_steps: <动态取值——从 [TIER_ROUTING] expected_steps，无 TIER_ROUTING 时回退全集>
-missing_steps: <expected_steps 中既无 _EXECUTED 也无 _TIER_SKIPPED 的 STEP>
-skipped_steps: <被 tier 裁剪的 STEP 列表——由 STEP<N>_TIER_SKIPPED 标记识别，识别规则见 refs/protocols.md 协议 3>
-all_present: true|false
-```
-
-> `missing_steps` 排除已输出 `STEP<N>_TIER_SKIPPED` 的 STEP（tier 裁剪是预期行为，非缺失）。`skipped_steps` 记录因 tier 裁剪而未执行的 STEP，用于诊断 tier 路由是否按预期工作。
-
-此自检与父技能验证处于同一信任域（同一 Agent），但至少确保标记块在独立调用场景下不会被完全忽略。独立调用场景下 `[GATE_BLOCKED]` 标记不触发外部阻塞（无父技能读取），仅作为信息性声明。
-
-> **注**: 独立调用 specpowers-review 时，`修改总行数` 由主 Agent 自行计算：
-> ```bash
-> BASE=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'); BASE=${BASE:-master}; git diff --shortstat $(git merge-base $BASE HEAD)..HEAD | awk '{s=$4+$6; if(s=="") s=0; print s}'
-> ```
-> （与 specpowers-apply Step 0 同款逻辑）
-> 若无 git 历史可用（如新项目），回退为手动估算文件行数。
+用户直接调用 specpowers-review（非通过 specpowers-design/plan/apply/archive 的 Gate 路由）时无父技能双层验证，主 Agent 在最后一个 STEP 完成后（加强审查为 STEP2，其他为 STEP5）自行执行标记块完整性检查——按 `[TIER_ROUTING]`.expected_steps 核对每个 STEP 的 `STEP<N>_EXECUTED`/`STEP<N>_TIER_SKIPPED` 标记块 + 最终通读标记块 + `[CONVERGENCE_CHECK]` 标记，以 `[SELF_VERIFY]` 标记输出结果。自检结果格式、无 args 时 `file_count`/`line_count`（修改总行数）的 git 计算方法与降级回退见 `refs/protocols.md` 协议 3「独立调用场景自检」。
 
 ---
 
@@ -637,7 +536,7 @@ Step 5（加强审查子路径为 Step 2）完成后，主 Agent **必须**计�
 
 #### action=exit 时
 
-触发条件不满足（收敛达标）或用户显式终止后，输出 action=exit + exit_reason，然后执行最终通读 Gate，通过后输出 `[GATE_PASSED]` 标记（见上方「Gate Token 输出」节）。
+触发条件不满足（收敛达标）或用户显式终止后，输出 action=exit + exit_reason，然后执行最终通读 Gate，通过后输出 `[GATE_PASSED]` 标记（格式见 `refs/protocols.md` 协议 3「Gate Token 输出」）。
 
 > **优先级规则**：多条件同时触发时，按条件编号升序显示（1 → 2 → 3 → 4），列出所有触发条件的编号和描述。
 
@@ -650,10 +549,15 @@ Step 5（加强审查子路径为 Step 2）完成后，主 Agent **必须**计�
 ### 协议与数据结构参考
 
 以下协议和数据结构的完整定义见 `refs/protocols.md`：
-- 会话上下文账本（结构 + 读写时机 + 跨 Gate 传递）
-- review-cache.json（格式 + 读写规则 + 尽力而为操作化定义）
-- 执行标记格式（`STEP<N>_EXECUTED` + 验证规则 + 双层验证原理）
-- 退化声明三要素（格式 + 各 Step 退化位置表）
+- 协议 1：会话上下文账本（结构 + 读写时机 + 跨 Gate 传递）
+- 协议 2：跨会话缓存 review-cache.json（格式 + 读写规则 + 尽力而为操作化定义）
+- 协议 3：执行标记格式（`STEP<N>_EXECUTED` + 验证规则 + 双层验证原理；含 Gate Token 输出与独立调用场景自检——`[GATE_PASSED]` 标记 + `.gate-passed-<N>` 文件格式 + `[SELF_VERIFY]` 自检）
+- 协议 4：退化声明标准协议（三要素格式 + 各 Step 退化位置表 + 模型多样性降级细则）
+- 协议 5：上下文传递与注入模板
+- 协议 6：两级路由算法（tier routing）
+- 协议 7：收敛判定与硬阻止输出模板
+- 协议 8：UltraReview 详细协议（Steps A-F + 6-agent 团队定义）
+- 协议 9：最终通读 Gate 详细流程
 
 > 审查流程中对这些协议的引用（"按退化声明标准协议输出"、"从 review-cache.json 读取"）在流程描述中保留上下文。审查流程中任何协议细节不确定时，Read `refs/protocols.md` 获取完整定义。
 
@@ -661,47 +565,4 @@ Step 5（加强审查子路径为 Step 2）完成后，主 Agent **必须**计�
 
 ## 最终通读 Gate（横切，全 Gate 适用）
 
-最终通读 Gate 是横切 Gate，不参与 Gate 0-4 编号体系，适用于所有审查（无论单轮还是多轮循环）。单轮审查在 Step 5 完成后立即执行最终通读；多轮审查在最后一轮 Step 5 完成后执行最终通读。适用对象含文档类 Gate 0/1/2 和代码类 Gate 3。代码类 Gate 3 的"通读全文"指通读所有变更文件的 diff 及关键文件的完整内容。关键文件的判定标准：被 diff 中引用但未完全展示的函数/类/模块的源文件，以及变更涉及的配置文件。由主 Agent 根据 diff 中的 import/reference 关系自动判断。
-
-### 与 Step 5 的关系
-
-Step 5 检查本轮修复质量（单轮范围），最终通读 Gate 检查跨轮累积一致性（全局范围）。在多轮审查的最后一轮，Step 5 和最终通读 Gate 先后执行，Step 5 先（本轮修复验证），最终通读 Gate 后（全局一致性检查）。单轮审查中，Step 5 完成后立即执行最终通读 Gate。
-
-### 触发时机
-
-当审查进入最终通读环节，**在进入下一环节（如下一 Phase、Gate 3 进入 Phase 4 等）之前**，必须执行最终通读。触发时机按 tier 分支：
-- **加强审查子路径（STEP5 被裁剪）**：最终通读以主 Agent STEP2 合并判断后执行的轻量通读形式完成——即质量底线第④条所指的"轻量替代"。PASS 四条件相同，但通读范围为变更区域+关联上下文（非全文逐行）。仍须输出 STEP_FINAL_READTHROUGH 标记块（status 注明"轻量替代"）
-- **关键/完整层**：单轮审查在 Step 5 完成后执行标准最终通读；多轮审查在用户决定不再继续下一轮，或问题已收敛到 P0=0 且 P1<3 且较上轮无新增 P1，且 Step 5 完成后执行标准最终通读
-
-### 执行方式
-
-- 启动独立子 Agent（非实施者，使用可用模型），通读审查对象全文。由 specpowers-review 主 Agent 在 Step 5 完成后、向父技能返回结果前启动。
-- 仅单一模型可用时：由主 Agent 自行执行最终通读（无法获取独立视角），在最终通读报告中声明"单一模型，最终通读缺少独立视角交叉验证"。
-- **跨会话状态**: 跨会话重启后，主 Agent 从 `.specpowers/review-cache.json` 的 `final_readthrough` 字段读取状态：status === "pass" 时检查 `file_hashes`（如存在）判断 staleness——当前审查对象文件 hash 与缓存不一致 → 缓存过期，重置为 pending 并重新执行。hash 不可用时仅输出警告，继续使用缓存状态。缓存读取的完整规则见 `refs/protocols.md` 中跨会话缓存的 `final_readthrough` 读写规则。
-
-### 检查项
-
-- 所有已确认修复是否正确应用？
-- 修复之间是否存在冲突？
-- 全文术语和格式是否一致？
-- 是否有废弃引用或残留旧术语？
-
-### 输出
-
-最终通读报告 [PASS/FAIL] + 残余问题清单（如有）
-
-### PASS 标准
-
-（四条全部满足）：
-- (a) 所有已确认修复均已正确应用
-- (b) 无修复间冲突
-- (c) 全文术语和格式一致
-- (d) 无废弃引用或残留旧术语
-
-### 判定
-
-- PASS → 允许进入下一环节
-- FAIL（存在残余问题）→ 修复后重新通读，直到 PASS
-- 此 Gate 不可跳过，不设自动循环上限
-
-目的：防止多轮修复累积后在文档中留下残余不一致（如术语两写、废弃引用残留、修复冲突）。多轮审查中每次修复只关注局部，最终通读提供全局一致性检查。
+最终通读 Gate 是横切 Gate，不参与 Gate 0-4 编号体系，适用于所有审查（文档类 Gate 0/1/2 与代码类 Gate 3），不可跳过、不设自动循环上限。触发时机：单轮审查在 Step 5 完成后立即执行（加强审查子路径在 STEP2 合并后以轻量通读替代）；多轮审查在最后一轮 Step 5 完成后执行。执行后输出 `STEP_FINAL_READTHROUGH` 标记块，PASS 方可进入下一环节（Gate 0-4 编号体系之外的横切 Gate，父技能不跨边界验证，由 review 内部主 Agent 自执行）。执行方式（独立子 Agent 通读 / 单模型降级声明 / 跨会话缓存 staleness 检查）、检查项、PASS 四条件（正确应用/无冲突/术语格式一致/无废弃引用）与 FAIL 重通读规则详见 `refs/protocols.md` 协议 9。

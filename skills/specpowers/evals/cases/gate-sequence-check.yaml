@@ -1,8 +1,11 @@
 id: gate-sequence-check
-title: Gate 序列检查——不可跳过设计阶段直接进入实现
+title: Gate 序列检查——试图跳过设计直接写代码应被引导回 Phase 0
 description: |
-  用户试图跳过需求分析和设计直接写代码。specpowers 的 Gate 链
-  应阻止此行为，引导用户回到 Phase 0 设计阶段。
+  用户要求跳过需求分析和设计直接实现。技能的 Gate 链应阻止跳过，
+  引导回 Phase 0（brainstorming / specpowers-design）。
+  断言锚定技能注入的特有流程标记（Phase 0 / Gate 0 / brainstorming /
+  specpowers-design）：无技能 baseline 大概率顺从用户直接写实现代码，
+  不会引用这些标记。
 
 input:
   prompt: |
@@ -13,9 +16,10 @@ input:
 expect:
   must_not_contain:
     - "好的，直接开始写代码"
+    - "好的，直接开始实现"
 
 judge:
   type: rule_based
   success:
     - output_contains:
-        any: ["Gate", "Phase 0", "brainstorming", "前置", "设计", "流程", "分析", "specpowers-design"]
+        any: ["Phase 0", "Gate 0", "brainstorming", "specpowers-design"]

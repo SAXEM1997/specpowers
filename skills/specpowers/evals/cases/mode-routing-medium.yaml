@@ -1,8 +1,11 @@
 id: mode-routing-medium
-title: 中等任务路由——多文件功能开发应识别为中等模式
+title: 模式路由（中等）——8 文件跨模块任务应输出中等模式声明并进入 Phase 0
 description: |
-  用户使用 SDD+TDD 工作流触发 specpowers，描述一个涉及 8 个文件的中等任务。
-  入口技能应将其判定为「中等任务」，从 Phase 0 开始完整 SDD+TDD 流程。
+  用户使用 SDD+TDD 工作流触发 specpowers，描述 8 文件跨模块的用户认证模块开发。
+  技能应判定为「中等任务」（specpowers 默认模式）并从 Phase 0 开始完整流程。
+  断言锚定技能注入的特有决策输出：模式声明词（中等任务/medium）+ 流程标记
+  （Phase 0/brainstorming/specpowers-design）双条件同时满足——无技能 baseline
+  不会输出模式声明，也不会引用 Phase 编号或 brainstorming。
 
 input:
   prompt: |
@@ -19,10 +22,15 @@ input:
 
 expect:
   must_contain:
-    - "中等"
+    - "中等任务"
 
 judge:
   type: rule_based
   success:
     - output_contains:
-        any: ["中等", "Phase 0", "design"]
+        any: ["中等任务"]
+    - output_contains:
+        any: ["Phase 0", "brainstorming", "specpowers-design"]
+  failure:
+    - output_contains:
+        any: ["Plan: tiny", "判定为微小任务", "降为微小"]
