@@ -179,7 +179,7 @@ ref: AgentId=<id>, tokens=<N>
 
 > **degradation 字段说明**: pipe 三段对应协议 4 退化声明三要素：(a) 具体原因（缺失能力+模型名），(b) 影响分析（尝试过的调用方式+失败信息），(c) 替代措施（降级路径选择依据）。`none` 表示无退化。
 
-> **mode 字段说明（仅 Step 3 必填）**: 描述 Step 3 合并验证的部署形式，独立于 degradation（能力损失）。取值：`standard`=独立监督 Agent 执行（含 P0 或 N≥11，完整 4 维）；`transferred_to_step5`=不启动独立 Agent，合并验证 2 维（溯源+遗漏）转移至 Step 5 兼并执行（N∈[1,10] 且 p0_raw==0，结构重组非能力损失，故 degradation=none）；`trivial`=无 P0/P1/P2 问题特判（N==0）。详见 SKILL.md Step 3。
+> **mode 字段说明（仅 Step 3 必填）**: 描述 Step 3 合并验证的部署形式，独立于 degradation（能力损失）。下文 N=p0_raw+p1_raw+p2_raw（不计 p3_raw，定义见 SKILL.md Step 3；协议 5 注入表中的 N 为轮次，同名不同义）。取值：`standard`=独立监督 Agent 执行（p0_raw≥3 或 N>15，完整 4 维）；`transferred_to_step5`=不启动独立 Agent，合并验证 2 维（溯源+遗漏）转移至 Step 5 兼并执行（N∈[1,15] 且 p0_raw≤2，结构重组非能力损失，故 degradation=none；p0_raw≥1 时 Step 5 追加严重度校准抽查）；`trivial`=无 P0/P1/P2 问题特判（N==0；p3_raw>0 时主 Agent 自修 P3 后走 Step 5 常规验证，防零进展循环）。详见 SKILL.md Step 3。
 
 > **ref 行说明**: `ref: AgentId=<id>[, tokens=<N>]` 由**主 Agent 在汇总时追加**（非子 Agent 输出）。AgentId 从子 Agent 的 `Agent` 工具返回值提取（必填）；tokens 为主 Agent 估算的消耗（可选字段，不可用时省略或填 `null`）。AgentId 格式为 `a` + 16 位 hex（系统生成）。主 Agent 在遵循协议时从该路径获取真实 AgentId；但技术上可生成格式合法的虚假值——此为辅助真实度信号，非密码学验证。完整限制声明见标记块验证规则中的"验证能力与限制"表。
 
@@ -193,9 +193,9 @@ ref: AgentId=<id>, tokens=<N>
 |------|--------|------------|-------------------|
 | Step 1 | 主 Agent（汇总三个子 Agent 完成状态） | complete / degraded | 某 Agent 未完成（原因+重试次数+替代措施）；汇总 raw_count_sum |
 | Step 2 | 主 Agent（自执行，无子 Agent） | complete | none（主 Agent 执行，无降级路径）——标记块由主 Agent 为自己执行的 Step 输出，ref 行 AgentId 填 `self`，tokens 为主 Agent 执行 Step 2 的估算消耗 |
-| Step 3 | 按 mode 分叉（见上方 mode 字段说明）：standard=必须启动独立监督 Agent；transferred_to_step5=主Agent自执行(转移至Step5)；trivial=主Agent自执行(N==0) | complete / degraded | mode=standard（含P0或N≥11 启动独立监督 Agent 完整4维；单一模型时声明缺少独立视角）；mode=transferred_to_step5（主 Agent 自执行，agents=self，degradation=none，合并验证转移至 Step 5）；mode=trivial（N==0，主 Agent 自执行） |
+| Step 3 | 按 mode 分叉（见上方 mode 字段说明）：standard=必须启动独立监督 Agent；transferred_to_step5=主Agent自执行(转移至Step5)；trivial=主Agent自执行(N==0) | complete / degraded | mode=standard（p0_raw≥3 或 N>15 启动独立监督 Agent 完整4维；单一模型时声明缺少独立视角）；mode=transferred_to_step5（主 Agent 自执行，agents=self，degradation=none，合并验证转移至 Step 5；p0_raw≥1 时 Step 5 追加严重度校准抽查）；mode=trivial（N==0，主 Agent 自执行；p3_raw>0 时自修 P3 后走 Step 5） |
 | Step 4 | 修复子 Agent + 主 Agent | complete / degraded / failed | 子 Agent 不可用时声明"退回主 Agent 自行修复"；修复重试超限声明"修复失败" |
-| Step 5 | Quick Review Agent | complete / degraded | 单一 Agent 时声明"缺少独立视角"；Step 4 退化时声明"执行两轮补偿验证"；mode=transferred_to_step5 时声明"兼并 Step 3 合并验证（溯源+遗漏+问题数核对）" |
+| Step 5 | Quick Review Agent | complete / degraded | 单一 Agent 时声明"缺少独立视角"；Step 4 退化时声明"执行两轮补偿验证"；mode=transferred_to_step5 时经 notes 字段输出"兼并 Step 3 合并验证（溯源+遗漏+问题数核对；p0_raw≥1 时含严重度校准抽查）"（非 degradation——与 SKILL.md Step 5 统一） |
 | 最终通读 | 独立子 Agent 或主 Agent（自执行） | complete / fail | 沿用通用标记块格式（STEP_FINAL_READTHROUGH）。agents 填子 Agent 模型名或 self（主 Agent 自执行）。issues_found 填残余问题数。子 Agent 工具不可用时由主 Agent 自执行，degradation 声明"单一模型，最终通读缺少独立视角" |
 
 **多修复子 Agent 合并规则（Step 4）**: 当修复项涉及 ≥ 2 个无依赖文件时，拆分为多个修复子 Agent 并行执行（以文件为分组维度，无修复项数量阈值）；单文件内 > 10 条时分批顺序执行（见 SKILL.md Step 4 "同文件不并发"硬约束），主 Agent 收集所有修复子 Agent 的输出后，合并为**单个** STEP4_EXECUTED 标记块。issues_found 汇总所有修复子 Agent 发现的新问题数。agents 列表包含所有修复子 Agent 的名称和模型。degradation 取所有修复子 Agent 中最严重的退化状态（严重度序: `failed` > `degraded` > `complete`；多个 `degraded` 时保留覆盖范围最广的一条，如同时有 '子Agent不可用' 和 '环境不支持并行'，保留前者因其覆盖范围更广）。
@@ -336,7 +336,7 @@ all_present: true|false
 | Step 1 | 仅 2 个模型可用 | 结构+对齐不同模型，落地与对齐共用 | 主 Agent 汇总 |
 | Step 1 | 仅 1 个模型可用 | 串行执行（落地→对齐→结构） | 主 Agent 汇总 |
 | Step 3 | 仅 1 个模型可用 | 同模型执行监督，声明"缺少独立视角" | 监督 Agent |
-| Step 3 | N∈[1,10] 且 p0_raw==0 | **非退化**——mode=transferred_to_step5，合并验证 2 维转移至 Step 5 兼并执行（degradation=none，结构重组非能力损失） | 主 Agent |
+| Step 3 | N∈[1,15] 且 p0_raw≤2 | **非退化**——mode=transferred_to_step5，合并验证 2 维转移至 Step 5 兼并执行（degradation=none，结构重组非能力损失） | 主 Agent |
 | Step 3 | N==0 | **非退化**——mode=trivial，无 P0/P1/P2 问题特判，无合并验证对象（degradation=none） | 主 Agent |
 | Step 4 | 子 Agent 工具不可用 | 退回主 Agent 自行修复 | 主 Agent |
 | Step 4 | 环境不支持并行 | 修复子 Agent 串行执行 | 主 Agent |
@@ -344,7 +344,7 @@ all_present: true|false
 | Step 5 | Step 4 退化 | 执行两轮补偿验证 | Quick Review Agent |
 | 最终通读 | 子 Agent 工具不可用 | 由主 Agent 自行执行 | 主 Agent |
 
-> **多降级并发格式**: 多降级条件同时触发时，`degradation` 字段用分号拼接多个三要素。注意：N∈[1,10] 且 p0_raw==0 的转移路径用 mode=transferred_to_step5 标记（非 degradation，degradation=none）。
+> **多降级并发格式**: 多降级条件同时触发时，`degradation` 字段用分号拼接多个三要素。注意：N∈[1,15] 且 p0_raw≤2 的转移路径用 mode=transferred_to_step5 标记（非 degradation，degradation=none）。
 
 退化声明对所有降级场景强制要求，不可省略。这构成**横切规则**，覆盖 Step 3/4/5 的全部降级分支。
 
@@ -383,7 +383,7 @@ all_present: true|false
 
 ### Step 4 转移路径知情声明注入模板（mode=transferred_to_step5 时）
 
-当 Step 3 转移至 Step 5（N∈[1,10] 且 p0_raw==0）时，主 Agent 启动修复子 Agent 的 prompt **首段**必须注入以下知情声明：
+当 Step 3 转移至 Step 5（N∈[1,15] 且 p0_raw≤2）时，主 Agent 启动修复子 Agent 的 prompt **首段**必须注入以下知情声明：
 
 > 本轮合并验证尚未执行（Step 3 已转移至 Step 5 兼并）。你修复的合并判断表为 Step 2 版本（未经独立监督交叉验证）。修复完成后，Step 5 的 Quick Review Agent 将执行合并验证（溯源+遗漏+问题数核对）+ 修复验证双重检查。**若你在修复过程中发现合并表疑似遗漏某条审查发现，请主动在输出中上报（标注 [疑似合并遗漏]）**——这是额外的横向检测点。
 
@@ -391,7 +391,7 @@ all_present: true|false
 
 ### Step 5 兼并合并验证模式注入模板（mode=transferred_to_step5 时）
 
-当 Step 3 因 N∈[1,10] 且 p0_raw==0 转移至 Step 5 时，主 Agent 启动 Quick Review Agent 的 prompt **必须注入**以下字段（不得省略，否则 Step 5 无法做合并验证+问题数核对）：
+当 Step 3 因 N∈[1,15] 且 p0_raw≤2 转移至 Step 5 时，主 Agent 启动 Quick Review Agent 的 prompt **必须注入**以下字段（不得省略，否则 Step 5 无法做合并验证+问题数核对）：
 
 | 必注入字段 | 内容 | 用途 |
 |---|---|---|
@@ -402,10 +402,11 @@ all_present: true|false
 
 强制指令（追加到 Quick Review Agent prompt）：
 - 问题数核对必须从注入的原始报告**重新计算**各 Agent RAW_COUNT 求和（不从 STEP1_EXECUTED 的 raw_count_sum 直接取信——防止主 Agent 篡改），与合并表 p*_raw 对照
-- 兼并执行合并验证 3 项：溯源检查、遗漏检测（区分 disposition=user_adjudicated 的用户裁决项 vs agent_rejected 的主 Agent 拒绝项）、问题数核对（raw_count_sum 求和 vs 合并表 p*_raw，差异 → [问题数存疑] 触发重审升级独立 Step 3）
-- STEP5_EXECUTED 中注明"兼并 Step 3 合并验证（溯源+遗漏+问题数核对）"
+- 兼并执行合并验证 3 项：溯源检查、遗漏检测（区分 disposition=user_adjudicated 的用户裁决项 vs agent_rejected 的主 Agent 拒绝项）、问题数核对（重算各 Agent RAW_COUNT 的 p0 合计 vs 合并表 p0_raw、总条数 vs raw_count_sum 求和，不一致且无书面去重依据 → [问题数存疑] 触发重审升级独立 Step 3）
+- p0_raw≥1 时追加第 4 项严重度校准抽查：合并表每条 P1 逐条对照原始报告严重度，P0→P1 降级须有书面理由（用户裁决或事实依据），无理由降级 → [问题数存疑] 触发重审升级
+- STEP5_EXECUTED 中注明"兼并 Step 3 合并验证（溯源+遗漏+问题数核对；p0_raw≥1 时含严重度校准抽查）"
 
-> 问题数核对为启发式检测：合法去重（多 Agent 报同一问题）会导致合并表计数小于原始报告计数，仅当下降超过去重预期量级时标记 [问题数存疑]。
+> 问题数核对为启发式检测：合法去重（多 Agent 报同一问题）会导致合并表计数小于原始报告计数。量化容差：合并表计数 ≥ raw_count_sum × 0.6 且 p0 合计比对一致时视为合法去重；合并表计数 < raw_count_sum × 0.6 或 p0 合计不一致 → [问题数存疑]。
 >
 > 截断策略同协议 5 通用规则：原始报告超长时优先保留"问题清单+严重度+证据+RAW_COUNT 行"，截断分析过程。
 
@@ -455,10 +456,10 @@ all_present: true|false
 3. 矩阵: matrix_tier = MATRIX[bucket][round]; tier = (base_tier!=null) ? max(base_tier, matrix_tier) : matrix_tier; if matrix_tier>base_tier reason+="矩阵升级"
 4. 行数地板: floor_tier = floor(line_count); if floor_tier>tier → tier=floor_tier, reason+="行数地板升级"
 5. 收敛闸门(仅 prev_raw!=null 时执行):
-   - tier==关键 且 bucket==中等 且 prev_raw.p0_raw>0 → tier=完整, reason+="中等未收敛升级"
+   - tier==关键 且 bucket==中等 且 prev_raw.p0_raw>0 → tier=完整, reason+="上轮含P0,阵容加强"（闸门口径 p0_raw>0 比收敛①的 >1 保守，有意设计）
    convergence = (prev_raw==null) ? n/a : (闸门触发 ? failed : passed)
 6. recipe = RECIPES[object_type][tier][bucket_class]
-输出: [TIER_ROUTING] tier=<>, round=<>, file_count=<>, bucket=<>, line_count=<>, floor=<>, convergence=<passed|failed|n/a>, reason=<>, expected_steps=[...]
+输出: [TIER_ROUTING] tier=<>, round=<>, file_count=<>, bucket=<>, line_count=<>, floor=<>, convergence=<passed|failed|n/a>, recipe=<>, reason=<>, expected_steps=[...]
 ```
 
 **评估顺序（箭头=先后，非覆盖；每层只升不降）**：护栏 1（ledger 缺失 early-return）→ 手动覆盖 → 矩阵 → 行数地板（max 升级）→ 收敛闸门（条件升级）。
@@ -502,7 +503,7 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 |---|------|----------|---------|
 | 1 | 微小 round3 + 收敛（假设 ledger 存在） | 关键 | 矩阵→关键 |
 | 2 | 中等 round2（假设 ledger 存在） | 关键 | 矩阵→关键★ + 闸门（p0_raw=0 则通过） |
-| 3 | 中等 round3 但上轮 p0_raw>0（假设 ledger 存在） | 完整 | 矩阵→关键 → 闸门升级完整（中等未收敛） |
+| 3 | 中等 round3 但上轮 p0_raw>0（假设 ledger 存在） | 完整 | 矩阵→关键 → 闸门升级完整（上轮含P0,阵容加强） |
 | 4 | 复杂任意轮（假设 ledger 存在） | 完整 | 矩阵→完整，永不降级 |
 | 5 | 跨会话恢复（ledger 缺失） | 完整 | 护栏1 early-return，覆盖手动覆盖 |
 | 6 | 代码类 4 文件/400 行 round1（假设 ledger 存在） | 完整（加强审查子路径） | 矩阵→完整，bucket=中等且file_count<10→bucket_class=小代码→recipe=加强审查 STEP1-2 |
@@ -521,13 +522,17 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 | 场景 | 条件 | 输出 |
 |------|------|------|
 | 硬阻止 | p0 未清零（修复后仍 p0 > 0） | `[GATE_BLOCKED]` 强制语气 + 修复-重审循环 |
-| 默认继续下一轮 | 下方 4 触发条件任一满足 | `[CONVERGENCE_CHECK]` action=continue + 摘要 + 干预窗口 |
+| 默认继续下一轮 | 下方 5 触发条件任一满足 | `[CONVERGENCE_CHECK]` action=continue + 摘要 + 干预窗口 |
 | 用户终止 | 用户显式终止（触发条件满足） | `[CONVERGENCE_CHECK]` action=exit + exit_reason=用户终止理由 → 最终通读 → `[GATE_PASSED]` |
 | 收敛退出 | 以上均不满足 | `[CONVERGENCE_CHECK]` action=exit + 最终通读 → `[GATE_PASSED]` |
 
-**下一轮 4 触发条件**（任一满足即默认继续）：① p0_raw > 0；② p1_raw ≥ 3；③ p0_raw+p1_raw+p2_raw ≥ 5；④ p0_raw+p1_raw+p2_raw+p3_raw ≥ 10。
+**下一轮 5 触发条件**（任一满足即默认继续，全部基于原始发现数 p*_raw）：① p0_raw > 1；② p1_raw > 5；③ p0_raw+p1_raw+p2_raw > 10；④ p0_raw+p1_raw+p2_raw+p3_raw > 20；⑤ p1_raw − rounds[N-2].p1_raw > 3（轮间新增 P1 趋势；round 1 无上轮基准时⑤不参与判定，视为 n/a；此处 N 为轮次编号）。
 
-> 条件 1（p0_raw > 0）与 `[GATE_BLOCKED]` 独立：P0 已全部修复后 p0_raw 仍 > 0（本轮发现过 P0），Gate 已通过但仍默认继续下一轮。多条件同时触发时按编号升序列出全部。
+> 条件 1（p0_raw > 1）与 `[GATE_BLOCKED]` 独立：本轮发现 ≥2 个 P0 时，即使已全部修复（Gate 通过），仍默认继续下一轮验证修复质量；p0_raw=1 且已修复时不因此强制下一轮。多条件同时触发时按编号升序列出全部。
+>
+> 条件 5 同样基于原始发现数：上轮修复引入的回归 P1 会被本轮 Step 1 重新发现并计入 p1_raw，⑤ 捕获"修复引入问题"的轮间恶化趋势。
+
+> 用户显式裁决拒绝/跳过且后续轮次未再被发现的项，主 Agent 在触发条件③④计算时扣除该部分计数，并在 [CONVERGENCE_CHECK] 的 notes 中列明扣除明细（账本仍保留完整 p*_raw 原始值——扣除仅影响触发计算，不改写账本记录）。
 
 ### `[CONVERGENCE_CHECK]` 标记格式
 
@@ -537,7 +542,7 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 
 - `triggers`：满足的触发条件编号列表（如 `[1,3]`），none 表示无触发
 - `action`：triggers 非空时默认 `continue`；triggers 为空时 `exit`（exit_reason=收敛达标）；用户显式终止时 `exit` + exit_reason
-- `exit_reason`：仅 action=exit 时填写。用户显式终止须记录理由；无触发条件时填 `收敛达标`
+- `exit_reason`：仅 action=exit 时填写。用户显式终止须记录理由；无触发条件时填 `收敛达标`；P0 未清零（[GATE_BLOCKED] 循环进行中）的轮次如输出此标记，exit_reason 必须填 `p0 未清零，修复-重审循环继续`，禁止填 `收敛达标`
 
 **无论是否触发，此标记必须输出。** 加强审查子路径（STEP5 被裁剪）在 STEP2 完成后输出此标记。
 
@@ -550,7 +555,7 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 >
 > 本轮原始发现 P0: <p0_raw>, P1: <p1_raw>, P2: <p2_raw>, P3: <p3_raw>（原始发现数——Step 2 汇总记录，非修复后剩余数）。
 >
-> [p0 未清零时] P0 未清零，审查 Gate 未通过，当前 Phase 被阻塞。specpowers-review 必须执行修复-重审循环（修复子 Agent 修 P0 → 主 Agent 逐条校验 → 重跑 Step 1-5），直到 P0 清零且 P1 总数较上轮不增加。本轮修复+重审中发现的 P1/P2 纳入累积计数。调用方将检查 [GATE_BLOCKED]，P0>0 时拒绝进入下一 Phase。
+> [p0 未清零时] P0 未清零，审查 Gate 未通过，当前 Phase 被阻塞。specpowers-review 必须执行修复-重审循环（修复子 Agent 修 P0 → 主 Agent 逐条校验 → 重跑 Step 1-5），直到 P0（修复后剩余）清零——循环出口仅看 P0；P1 轮间趋势由触发条件⑤监控，不参与阻塞循环出口判定。本轮修复+重审中发现的 P1/P2 纳入累积计数。调用方将检查 [GATE_BLOCKED]，P0>0 时拒绝进入下一 Phase。
 >
 > [触发条件任一满足时]
 > 📊 Round <N> 审查完成。原始发现 P0:<p0_raw> P1:<p1_raw> P2:<p2_raw> P3:<p3_raw>。
@@ -560,7 +565,7 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 > [触发条件均不满足时]
 > 本轮原始发现问题数未达下一轮触发阈值。审查收敛，可进入最终通读。
 >
-> **上轮对比**（如适用）：上轮 P0:X P1:Y P2:Z P3:W → 本轮 P0:X' P1:Y' P2:Z' P3:W'，趋势：收敛中 ↗ / 持平 → / 恶化 ↘
+> **上轮对比**（如适用）：上轮 p0_raw:X p1_raw:Y p2_raw:Z p3_raw:W → 本轮 p0_raw:X' p1_raw:Y' p2_raw:Z' p3_raw:W'，趋势：收敛中 ↗ / 持平 → / 恶化 ↘
 >
 > **[DEGRADED]**（旧格式账本缺少 _raw 字段）：不展示上轮对比段，仅展示当轮原始发现数 + 声明"旧格式账本缺少原始发现数，回退独立判断"。
 ```
@@ -635,7 +640,7 @@ Step 5 检查本轮修复质量（单轮范围），最终通读 Gate 检查跨�
 
 当审查进入最终通读环节，**在进入下一环节（如下一 Phase、Gate 3 进入 Phase 4 等）之前**，必须执行最终通读。触发时机按 tier 分支：
 - **加强审查子路径（STEP5 被裁剪）**：最终通读以主 Agent STEP2 合并判断后执行的轻量通读形式完成——即 SKILL.md 质量底线第④条所指的"轻量替代"。PASS 四条件相同，但通读范围为变更区域+关联上下文（非全文逐行）。仍须输出 STEP_FINAL_READTHROUGH 标记块（status 注明"轻量替代"）
-- **关键/完整层**：单轮审查在 Step 5 完成后执行标准最终通读；多轮审查在用户决定不再继续下一轮，或问题已收敛到 P0=0 且 P1<3 且较上轮无新增 P1，且 Step 5 完成后执行标准最终通读
+- **关键/完整层**：单轮审查在 Step 5 完成后执行标准最终通读；多轮审查在 [CONVERGENCE_CHECK] action=exit（5 触发条件全不满足或用户显式终止）且 Step 5 完成后执行标准最终通读。通读触发与收敛判定 action 单一对应，不另设数值条件——原"P0≤1 且 P1≤5 且新增 P1≤3"数值表述已废止，其语义分别由触发条件①②⑤承接
 
 ### 执行方式
 
