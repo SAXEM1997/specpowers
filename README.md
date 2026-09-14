@@ -125,7 +125,7 @@ Phase 4: 验证 + 归档
 
 ```bash
 # 添加 marketplace
-/plugin marketplace add http://<internal-host>:<port>/ai/specpowers.git
+/plugin marketplace add http://gitlab.ai.<internal-domain>.lan/ai/specpowers.git
 
 # 安装插件
 /plugin install specpowers@specpowers-marketplace
@@ -134,7 +134,7 @@ Phase 4: 验证 + 归档
 **方式 2: 手动安装**
 
 ```bash
-git clone http://<internal-host>:<port>/ai/specpowers.git
+git clone http://gitlab.ai.<internal-domain>.lan/ai/specpowers.git
 cp -r specpowers/skills/* ~/.claude/skills/
 cp -r specpowers/commands/* ~/.claude/commands/
 ```

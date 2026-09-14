@@ -7,7 +7,7 @@
   "author": {
     "name": "SpecPowers Team"
   },
-  "repository": "http://<internal-host>:<port>/ai/specpowers.git",
+  "repository": "http://gitlab.ai.<internal-domain>.lan/ai/specpowers.git",
   "license": "MIT",
   "keywords": ["sdd", "tdd", "openspec", "superpowers", "engineering", "workflow", "code-review", "spec-driven", "test-driven"],
   "skills": "./skills",
