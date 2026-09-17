@@ -95,9 +95,26 @@ try {
 }
 scan('<commit message>', messages, all)
 
+// 3) 作者/提交者身份（姓名与邮箱）
+//
+// 这一项是补上的：本仓库曾把公司域名邮箱写进 139 个提交；重写历史修好了过去，
+// 但**重写之后新产生的提交**又用了仓库里遗留的 user.email，把公司邮箱带了回来。
+// 只扫文件与提交正文的闸门看不见这类泄漏——它藏在 git 元数据里。
+let identities = ''
+try {
+  identities = execFileSync('git', ['log', '--all', '--format=%an%n%ae%n%cn%n%ce'], {
+    cwd: root,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024
+  })
+} catch {
+  identities = ''
+}
+scan('<author/committer>', identities, all)
+
 if (findings.length === 0) {
   const d = denylist.length > 0 ? `${denylist.length} 条项目 denylist + ` : '（无 .internal-refs.txt，仅通用特征）'
-  console.log(`PASS no-internal-refs: 已追踪文件 ${files.length} 个 + 提交信息，命中 0（检查项：${d}${GENERIC.length} 条通用特征）`)
+  console.log(`PASS no-internal-refs: 已追踪文件 ${files.length} 个 + 提交信息 + 作者/提交者身份，命中 0（检查项：${d}${GENERIC.length} 条通用特征）`)
   process.exit(0)
 }
 
