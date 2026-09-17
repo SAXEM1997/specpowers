@@ -10,7 +10,7 @@ description: Use when entering the implementation phase of a specpowers workflow
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-apply"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers-apply"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按前者解析。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按该提示解析。
 
 > **前置检查（必须执行，不可跳过）**:
 > 1. 执行 `Skill({skill: "specpowers"})` 加载入口 skill，获取全局规则。等待加载完成后继续。

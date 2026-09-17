@@ -58,6 +58,6 @@ DSH **没有插件斜杠命令**。`/opsx:*` 与 `/specpowers` 不可用：
 
 ### 路径与脚本
 
-- 技能正文用 `<SKILL_BASE>` 指代技能基目录。DSH 由 provider 的 `resourceBase`（指向 `skills/<name>/`）解析，Claude Code 由技能的 Base directory 解析——两者都成立。
-- `scripts/*.mjs` 是零依赖 Node 脚本，通过 `import.meta.url` 自定位，cwd 无关，因此两个平台都能直接 `node <路径>` 执行。
+- 这里有**两套不同的路径约定，不可混同**：provider 的 `resourceBase` 解析的是**当前技能自身**的 bundled resources（该技能目录下的 `refs/`、`scripts/`），插件从 package cache 而非项目 checkout 加载时正是靠它才能到达这些文件；`<SKILL_BASE>` 则是**另一套**约定，指**入口技能**基目录（定义见入口技能「脚本路径解析」节），从子技能看即其兄弟目录 `specpowers/`。因此**不得**把 `<SKILL_BASE>` 按 DSH 为当前加载技能报告的那个 base directory 解析——那个目录是当前技能自己的，而 `<SKILL_BASE>` 指入口技能的；混同会把 `<SKILL_BASE>/scripts/...` 解析到不存在的路径。
+- `scripts/*.mjs` 是零依赖 Node 脚本，两个平台都能直接 `node <路径>` 执行，但**自定位只覆盖技能资产，不含项目状态**：`workflow-state.mjs` 与 `workflow-guard.mjs` 通过 `import.meta.url` 取脚本自身位置，据此解析技能目录下的 `refs/workflow-protocol.json`（cwd 无关，仅在该路径不存在时回退到 cwd 相对路径）；项目状态路径 `.superpowers/state.json` 则三个脚本都相对应用项目根（cwd）读写——`hook-validate-token.mjs` 尤其如此，它不引用 `import.meta.url`，直接读 cwd 相对的 `.superpowers/state.json`。故运行这些脚本时 cwd 须为应用项目根。
 - 本仓库不随附任何 `.sh` 辅助脚本——不存在 POSIX-only 的辅助脚本需要担心，Windows 缺 bash 不构成降级点。

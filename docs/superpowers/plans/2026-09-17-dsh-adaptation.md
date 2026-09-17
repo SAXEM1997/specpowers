@@ -914,7 +914,7 @@ Codex 行显式标注「预留·未验证」：无 Codex 环境则无法验证�
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按前者解析。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按该提示解析。
 ```
 
 `skills/specpowers-design/SKILL.md` 插入（`<SKILL>` = `specpowers-design`）：
@@ -925,7 +925,7 @@ Codex 行显式标注「预留·未验证」：无 Codex 环境则无法验证�
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-design"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers-design"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按前者解析。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按该提示解析。
 ```
 
 `skills/specpowers-plan/SKILL.md` 插入（`<SKILL>` = `specpowers-plan`）：
@@ -936,7 +936,7 @@ Codex 行显式标注「预留·未验证」：无 Codex 环境则无法验证�
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-plan"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers-plan"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按前者解析。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按该提示解析。
 ```
 
 `skills/specpowers-apply/SKILL.md` 插入（`<SKILL>` = `specpowers-apply`）：
@@ -947,7 +947,7 @@ Codex 行显式标注「预留·未验证」：无 Codex 环境则无法验证�
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-apply"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers-apply"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按前者解析。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按该提示解析。
 ```
 
 `skills/specpowers-review/SKILL.md` 插入（`<SKILL>` = `specpowers-review`）：
@@ -958,7 +958,7 @@ Codex 行显式标注「预留·未验证」：无 Codex 环境则无法验证�
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-review"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers-review"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按前者解析。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按该提示解析。
 ```
 
 `skills/specpowers-archive/SKILL.md` 插入（`<SKILL>` = `specpowers-archive`）：
@@ -969,7 +969,7 @@ Codex 行显式标注「预留·未验证」：无 Codex 环境则无法验证�
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-archive"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers-archive"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按前者解析。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按该提示解析。
 ```
 
 - [ ] **Step 2: 验证 6 个块全部就位**
