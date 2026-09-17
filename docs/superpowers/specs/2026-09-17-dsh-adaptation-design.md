@@ -35,7 +35,7 @@ specpowers 是 Claude Code 插件（`.claude-plugin/plugin.json` + `marketplace.
 | 上游 superpowers 技能依赖 | **8 个**（硬依赖） | `brainstorming`、`writing-plans`、`subagent-driven-development`、`test-driven-development`、`systematic-debugging`、`requesting-code-review`、`verification-before-completion`、`finishing-a-development-branch` |
 | `opsx:*` 引用 | 20 处 | OpenSpec 斜杠命令，**非技能**（不在改造范围） |
 | `LICENSE` 文件 | 0 个 | README 与 plugin.json 却声明 MIT —— 不一致 |
-| 内网地址 | 3 处 | `README.md` ×2、`plugin.json` ×1（`gitlab.ai.<internal-domain>.lan`） |
+| 内网地址 | 3 处 | `README.md` ×2、`plugin.json` ×1（`<内网 GitLab 主机>`） |
 | 提交进仓库的运行时产物 | 6 个 | `.superpowers/sdd/`（5 份 task 报告 + progress.md） |
 
 > `executing-plans` 仅在 `docs/superpowers/plans/*.md` 的历史样板行中出现，活文件中无引用，**不计入依赖**。
@@ -295,7 +295,7 @@ docs/superpowers/plans/**             （不改，仅登记为不改动项）
 | 4 | 协议/状态机一致 | 解析 `workflow-protocol.json` + 跑 `workflow-state.mjs status` | 5 个 `skill` 字段全裸名；状态机输出的 `SKILL:` 值全裸名 |
 | 5 | 清单有效性 | 解析三个清单文件 | `package.json` JSON 合法且 `dsh.bundle.patch` 指向存在的文件；`cordis.patch.yml` 能解析出 `id: specpowers` 的 insert 行；`.claude-plugin/*.json` 合法 |
 | 6 | 技能文件无损坏 | 6 个 SKILL.md 重解析 + 行数对比 | 除调用语法与新增平台适配块外无意外改动；Gate/前置检查/路由表结构完整 |
-| 7 | 无内网地址残留 | 全仓库 grep `gitlab.ai.<internal-domain>.lan\|<internal-domain>` | 0 命中 |
+| 7 | 无内网地址残留 | 全仓库 grep `<内网 GitLab 主机>\|<internal-domain>` | 0 命中 |
 | 8 | 无 Comet 残留 | grep `comet`，作用域同 #2、**排除 `docs/`** | 0 命中（本设计文档自身提及 Comet，属 `docs/` 历史，按定义排除） |
 
 **已知限制（诚实声明）**：完整的 `dsh plugin --profile web add` 端到端安装需写 `/dsh-home/profiles/web/`，位于工作区之外，`workspace-write` 沙箱会拒绝。因此 #1–#8 全部在工作区内完成，验证的是**同一份 provider 代码的真实执行**，而非声称「已装好」。若要真实安装验证，需另起 `--profile` 测试 profile 并申请一次沙箱提权——由用户决定是否执行。

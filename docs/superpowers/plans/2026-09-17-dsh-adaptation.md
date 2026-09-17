@@ -20,7 +20,7 @@
 - 回退示例中保留的前缀写法：`specpowers:<skill>`、`superpowers:<skill>`。
 - `docs/superpowers/**` 历史文档**一律不改**。
 - `opsx:*` 斜杠命令**一律不改**（是 OpenSpec 生成物，不是技能）。
-- 全仓库不得出现内网地址 `gitlab.ai.<internal-domain>.lan` 或 `<internal-domain>`。
+- 已追踪文件中不得出现内网主机名字面量（`<内网 GitLab 主机>` 或 `<internal-domain>`）。**本计划与 spec 自身也受此约束**：文档里记录验证命令时以 `<内网 GitLab 主机>` 占位、命令中用 `INTERNAL_HOST='<实际主机名>'` 变量，绝不写字面量——否则「清理内网地址」的文档本身就成了泄露源。git 历史提交信息中的 1 处残留无法在不重写历史的前提下消除，须在推送前向用户报告由其决定。
 - 活文件（`skills/ lib/ commands/ .claude-plugin/ CLAUDE.md AGENTS.md README*.md`）不得出现 `comet` 字样。
 - `.claude/` 与 `.superpowers/` 只取消 git 追踪，**必须保留磁盘文件**：只能用 `git rm -r --cached`，绝不能省 `--cached`。
 - 中文为主文档语言；`README.md` 中文、`README.en.md` 英文。
@@ -862,7 +862,7 @@ Expected: `PASS manifests`、`PASS list()`、`PASS get()`、`PASS resourceBase: 
 
 - [ ] **Step 3: 验证未硬编码任何内网地址**
 
-Run: `grep -nE 'gitlab\.ai\.<internal-domain>\.lan|<internal-domain>' skills/specpowers/refs/platform-tools.md`
+Run: `grep -nE "${INTERNAL_HOST}|<internal-domain>" skills/specpowers/refs/platform-tools.md`
 Expected: 空输出
 
 - [ ] **Step 4: Commit**
@@ -1432,7 +1432,7 @@ SOFTWARE.
 把 `.claude-plugin/plugin.json` 中的：
 
 ```json
-  "repository": "http://gitlab.ai.<internal-domain>.lan/ai/specpowers.git",
+  "repository": "http://<内网 GitLab 主机>/ai/specpowers.git",
 ```
 
 改为：
@@ -1445,9 +1445,20 @@ SOFTWARE.
 
 Run:
 ```bash
-grep -rnE 'gitlab\.ai\.<internal-domain>\.lan|<internal-domain>' --include='*' . 2>/dev/null | grep -v '^\./\.git/' | grep -v '^\./README\.md' | grep -v '^\./README\.en\.md' | wc -l
+INTERNAL_HOST='<实际内网主机名>'   # 执行时填入；文档中不以字面量记录
+grep -rnE "${INTERNAL_HOST}|<internal-domain>" --include='*' . 2>/dev/null \
+  | grep -v '^\./\.git/' | grep -v '^\./README\.md' | grep -v '^\./README\.en\.md' | wc -l
 ```
-Expected: `0`
+Expected: **已追踪文件**中 `0`。
+
+区分两个作用域，否则这个断言永远不成立：
+
+| 作用域 | 期望 | 说明 |
+|---|---|---|
+| 已追踪文件、排除 `docs/` 与两份 README | `0` | **产品面**——这是判据的真实意图 |
+| `docs/**` | `0` | 本计划与 spec 已把主机名改为 `<内网 GitLab 主机>` 占位、命令改用 `${INTERNAL_HOST}`，因此也应为 0；**若你看到 `docs/` 命中，说明有人写回了字面量** |
+| `.superpowers/**` | 非 0（预期） | 运行时工作区（ledger/brief/报告），已被 gitignore，不随仓库分发 |
+| 两份 README | 非 0（本任务时点） | Task 10 整体重写时消除 |
 
 > **编排说明**：`README.md` 的 2 处内网地址由 Task 10 整体重写时消除，因此本任务必须把它们排除在断言之外——否则此处必然失败。仓库级（含 README）的零残留断言由 Task 11 判据 7 在 Task 10 之后执行。这不是放松要求，而是把断言放在它成立的那个时点。
 
@@ -2058,9 +2069,16 @@ Expected: 5 个子技能各含 `前置检查`；标题行数较改造前只增�
 
 Run:
 ```bash
-grep -rnE 'gitlab\.ai\.<internal-domain>\.lan|<internal-domain>' --include='*' . 2>/dev/null | grep -v '^\./\.git/' | wc -l
+INTERNAL_HOST='<实际内网主机名>'   # 执行时填入；文档中不以字面量记录
+echo "已追踪文件（排除 docs/）: $(git grep -nE "${INTERNAL_HOST}|<internal-domain>" -- . ':!docs/' | wc -l)"
+echo "已追踪文件（含 docs/）  : $(git grep -nE "${INTERNAL_HOST}|<internal-domain>" -- . | wc -l)"
+grep -rnE "${INTERNAL_HOST}|<internal-domain>" --include='*' . 2>/dev/null | grep -v '^\./\.git/' | grep -v '^\./\.superpowers/' | wc -l
 ```
-Expected: `0`
+Expected: **三行全为 `0`**（Task 10 已消除 README 的两处；spec/plan 已用占位符）。
+
+> 工作区全量 grep（含 `.superpowers/`）会命中非 0——那是运行时 ledger/brief/报告记录了实际主机名以便执行，已被 gitignore，不随仓库分发。判据的对象是**会被发布的内容**，所以用 `git grep`（只搜已追踪文件）加上排除 `.superpowers/` 的工作区 grep 两路交叉确认。
+
+> ⚠️ **必须向用户报告的残留（本判据无法消除）**：仓库的 **git 历史提交信息**中仍有 1 处内网主机名（早期提交 `65e1030` 的标题记录了远程地址迁移）。修改提交信息需要重写历史（`filter-repo` / rebase），属于破坏性操作且会让所有提交哈希变化——本计划不做。首次推送到 GitHub 前应当由用户决定：接受该历史残留，或先重写历史再推送。
 
 - [ ] **Step 8: 判据 8 — 无 Comet 残留（活文件）**
 
@@ -2093,6 +2111,6 @@ frontmatter 解析 / 前缀残留 / provider 契约 / 协议状态机一致 / �
 
 实施完成后**不要**推送。本地提交全部完成后向用户报告，由用户决定：
 
-1. 是否推送到内网 GitLab（`origin`，当前为 `isv-gitlab.home.<internal-domain>.cn:23000`）——注意推送会带上仓库里既有的 PAT。
+1. 是否推送到内网 GitLab（`origin`，当前为 `<内网 GitLab 主机>:<端口>`）——注意推送会带上仓库里既有的 PAT。
 2. 是否推送到 GitHub（`https://github.com/SAXEM1997/specpowers`，需用户自行添加 remote 与凭据）。
 3. 是否需要真实的 DSH 端到端安装验证（需另起 `--profile` 测试 profile 并申请一次沙箱提权）。
