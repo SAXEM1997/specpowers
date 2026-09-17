@@ -16,7 +16,23 @@
 
 specpowers 融合 [OpenSpec](https://github.com/Fission-AI/OpenSpec)（规范驱动开发）与 [Superpowers](https://github.com/obra/superpowers)（测试驱动纪律），通过衔接指令集把两者桥接成完整的 **Phase 0→4 开发工作流**。它防止需求偏离（做了不需要的东西）与实现缺陷（需要的东西做错了），并通过全流程逐层审查 Gate 防止上下文腐化与产物质量下降。
 
-![架构](static/architecture.svg)
+```mermaid
+flowchart LR
+    classDef src fill:#ddf4ff,stroke:#0969da,stroke-width:2px,color:#0a3069
+    classDef dsh fill:#ddf4ff,stroke:#0969da,stroke-width:2px,color:#0a3069
+    classDef cc fill:#fff8c5,stroke:#9a6700,stroke-width:2px,color:#7d4e00
+    classDef cx fill:#f6f8fa,stroke:#8c959f,stroke-width:2px,color:#57606a,stroke-dasharray:6 4
+
+    SRC["skills/ — 双平台唯一技能真源<br/>6 个技能 · refs/ · scripts/"]:::src
+
+    SRC ==> DSH["DeepSeek Harness"]:::dsh
+    SRC ==> CC["Claude Code"]:::cc
+    SRC -.->|预留 · 未验证| CX["Codex CLI"]:::cx
+
+    DSH --> D["package.json · cordis.patch.yml<br/>lib/index.js → ctx.skills<br/>skill 工具 · 裸名寻址"]:::dsh
+    CC --> C[".claude-plugin/plugin.json<br/>skills: ./skills<br/>Skill 工具 · 裸名 + 插件前缀回退"]:::cc
+    CX --> X["目标承载路径<br/>.agents/skills/ · 每技能一目录"]:::cx
+```
 
 ## 技能组架构
 
@@ -250,7 +266,6 @@ specpowers/
 │   └── specpowers-archive/SKILL.md    # Phase 4
 ├── commands/specpowers.md             # Claude Code /specpowers 命令
 ├── static/logo.png                    # 首页图（文生图生成）
-├── static/architecture.svg            # 架构图
 ├── docs/superpowers/{specs,plans}/    # 本项目的设计与计划（开发史）
 ├── AGENTS.md                          # 厂商中立项目指令（正本）
 ├── CLAUDE.md                          # Claude Code 入口（导入 AGENTS.md）

@@ -16,7 +16,23 @@
 
 specpowers blends [OpenSpec](https://github.com/Fission-AI/OpenSpec) (spec-driven development) with [Superpowers](https://github.com/obra/superpowers) (test-driven discipline), bridging the two into a complete **Phase 0→4 development workflow** through a set of adapter instructions. It prevents requirement drift (building things nobody needs) and implementation defects (building the needed things wrong), and its stage-by-stage review Gates across the whole workflow guard against context rot and deliverable-quality decay.
 
-![Architecture](static/architecture.svg)
+```mermaid
+flowchart LR
+    classDef src fill:#ddf4ff,stroke:#0969da,stroke-width:2px,color:#0a3069
+    classDef dsh fill:#ddf4ff,stroke:#0969da,stroke-width:2px,color:#0a3069
+    classDef cc fill:#fff8c5,stroke:#9a6700,stroke-width:2px,color:#7d4e00
+    classDef cx fill:#f6f8fa,stroke:#8c959f,stroke-width:2px,color:#57606a,stroke-dasharray:6 4
+
+    SRC["skills/ — single source of truth<br/>6 skills · refs/ · scripts/"]:::src
+
+    SRC ==> DSH["DeepSeek Harness"]:::dsh
+    SRC ==> CC["Claude Code"]:::cc
+    SRC -.->|reserved · unverified| CX["Codex CLI"]:::cx
+
+    DSH --> D["package.json · cordis.patch.yml<br/>lib/index.js → ctx.skills<br/>the skill tool · bare names"]:::dsh
+    CC --> C[".claude-plugin/plugin.json<br/>skills: ./skills<br/>the Skill tool · bare names + plugin-prefix fallback"]:::cc
+    CX --> X["target location<br/>.agents/skills/ · one dir per skill"]:::cx
+```
 
 ## Skill Group Architecture
 
@@ -250,7 +266,6 @@ specpowers/
 │   └── specpowers-archive/SKILL.md    # Phase 4
 ├── commands/specpowers.md             # Claude Code /specpowers command
 ├── static/logo.png                    # hero image (text-to-image generated)
-├── static/architecture.svg            # architecture diagram
 ├── docs/superpowers/{specs,plans}/    # this project's designs and plans (development history)
 ├── AGENTS.md                          # vendor-neutral project instructions (source of truth)
 ├── CLAUDE.md                          # Claude Code entry (imports AGENTS.md)
