@@ -1,0 +1,42 @@
+{
+  "name": "specpowers",
+  "description": "SpecPowers for the DeepSeek Harness and Claude Code: a spec-driven + test-driven engineering skill group fusing OpenSpec and Superpowers",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "scripts",
+    "skills",
+    "commands",
+    "static",
+    ".claude-plugin",
+    "cordis.patch.yml",
+    "AGENTS.md",
+    "README.md",
+    "README.en.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "dsh",
+    "deepseek-harness",
+    "plugin",
+    "skills",
+    "specpowers",
+    "openspec",
+    "superpowers",
+    "sdd",
+    "tdd"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
