@@ -19,7 +19,7 @@ description: >
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `refs/platform-tools.md`。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）。
 
 ## 概述
 
