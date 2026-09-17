@@ -11,7 +11,7 @@ description: >-
 # specpowers-review: 审查阶段
 
 > **前置检查（必须执行，不可跳过）**:
-> 1. 执行 `Skill({skill: "specpowers:specpowers"})` 加载入口 skill，获取全局规则。等待加载完成后继续。
+> 1. 执行 `Skill({skill: "specpowers"})` 加载入口 skill，获取全局规则。等待加载完成后继续。
 > 2. 确认审查对象（文档/代码）和变更范围（文件数）已知。如未知，向用户确认后继续。
 
 ## 术语说明
@@ -73,9 +73,9 @@ description: >-
 >
 > **完整层不对称（设计意图，非遗漏）**：代码类完整层按 bucket 分——微小/中等(4-9)=加强审查(STEP1-2，无监督，轻量路径，小变更无需监督即可控)；中等(10-19)/复杂/大规模=UltraReview(STEP1-5，含 6 维度审查)。关键层统一含监督，覆盖强度高于加强审查。
 >
-> **3 独立视角（代码类关键层）**= code-review（由 specpowers-apply 通过 `superpowers:requesting-code-review` 执行，代码质量维度）+ 对齐 Agent（规范合规维度 COVERED/MISSING/DRIFT）+ 监督 Agent（交叉验证维度：溯源检查 + 遗漏检测 + 合并合理性 + 判断充分性）。监督 Agent 部署形式按原始发现总数 N（raw_count_sum 口径）动态决定——N∈[1,15] 且 p0_raw≤2 时合并验证 2 维（溯源+遗漏）转移至 Step 5 兼并执行，不启动独立 Agent（见 Step 3）。
+> **3 独立视角（代码类关键层）**= code-review（由 specpowers-apply 通过 `requesting-code-review` 执行，代码质量维度）+ 对齐 Agent（规范合规维度 COVERED/MISSING/DRIFT）+ 监督 Agent（交叉验证维度：溯源检查 + 遗漏检测 + 合并合理性 + 判断充分性）。监督 Agent 部署形式按原始发现总数 N（raw_count_sum 口径）动态决定——N∈[1,15] 且 p0_raw≤2 时合并验证 2 维（溯源+遗漏）转移至 Step 5 兼并执行，不启动独立 Agent（见 Step 3）。
 >
-> **code-review 执行主体（代码类全 tier）**：apply 先执行 code-review（`superpowers:requesting-code-review`），结果注入 review 的对齐 Agent prompt；review 对齐 Agent 输出 STEP1_EXECUTED（含 code-review 结果引用）。文档类无 code-review。
+> **code-review 执行主体（代码类全 tier）**：apply 先执行 code-review（`requesting-code-review`），结果注入 review 的对齐 Agent prompt；review 对齐 Agent 输出 STEP1_EXECUTED（含 code-review 结果引用）。文档类无 code-review。
 >
 > **加强审查**= 代码类完整层微小/中等(file_count<10) bucket 专用 recipe（STEP1-2，无监督），详见下方"加强审查"节。
 >

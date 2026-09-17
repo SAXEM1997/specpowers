@@ -6,14 +6,14 @@ description: Use when entering the implementation phase of a specpowers workflow
 # specpowers-apply: 实现阶段
 
 > **前置检查（必须执行，不可跳过）**:
-> 1. 执行 `Skill({skill: "specpowers:specpowers"})` 加载入口 skill，获取全局规则。等待加载完成后继续。
+> 1. 执行 `Skill({skill: "specpowers"})` 加载入口 skill，获取全局规则。等待加载完成后继续。
 > 2. 确认 Plan 模式：若 Plan: tiny → 跳过 plan 存在检查（微小任务无 plan，直接审查变更文件）；否则 → 确认 `docs/superpowers/plans/<name>.md` 存在。如不存在，回 specpowers-plan 生成 plan。
 > 3. 确认 Gate 2 审查已通过（见 item 5）。
 > 4. 如当前模式为微小任务，仍须加载 specpowers-review 执行 Gate 3 审查（走 specpowers-review 内部路由自动判定）。
 > 5. **Gate 2 确认**：搜索会话上下文中 `[GATE_PASSED] gate=2` 标记，或检查 `.superpowers/.gate-passed-2` 文件（`name=<当前任务>` 匹配）。两者都没有 → Phase 2 Gate 2 未执行，回 specpowers-plan 完成 Gate 2 后再进入 Phase 3。微小任务跳过此项。
 
-**REQUIRED SUB-SKILL:** Skill({skill: "superpowers:subagent-driven-development"})
-**REQUIRED BACKGROUND:** Skill({skill: "superpowers:test-driven-development"})
+**REQUIRED SUB-SKILL:** Skill({skill: "subagent-driven-development"})
+**REQUIRED BACKGROUND:** Skill({skill: "test-driven-development"})
 
 ---
 
@@ -80,17 +80,17 @@ BASE=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'); 
 ### code-review（Gate 3 代码类路径）
 
 代码类所有 tier（完整/关键）均由本技能执行 code-review。code-review 执行结果由 specpowers-review 在 STEP1 中作为对齐 Agent 输入上下文；其他 STEP（STEP3-5）由 review 内部 tier recipe 路由决定。代码类关键层 = 3 独立视角（code-review + 对齐 + 监督）。
-1. 使用 `Skill({skill: "superpowers:requesting-code-review"})` 加载代码质量审查
+1. 使用 `Skill({skill: "requesting-code-review"})` 加载代码质量审查
 2. 审查维度：命名、结构、错误处理、代码风格
 3. 通过标准：无 P0 问题
 4. code-review 和 spec-compliance-check（对齐检查）两者均通过方可进入 Phase 4
 
 **Step 1 — 执行审查**:
-`Skill({skill: "specpowers:specpowers-review", args: "Gate 3, file_count=<N>, line_count=<N>, code-review 结果见上下文"})` — 对齐检查：代码 vs Phase 2 plan + Phase 1 specs + Phase 0 design。将 file_count、line_count、code-review 结果作为上下文注入 review 的对齐 Agent prompt。
+`Skill({skill: "specpowers-review", args: "Gate 3, file_count=<N>, line_count=<N>, code-review 结果见上下文"})` — 对齐检查：代码 vs Phase 2 plan + Phase 1 specs + Phase 0 design。将 file_count、line_count、code-review 结果作为上下文注入 review 的对齐 Agent prompt。
 
 **Gate 3 返回后，执行以下验证（不可跳过）**:
 
-> 执行入口 `specpowers:specpowers` SKILL.md「Gate 返回后验证协议（横切）」节（参数：Gate=3, Phase=3）。本 Gate 特化：Gate 3, Phase 3, **tiny 不跳过——仍跑 Gate 3 验证**（验证 0 所有模式均继续，与 design/plan 的 tiny 跳过策略不同）。
+> 执行入口 `specpowers` SKILL.md「Gate 返回后验证协议（横切）」节（参数：Gate=3, Phase=3）。本 Gate 特化：Gate 3, Phase 3, **tiny 不跳过——仍跑 Gate 3 验证**（验证 0 所有模式均继续，与 design/plan 的 tiny 跳过策略不同）。
 
 **验证链通过后（中等+），执行节点出口守卫**（token 已由 review 写入 `.superpowers/.gate-passed-3`；微小模式无 state.json，不调 guard）：
 node <SKILL_BASE>/scripts/workflow-guard.mjs exit phase3 --apply

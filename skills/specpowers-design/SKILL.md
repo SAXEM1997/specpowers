@@ -7,7 +7,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 # specpowers-design: 设计+propose 阶段
 
 > **前置检查（必须执行，不可跳过）**: 
-> 1. 执行 `Skill({skill: "specpowers:specpowers"})` 加载入口 skill，获取决策树和全局规则（GitFlow/Checklist/Pitfalls）。等待加载完成后继续。
+> 1. 执行 `Skill({skill: "specpowers"})` 加载入口 skill，获取决策树和全局规则（GitFlow/Checklist/Pitfalls）。等待加载完成后继续。
 > 2. 确认当前任务模式（Plan: <mode>）。如为微小任务，仅做轻量上下文探索后终止本技能，不执行 Phase 0 完整流程。
 > 3. **Gate 0 确认（仅从 Phase 0 进入 Phase 1 时执行）**：搜索会话上下文中 `[GATE_PASSED] gate=0` 标记，或检查 `.superpowers/.gate-passed-0` 文件（`name=<当前任务>` 匹配）。两者都没有 → Phase 0 Gate 0 未执行，回 Phase 0 Step 0.6 完成 Gate 0 后再进入 Phase 1。Phase 0 起始不适用此项（Gate 0 在 Step 0.6 完成后才输出标记）。微小任务跳过此项（与验证 0 一致）。
 
@@ -15,9 +15,9 @@ description: Use when the user says "brainstorm this feature", "write the design
 
 ## Phase 0: brainstorming 前置阶段
 
-**定位**: 使用 `superpowers:brainstorming` 技能，承担需求澄清+方案设计+用户审批。替代原 `/opsx:explore` + propose 前半部分。brainstorming 的上下文探索步骤完全覆盖 `/opsx:explore`，后者不再独立调用。
+**定位**: 使用 `brainstorming` 技能，承担需求澄清+方案设计+用户审批。替代原 `/opsx:explore` + propose 前半部分。brainstorming 的上下文探索步骤完全覆盖 `/opsx:explore`，后者不再独立调用。
 
-**REQUIRED SUB-SKILL:** Skill({skill: "superpowers:brainstorming"})
+**REQUIRED SUB-SKILL:** Skill({skill: "brainstorming"})
 
 ### Step 0.1: 探索项目上下文
 
@@ -34,7 +34,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 
 ### Step 0.2: 需求澄清
 
-遵循 `superpowers:brainstorming` 的澄清流程（一次一个问题、覆盖边界/错误路径/非功能需求/隐含假设、穷尽疑问、禁止假设——详见该 skill checklist）。基于 Step 0.1 探索结果 + memory + 历史 spec 逐条提问，所有疑问澄清完毕后进入 Step 0.3 持久化。
+遵循 `brainstorming` 的澄清流程（一次一个问题、覆盖边界/错误路径/非功能需求/隐含假设、穷尽疑问、禁止假设——详见该 skill checklist）。基于 Step 0.1 探索结果 + memory + 历史 spec 逐条提问，所有疑问澄清完毕后进入 Step 0.3 持久化。
 
 ### Step 0.3: 持久化需求澄清 + 思路整理
 
@@ -116,7 +116,7 @@ mode 取值：medium（中等）/ complex（复杂）/ large（大规模）
 - 审批通过 → 进入 Phase 1
 
 **审批通过后，执行 Gate 0 审查**:
-`Skill({skill: "specpowers:specpowers-review"})` — 对齐检查：design.md vs clarifications/<name>.md。审查层级边界由 specpowers-review 横切注入（design 层面，不涉代码实现）。
+`Skill({skill: "specpowers-review"})` — 对齐检查：design.md vs clarifications/<name>.md。审查层级边界由 specpowers-review 横切注入（design 层面，不涉代码实现）。
 Gate 0 返回后，执行 Gate 返回后验证协议（参数: Gate=0, Phase=0）。
 
 验证链通过后（token 已由 review 写入 `.superpowers/.gate-passed-0`），执行节点出口守卫（中等+；微小无 state.json，不调用）：
@@ -181,7 +181,7 @@ node <SKILL_BASE>/scripts/workflow-guard.mjs exit phase0 --apply
 ```
 
 **人工审核通过后，执行 Gate 1 审查**:
-`Skill({skill: "specpowers:specpowers-review"})` — 对齐检查：OpenSpec 四件套（proposal/design/specs/tasks）vs Phase 0 design.md + clarifications。审查层级边界由 specpowers-review 横切注入（各文档对应抽象层级，不涉代码实现）。
+`Skill({skill: "specpowers-review"})` — 对齐检查：OpenSpec 四件套（proposal/design/specs/tasks）vs Phase 0 design.md + clarifications。审查层级边界由 specpowers-review 横切注入（各文档对应抽象层级，不涉代码实现）。
 Gate 1 返回后，执行 Gate 返回后验证协议（参数: Gate=1, Phase=1）。
 
 验证链通过后（token 已写入 `.superpowers/.gate-passed-1`，或 `.superpowers/.phase1-skipped` 内容==name 豁免），执行节点出口守卫（中等+）：
@@ -207,7 +207,7 @@ specpowers-plan Phase 2 衔接时需适配此场景：无 openspec/ 产物时，
 
 ### Gate 返回后验证协议（Phase 0-1 Gate 通用）
 
-> 执行入口 `specpowers:specpowers` SKILL.md「Gate 返回后验证协议（横切）」节（参数：Gate=<N>, Phase=<N>）。本 Gate 特化：Gate 0/1, Phase 0/1, tiny 跳过全部验证（验证 0 返回跳过）。
+> 执行入口 `specpowers` SKILL.md「Gate 返回后验证协议（横切）」节（参数：Gate=<N>, Phase=<N>）。本 Gate 特化：Gate 0/1, Phase 0/1, tiny 跳过全部验证（验证 0 返回跳过）。
 
 | Gate | Phase | 标记块检查方式 |
 |------|-------|-------------|

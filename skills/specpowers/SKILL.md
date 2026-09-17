@@ -189,19 +189,19 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 
 | 当前 Phase | 模式 | 加载 | 命令 |
 |-----------|------|------|------|
-| Phase 0 | 中等+ | specpowers-design | `Skill({skill: "specpowers:specpowers-design"})` |
-| Phase 1 | 中等+ | specpowers-design | `Skill({skill: "specpowers:specpowers-design"})` |
-| Phase 2 | 中等+ | specpowers-plan | `Skill({skill: "specpowers:specpowers-plan"})` |
-| Phase 3 | 中等+ | specpowers-apply | `Skill({skill: "specpowers:specpowers-apply"})` |
-| 审查 | 代码类（由 specpowers-review 内部两级路由自动判定：关键/完整审查）或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers:specpowers-review"})` |
-| Phase 4 | 中等+ | specpowers-archive | `Skill({skill: "specpowers:specpowers-archive"})` |
+| Phase 0 | 中等+ | specpowers-design | `Skill({skill: "specpowers-design"})` |
+| Phase 1 | 中等+ | specpowers-design | `Skill({skill: "specpowers-design"})` |
+| Phase 2 | 中等+ | specpowers-plan | `Skill({skill: "specpowers-plan"})` |
+| Phase 3 | 中等+ | specpowers-apply | `Skill({skill: "specpowers-apply"})` |
+| 审查 | 代码类（由 specpowers-review 内部两级路由自动判定：关键/完整审查）或 文档类 或 用户手动触发 | specpowers-review | `Skill({skill: "specpowers-review"})` |
+| Phase 4 | 中等+ | specpowers-archive | `Skill({skill: "specpowers-archive"})` |
 | — | 微小 | 不加载子技能（specpowers-review 除外，见上注） | 入口 skill 中直接子代理执行。执行完毕后主 Agent 确认产物并输出完成摘要 |
 
 > 横切规则（Git Flow、Checklist、Pitfalls）保留在本入口技能中，各阶段均需遵守。
 
 ## 审查路由
 
-需要审查时，加载 `Skill({skill: "specpowers:specpowers-review"})`，由 specpowers-review 内部两级路由矩阵自动判定审查层级（按评审轮数×待评审物规模×行数地板路由到关键/完整审查），防退化机制全部保留并为 tier 路由补充防护；用户可手动覆盖（关键/完整审查）。
+需要审查时，加载 `Skill({skill: "specpowers-review"})`，由 specpowers-review 内部两级路由矩阵自动判定审查层级（按评审轮数×待评审物规模×行数地板路由到关键/完整审查），防退化机制全部保留并为 tier 路由补充防护；用户可手动覆盖（关键/完整审查）。
 
 ### 各模式映射
 
@@ -231,7 +231,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 | 工具 | 用途 | 检查命令 | 必选 |
 |------|------|---------|------|
 | **OpenSpec** | SDD | `openspec --version` | ✅ |
-| **Superpowers** | TDD | `/skills` 含 `superpowers:*` | ✅ |
+| **Superpowers** | TDD | `/skills` 含 `*` | ✅ |
 | **CodeGraph** | 代码知识图谱 | 仓库根存在 `.codegraph/` 目录（MCP `codegraph_explore` / shell `codegraph explore`） | ⚠️ |
 | **Graphify** | 多模态知识图谱（代码+文档，架构理解） | `/graphify` 命令可用 | ⚠️ |
 | **TEST_COMMAND** | 全量测试 | 项目实际测试命令（见下方） | ⚠️ 需手动配置 |
@@ -354,12 +354,12 @@ master (main) ← 始终可部署
 
 | 步骤 | 命令 | 详见 |
 |------|------|------|
-| brainstorming | `Skill({skill: "specpowers:specpowers-design"})`（Phase 0，需求澄清+方案设计） | specpowers-design |
-| propose | `Skill({skill: "specpowers:specpowers-design"})`（Phase 1，格式转换+强制对照） | specpowers-design |
+| brainstorming | `Skill({skill: "specpowers-design"})`（Phase 0，需求澄清+方案设计） | specpowers-design |
+| propose | `Skill({skill: "specpowers-design"})`（Phase 1，格式转换+强制对照） | specpowers-design |
 | Plan 审查 | 执行 Gate 2 审查（强制执行，见 specpowers-plan） | specpowers-plan |
 | 衔接 | "读取 openspec changes/, 用 writing-plans 拆 TDD 计划" | specpowers-plan |
-| 实现 | `Skill({skill: "superpowers:subagent-driven-development"})`（每个 task 一个独立子 Agent） | specpowers-apply |
-| 审查 | `Skill({skill: "specpowers:specpowers-review"})`（两级路由自动判定） | specpowers-review |
+| 实现 | `Skill({skill: "subagent-driven-development"})`（每个 task 一个独立子 Agent） | specpowers-apply |
+| 审查 | `Skill({skill: "specpowers-review"})`（两级路由自动判定） | specpowers-review |
 | 验证 | `openspec validate --change <name>` + test | specpowers-archive |
 | 归档 | `/opsx:archive`（硬 Gate 链；命令不可用时走 specpowers-archive Step 3 载体降级链——降级的是执行载体，归档步骤本身不可跳过） | specpowers-archive |
 

@@ -6,13 +6,13 @@ description: Use when entering the verification and archiving phase of a specpow
 # specpowers-archive: 验证+归档阶段
 
 > **前置检查（必须执行，不可跳过）**:
-> 1. 执行 `Skill({skill: "specpowers:specpowers"})` 加载入口 skill，获取 Post-Task Checklist 和 GitLab Flow 规则。等待加载完成后继续。
+> 1. 执行 `Skill({skill: "specpowers"})` 加载入口 skill，获取 Post-Task Checklist 和 GitLab Flow 规则。等待加载完成后继续。
 > 2. 确认当前变更的 `<name>`。实现必须已完成（代码已提交）。如当前模式为微小任务，跳过本技能。
 > 3. **Phase 1 跳过兼容**: 检查 `.superpowers/.phase1-skipped` — 若存在则 Phase 1 已被跳过，无 OpenSpec change 目录；后续 Step 2（openspec validate）和 Step 3 (/opsx:archive) 自动跳过。若不存在，按标准路径 `openspec/changes/<name>/` 执行完整 Gate 链。
 > 4. **Gate 3 确认**：搜索会话上下文中 `[GATE_PASSED] gate=3` 标记，或检查 `.superpowers/.gate-passed-3` 文件（`name=<当前任务>` 匹配）。两者都没有 → Phase 3 Gate 3 未执行，回 specpowers-apply 完成 Gate 3 后再进入 Phase 4。微小任务跳过此项。
 
-**REQUIRED SUB-SKILL:** Skill({skill: "superpowers:verification-before-completion"})
-**REQUIRED BACKGROUND:** Skill({skill: "superpowers:finishing-a-development-branch"})
+**REQUIRED SUB-SKILL:** Skill({skill: "verification-before-completion"})
+**REQUIRED BACKGROUND:** Skill({skill: "finishing-a-development-branch"})
 
 ---
 
@@ -33,7 +33,7 @@ description: Use when entering the verification and archiving phase of a specpow
 **Pitfall 7: archive 前必须跑全量测试。verify 只检查规范合规，不跑测试。**
 
 ```bash
-# ⚠️ GATE: 返回非 0 → 强制回 Phase 3，执行 superpowers:systematic-debugging
+# ⚠️ GATE: 返回非 0 → 强制回 Phase 3，执行 systematic-debugging
 # 不可跳过此 Gate。
 
 # 自动检测测试命令（按优先级）:
