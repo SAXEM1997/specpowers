@@ -518,7 +518,7 @@ Expected: 打印 `PASS manifests: ...` 与 `PASS list(): 6 技能，裸名与 de
 
 若某个技能报「缺末句锚点」或「未展开块标量」，说明解析器对该标量形态处理有误——对照 Step 3 的 4 种分支检查，不要靠改测试锚点绕过。
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add lib/index.js scripts/verify-dsh-provider.mjs
@@ -636,7 +636,7 @@ function apply(ctx) {
 Run: `node scripts/verify-dsh-provider.mjs`
 Expected: 打印 `PASS manifests`、`PASS list()`、`PASS get(): 6 技能正文与 resourceBase 全部正确`；随后在相对资源断言处 FAIL（`refs/platform-tools.md` 尚未创建）——这是预期的中间态。
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add lib/index.js scripts/verify-dsh-provider.mjs
@@ -914,7 +914,7 @@ Codex 行显式标注「预留·未验证」：无 Codex 环境则无法验证�
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `refs/platform-tools.md`。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）。
 ```
 
 `skills/specpowers-design/SKILL.md` 插入（`<SKILL>` = `specpowers-design`）：
@@ -925,7 +925,7 @@ Codex 行显式标注「预留·未验证」：无 Codex 环境则无法验证�
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-design"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers-design"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `refs/platform-tools.md`。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）。
 ```
 
 `skills/specpowers-plan/SKILL.md` 插入（`<SKILL>` = `specpowers-plan`）：
@@ -936,7 +936,7 @@ Codex 行显式标注「预留·未验证」：无 Codex 环境则无法验证�
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-plan"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers-plan"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `refs/platform-tools.md`。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）。
 ```
 
 `skills/specpowers-apply/SKILL.md` 插入（`<SKILL>` = `specpowers-apply`）：
@@ -947,7 +947,7 @@ Codex 行显式标注「预留·未验证」：无 Codex 环境则无法验证�
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-apply"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers-apply"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `refs/platform-tools.md`。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）。
 ```
 
 `skills/specpowers-review/SKILL.md` 插入（`<SKILL>` = `specpowers-review`）：
@@ -958,7 +958,7 @@ Codex 行显式标注「预留·未验证」：无 Codex 环境则无法验证�
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-review"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers-review"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `refs/platform-tools.md`。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）。
 ```
 
 `skills/specpowers-archive/SKILL.md` 插入（`<SKILL>` = `specpowers-archive`）：
@@ -969,7 +969,7 @@ Codex 行显式标注「预留·未验证」：无 Codex 环境则无法验证�
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-archive"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers-archive"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `refs/platform-tools.md`。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）。
 ```
 
 - [ ] **Step 2: 验证 6 个块全部就位**
@@ -988,12 +988,37 @@ done
 ```
 Expected: 6 行全部为 `1`（即 `specpowers`、`specpowers-design`、`specpowers-plan`、`specpowers-apply`、`specpowers-review`、`specpowers-archive` 各 1 处回退示例）
 
-- [ ] **Step 4: 验证 provider 解析未被破坏**
+- [ ] **Step 4: 验证指针从任一技能都可解析**
+
+六块里的「完整三平台映射」指针若写成相对路径 `refs/platform-tools.md`，**只有入口技能能解析**——五个子技能中 design/plan/apply/archive 根本没有 `refs/` 目录，review 的 `refs/` 只有 `protocols.md`。子技能被单独加载时按自身目录解析，必然悬空；而这六块存在的全部理由就是让子技能自足。
+
+因此指针必须用仓库既有的 `<SKILL_BASE>` 约定（定义见入口技能「脚本路径解析」节：**`<SKILL_BASE>` 一律取入口技能基目录**，即使加载的是子技能）。
+
+Run:
+```bash
+grep -c 'SKILL_BASE>/refs/platform-tools.md' skills/*/SKILL.md
+```
+Expected: 6 个文件各 `1`。
+
+Run（反证：不得存在裸相对路径写法）:
+```bash
+grep -n '见 `refs/platform-tools.md`' skills/*/SKILL.md
+```
+Expected: 空输出。
+
+Run（确认该约定本身存在，且子技能确实在用它）:
+```bash
+grep -c 'SKILL_BASE' skills/specpowers/SKILL.md
+grep -c 'SKILL_BASE' skills/specpowers-design/SKILL.md
+```
+Expected: 入口技能 >0（定义节）、design >0（既有用法，证明该约定在子技能中成立）。
+
+- [ ] **Step 5: 验证 provider 解析未被破坏**
 
 Run: `node scripts/verify-dsh-provider.mjs`
 Expected: `ALL PASS`（平台适配块在 H1 之后的正文里，不影响 frontmatter）
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add skills/
