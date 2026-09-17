@@ -5,6 +5,13 @@ description: Use when entering the implementation phase of a specpowers workflow
 
 # specpowers-apply: 实现阶段
 
+> **平台适配（技能调用）**: 本技能内所有技能引用一律用**裸名**（如 `specpowers-review`、`brainstorming`）。
+> - **DSH**: `skill(name: "specpowers-apply")`；`Skill({skill: "specpowers-apply"})` 视为等价写法。
+> - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-apply"})`；技能注册表要求插件命名空间时
+>   回退 `Skill({skill: "specpowers:specpowers-apply"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
+> - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
+> 完整三平台映射与降级路径见 `refs/platform-tools.md`。
+
 > **前置检查（必须执行，不可跳过）**:
 > 1. 执行 `Skill({skill: "specpowers"})` 加载入口 skill，获取全局规则。等待加载完成后继续。
 > 2. 确认 Plan 模式：若 Plan: tiny → 跳过 plan 存在检查（微小任务无 plan，直接审查变更文件）；否则 → 确认 `docs/superpowers/plans/<name>.md` 存在。如不存在，回 specpowers-plan 生成 plan。

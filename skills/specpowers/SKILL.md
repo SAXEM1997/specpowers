@@ -14,6 +14,13 @@ description: >
 
 # specpowers: SDD+TDD 工程化开发方法论
 
+> **平台适配（技能调用）**: 本技能内所有技能引用一律用**裸名**（如 `specpowers-review`、`brainstorming`）。
+> - **DSH**: `skill(name: "specpowers")`；`Skill({skill: "specpowers"})` 视为等价写法。
+> - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers"})`；技能注册表要求插件命名空间时
+>   回退 `Skill({skill: "specpowers:specpowers"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
+> - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
+> 完整三平台映射与降级路径见 `refs/platform-tools.md`。
+
 ## 概述
 
 specpowers 融合 OpenSpec（规范驱动开发）+ Superpowers（测试驱动纪律）+ Checklist/Hooks（自动化检查）：

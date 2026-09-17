@@ -10,6 +10,13 @@ description: >-
 
 # specpowers-review: 审查阶段
 
+> **平台适配（技能调用）**: 本技能内所有技能引用一律用**裸名**（如 `specpowers-review`、`brainstorming`）。
+> - **DSH**: `skill(name: "specpowers-review")`；`Skill({skill: "specpowers-review"})` 视为等价写法。
+> - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-review"})`；技能注册表要求插件命名空间时
+>   回退 `Skill({skill: "specpowers:specpowers-review"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
+> - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
+> 完整三平台映射与降级路径见 `refs/platform-tools.md`。
+
 > **前置检查（必须执行，不可跳过）**:
 > 1. 执行 `Skill({skill: "specpowers"})` 加载入口 skill，获取全局规则。等待加载完成后继续。
 > 2. 确认审查对象（文档/代码）和变更范围（文件数）已知。如未知，向用户确认后继续。

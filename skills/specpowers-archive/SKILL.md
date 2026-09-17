@@ -5,6 +5,13 @@ description: Use when entering the verification and archiving phase of a specpow
 
 # specpowers-archive: 验证+归档阶段
 
+> **平台适配（技能调用）**: 本技能内所有技能引用一律用**裸名**（如 `specpowers-review`、`brainstorming`）。
+> - **DSH**: `skill(name: "specpowers-archive")`；`Skill({skill: "specpowers-archive"})` 视为等价写法。
+> - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-archive"})`；技能注册表要求插件命名空间时
+>   回退 `Skill({skill: "specpowers:specpowers-archive"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
+> - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
+> 完整三平台映射与降级路径见 `refs/platform-tools.md`。
+
 > **前置检查（必须执行，不可跳过）**:
 > 1. 执行 `Skill({skill: "specpowers"})` 加载入口 skill，获取 Post-Task Checklist 和 GitLab Flow 规则。等待加载完成后继续。
 > 2. 确认当前变更的 `<name>`。实现必须已完成（代码已提交）。如当前模式为微小任务，跳过本技能。

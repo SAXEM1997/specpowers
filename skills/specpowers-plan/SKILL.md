@@ -6,6 +6,13 @@ description: Use when the user says "plan the implementation", "bridge OpenSpec 
 
 # specpowers-plan: 衔接阶段
 
+> **平台适配（技能调用）**: 本技能内所有技能引用一律用**裸名**（如 `specpowers-review`、`brainstorming`）。
+> - **DSH**: `skill(name: "specpowers-plan")`；`Skill({skill: "specpowers-plan"})` 视为等价写法。
+> - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers-plan"})`；技能注册表要求插件命名空间时
+>   回退 `Skill({skill: "specpowers:specpowers-plan"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
+> - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
+> 完整三平台映射与降级路径见 `refs/platform-tools.md`。
+
 > **前置检查（必须执行，不可跳过）**: 
 > 1. 执行 `Skill({skill: "specpowers"})` 加载入口 skill，获取决策树和全局规则（GitFlow/Checklist/Pitfalls）。等待加载完成后继续。
 > 2. 确认 `docs/superpowers/specs/<name>-design.md` 和 `docs/superpowers/clarifications/<name>.md` 存在（由 specpowers-design 产出）。如不存在，输出 `[PRECHECK_FAILED] Phase 0/1 产物缺失，请先运行 specpowers-design`。
