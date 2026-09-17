@@ -38,7 +38,7 @@
     <text x="440" y="264" text-anchor="middle" fill="#7d4e00">/plugin marketplace add</text>
     <text x="440" y="286" text-anchor="middle" fill="#7d4e00">.claude-plugin/plugin.json</text>
     <text x="440" y="308" text-anchor="middle" fill="#7d4e00">Slash commands /opsx:*</text>
-    <text x="440" y="326" text-anchor="middle" font-size="11" fill="#57606a">Skill({skill: "specpowers"})  ← 回退 specpowers:&lt;skill&gt;</text>
+    <text x="440" y="326" text-anchor="middle" font-size="11" fill="#57606a">Skill({skill: "specpowers"})  ← fallback specpowers:&lt;skill&gt;</text>
 
     <rect x="540" y="214" width="280" height="120" rx="10" fill="#f6f8fa" stroke="#8c959f" stroke-dasharray="6 4"/>
     <text x="680" y="240" text-anchor="middle" font-weight="700" fill="#57606a">Codex CLI</text>

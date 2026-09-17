@@ -115,7 +115,7 @@ specpowers/                          ← 仓库根 = DSH 包根 = Claude Code �
 | `invocation` | `{ modelInvocable: true, userInvocable: true }` | 模型与人都可调用 |
 | `list()` | 扫 `<pkg>/skills/*/SKILL.md`，只读 frontmatter | 按需加载，不过早读正文 |
 | `get()` | 按需读正文 | |
-| `resourceBase` | `{ kind: 'directory', path: '<pkg>/skills/<name>' }` | 使技能正文里的 `<SKILL_BASE>` 相对引用（`refs/`、`scripts/`）在插件缓存路径下依然解析得到 |
+| `resourceBase` | `{ kind: 'directory', path: '<pkg>/skills/<name>' }` | 解析技能**自身** bundled resources（`refs/`、`scripts/`）在插件缓存路径下的相对引用；`<SKILL_BASE>` 按约定指**入口技能**基目录（定义见入口技能「脚本路径解析」节），并非此处的本技能目录 |
 | `locator` | 技能目录绝对路径 | |
 | `path` | `SKILL.md` 绝对路径 | |
 

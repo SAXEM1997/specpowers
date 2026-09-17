@@ -27,9 +27,10 @@ specpowers 的技能正文按**平台中立**书写：技能一律用裸名引�
 | `Task`（子代理） | `subagent` / `subagent_fork` | 默认后台运行；`subagent_fork` 继承当前会话上下文 |
 | `AskUserQuestion` | `ask_user_question` | 问题带稳定 id 并在回答中回显 |
 | `WebSearch` | `web_search` | 返回摘要答案 + 来源 URL |
-| `LS` | `glob` + `read` | DSH 无独立的目录列举工具 |
+| `WebFetch` | `web_fetch` | 抓取指定 HTTP(S) URL 内容并解码为文本 |
+| 目录列举 | `glob` + `read` | DSH 无独立的目录列举工具 |
 | Plan mode | `exit_plan_mode` | 呈现计划，批准后离开 plan mode 并执行 |
-| `ReadImage` | `read_image` | 仅 PNG/JPEG/WebP/GIF |
+| `Read`（图像文件） | `read_image` | 仅 PNG/JPEG/WebP/GIF |
 | 后台任务 | 工具的 `run_in_background: true` | 用 `job_output` / `job_kill` / `job_list` 管理 |
 
 ## DSH 特有工具（值得 specpowers 利用）
@@ -59,4 +60,4 @@ DSH **没有插件斜杠命令**。`/opsx:*` 与 `/specpowers` 不可用：
 
 - 技能正文用 `<SKILL_BASE>` 指代技能基目录。DSH 由 provider 的 `resourceBase`（指向 `skills/<name>/`）解析，Claude Code 由技能的 Base directory 解析——两者都成立。
 - `scripts/*.mjs` 是零依赖 Node 脚本，通过 `import.meta.url` 自定位，cwd 无关，因此两个平台都能直接 `node <路径>` 执行。
-- Windows 上 `scripts/start-server.sh` 一类的 bash 辅助脚本不可用；`scripts/server.cjs` 等 Node 脚本全平台可跑。
+- 本仓库不随附任何 `.sh` 辅助脚本——不存在 POSIX-only 的辅助脚本需要担心，Windows 缺 bash 不构成降级点。

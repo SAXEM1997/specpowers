@@ -19,7 +19,7 @@ description: >
 > - **Claude Code**: 裸名可用则 `Skill({skill: "specpowers"})`；技能注册表要求插件命名空间时
 >   回退 `Skill({skill: "specpowers:specpowers"})`（上游技能回退 `Skill({skill: "superpowers:brainstorming"})`）。
 > - **Codex**: 技能名直呼（skills-only 工具）。🔲 未验证
-> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）。
+> 完整三平台映射与降级路径见 `<SKILL_BASE>/refs/platform-tools.md`。**`<SKILL_BASE>` = 入口技能基目录**（入口技能即 `skills/specpowers/`）；从子技能加载时它是本技能目录的兄弟目录——注意 DSH 的资源提示给出的是**本技能**目录，两者不同，勿按前者解析。
 
 ## 概述
 
@@ -297,7 +297,7 @@ master (main) ← 始终可部署
 
 ### Post-Task
 ```
-□ known-issues / next-steps / memory / session-summary / CLAUDE+SKILL.md
+□ known-issues / next-steps / memory / session-summary / 项目指令文件（CLAUDE.md / AGENTS.md）+SKILL.md
 □ git commit + push origin <current-branch>（遵循 GitLab Flow）
 □ openspec validate + archive（如用 OpenSpec）（如 .superpowers/.phase1-skipped 存在则跳过 OpenSpec validate + archive）
 ```
