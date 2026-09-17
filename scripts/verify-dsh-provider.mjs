@@ -86,3 +86,46 @@ for (const [skillName, anchor] of EXPECTED) {
   )
 }
 console.log(`PASS list(): ${EXPECTED.length} 技能，裸名与 description 锚点全部正确`)
+
+// ---- provider get() 契约 ----
+for (const [skillName] of EXPECTED) {
+  const candidate = candidates.find((entry) => entry.name === skillName)
+  const full = await provider.get(candidate, {})
+  assert.ok(full, `${skillName} get() 应返回技能定义`)
+  assert.equal(full.name, skillName, `${skillName} get() 返回的 name 不符`)
+  assert.ok(full.content.length > 100, `${skillName} content 过短（${full.content.length}）`)
+  assert.equal(
+    full.resourceBase?.kind,
+    'directory',
+    `${skillName} resourceBase.kind 必须为 directory`
+  )
+  assert.equal(
+    full.resourceBase.path,
+    join(root, 'skills', skillName),
+    `${skillName} resourceBase.path 指向错误`
+  )
+}
+console.log(`PASS get(): ${EXPECTED.length} 技能正文与 resourceBase 全部正确`)
+
+// ---- 相对资源可达性 ----
+// 技能正文用 <SKILL_BASE> 引用 refs/ 与 scripts/；插件从缓存路径加载时，
+// 这些相对引用必须能通过 resourceBase 解析。
+const entryName = 'specpowers'
+const entryFull = await provider.get(
+  candidates.find((entry) => entry.name === entryName),
+  {}
+)
+for (const relative of [
+  'refs/workflow-protocol.json',
+  'refs/platform-tools.md',
+  'scripts/workflow-state.mjs',
+  'scripts/workflow-guard.mjs'
+]) {
+  assert.ok(
+    existsSync(join(entryFull.resourceBase.path, relative)),
+    `resourceBase 下缺相对资源：${relative}`
+  )
+}
+console.log('PASS resourceBase: refs/ 与 scripts/ 相对资源可达')
+
+console.log('ALL PASS')
