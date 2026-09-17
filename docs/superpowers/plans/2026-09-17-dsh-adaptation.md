@@ -671,7 +671,11 @@ Run:
 grep -roE 'specpowers:specpowers' skills/*/SKILL.md | wc -l
 grep -roE 'superpowers:' skills/*/SKILL.md | wc -l
 ```
-Expected: `22` 与 `13`
+Expected: `22` 与 **`14`**
+
+> **为什么是 14 而不是 13**：13 个是**技能调用站点**（`superpowers:<skill>`）。第 14 个是 `skills/specpowers/SKILL.md` 依赖检查表里的**通配符** `` `superpowers:*` ``，它不是调用站点，但 `superpowers:` 模式同样命中它。计数与「站点数」是两个口径，别把 13 当成断言值。
+>
+> **这个通配符会被 `sed` 破坏**：`s/superpowers://g` 会把 `` `superpowers:*` `` 变成 `` `*` ``，该行语义随即失效（Step 3b 修复）。这是先剥除后修复的已知代价，不是可以忽略的噪音。
 
 - [ ] **Step 2: 执行剥除**
 
@@ -683,7 +687,25 @@ sed -i 's/superpowers://g' skills/*/SKILL.md
 
 > 第一条 sed **必须**写作无尾随连字符的形式：入口技能引用是 `specpowers:specpowers`（无 `-`），带连字符的模式会漏改 8 个站点。
 
-- [ ] **Step 3: 验证零残留**
+- [ ] **Step 3: 修复被 sed 破坏的通配符行**
+
+Step 2 的 `s/superpowers://g` 会把依赖检查表里的通配符一起改掉，把语义改成无意义的 `` `*` ``。这是先剥除后修复的已知代价，必须在本步骤修回。
+
+把 `skills/specpowers/SKILL.md` 依赖检查表中被破坏的那一行（`/skills` 含 `` `*` ``）：
+
+```
+| **Superpowers** | TDD | `/skills` 含 `*` | ✅ |
+```
+
+改为：
+
+```
+| **Superpowers** | TDD | `/skills` 含 `brainstorming`、`subagent-driven-development` 等上游技能（插件命名空间形式见本技能「平台适配」节） | ✅ |
+```
+
+**改写要求**：替换后的行**不得包含 `superpowers:` 字面量**。裸名是跨平台可用的形式；命名空间形式由本技能头部的「平台适配」块统一说明（Task 6 写入）。若在此处写回 `superpowers:*`，Task 11 判据 2 的白名单计数会失败（该判据要求每个 SKILL.md 恰好 2 处前缀命中，且同处一行、该行含「回退」）。
+
+- [ ] **Step 4: 验证零残留**
 
 Run:
 ```bash
@@ -692,7 +714,7 @@ grep -roE 'superpowers:' skills/*/SKILL.md | wc -l
 ```
 Expected: `0` 与 `0`
 
-- [ ] **Step 4: 验证调用形态正确**
+- [ ] **Step 5: 验证调用形态正确**
 
 Run:
 ```bash
@@ -717,19 +739,36 @@ Expected（计数精确匹配）：
 ```
 且 `REQUIRED SUB-SKILL` / `REQUIRED BACKGROUND` 6 行全部为裸名（`subagent-driven-development`、`test-driven-development`、`verification-before-completion`、`finishing-a-development-branch`、`brainstorming`、`writing-plans`）。
 
-- [ ] **Step 5: 确认业务语义未受损**
+- [ ] **Step 6: 确认业务语义未受损**
 
 Run: `git diff --stat skills/`
-Expected: 6 个文件均有改动，且改动行数与 35 个站点量级一致（不应出现整段重写）
+Expected: 这 6 个技能文件均有改动，改动行数与「35 个站点 + Step 3 的一行改写」量级一致（不应出现整段重写）
 
-Run: `git diff skills/ | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' | grep -vE 'specpowers|superpowers'`
-Expected: 空输出（除前缀外无任何其他改动）
+**不要用「diff 中不含前缀字样的行」当判据**——该判据按构造不可能为空：剥除后每个 `+` 行本身已不含 `superpowers:`（那正是剥除的目的），`-` 行才含。原写法会把全部 `+` 行报出来，误判为「混入了非前缀改动」。
 
-- [ ] **Step 6: Commit**
+正确的验证是**重放等价性**：对每个文件，用 `git show <BASE>:<file>` 取出剥除前内容，在临时文件上跑一遍同样的两条 `sed`，与工作区当前内容逐字节比较。一致即证明本次改动恰好等于「只做前缀替换」，一个字符不多。
+
+Run:
+```bash
+BASE=21876f4   # Task 4 的 BASE（见 ledger / git log）
+for f in skills/*/SKILL.md; do
+  tmp=$(mktemp)
+  git show "$BASE:$f" > "$tmp"
+  sed -i 's/specpowers:specpowers/specpowers/g' "$tmp"
+  sed -i 's/superpowers://g' "$tmp"
+  if cmp -s "$tmp" "$f"; then echo "OK   $f"; else echo "DIFF $f"; fi
+  rm -f "$tmp"
+done
+```
+Expected: 6 行全部为 `OK`。
+
+> 注意：`skills/specpowers/SKILL.md` 在 Step 3 被额外修改过一行，因此它的重放比较**必然**报 `DIFF`——这是**预期**的，且必须仅由那一行造成。用 `diff <(git show "$BASE:$f" | sed -e 's/specpowers:specpowers/specpowers/g' -e 's/superpowers://g') "$f"` 查看差异：应恰好只显示 Step 3 改写的那一行（旧 `` `*` `` → 新裸名列表行）。其余 5 个文件必须逐字节 `OK`。
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add skills/
-git commit -m "refactor(skills): 技能调用前缀剥除为裸名（35 站点）
+git commit -m "refactor(skills): 技能调用前缀剥除为裸名（35 站点）+ 修复依赖检查表通配符
 
 Skill({skill: \"specpowers:specpowers-X\"}) → Skill({skill: \"specpowers-X\"})，
 superpowers:<skill> → <skill>。为 DSH 裸名寻址做准备；Claude Code 的插件
