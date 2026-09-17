@@ -1,6 +1,6 @@
 # UltraPlan 调研专家提示词
 
-> 注：本提示词原为原生 Claude Code 环境编写，引用 TeamCreate/ExitPlanMode 等工具。在当前 Claude Code 环境中，对应改用 Agent 工具（并行子 Agent）+ AskUserQuestion 工具；ExitPlanMode/EnterPlanMode 为 plan 模式工具。
+> 注：本提示词原为原生 Claude Code 环境编写，正文引用的 `TeamCreate` / `EnterPlanMode` / `ExitPlanMode` / `AskUserQuestion`（调研版另有 `WebSearch`）为平台专有或已过时。**按平台替换后再使用**——`TeamCreate`（建团队/并行子代理）→ DSH：`subagent` / `subagent_fork` / `workflow`；Claude Code：子 Agent 工具。`AskUserQuestion` → DSH：`ask_user_question`。`EnterPlanMode` / `ExitPlanMode` → DSH：`exit_plan_mode`（DSH 无对应的「进入」工具，plan 模式由宿主控制）；Claude Code：同名工具。`WebSearch` → DSH：`web_search`。完整对照见 `refs/platform-tools.md`。
 
 > 触发 UltraPlan 调研专家模式时，将此提示词填充至上下文开头。
 

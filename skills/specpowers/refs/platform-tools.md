@@ -33,6 +33,20 @@ specpowers 的技能正文按**平台中立**书写：技能一律用裸名引�
 | `Read`（图像文件） | `read_image` | 仅 PNG/JPEG/WebP/GIF |
 | 后台任务 | 工具的 `run_in_background: true` | 用 `job_output` / `job_kill` / `job_list` 管理 |
 
+## 模型能力分级对照（跨平台）
+
+specpowers-review 的多模型渐进式审查按**能力等级**选模型，不绑定品牌——规则正本见 `skills/specpowers-review/SKILL.md`「模型多样性规则」：强推理用于结构审查、快速用于落地审查、与前两者不同的中等推理模型用于对齐审查；**具体品牌取决于环境可用模型，以能力等级匹配为优先**。
+
+下表给出各平台的**示例**，只用于说明能力等级可如何落到具体模型，**不是规定**。模型迭代快、账号可用性各异，实际选型一律以当前环境**实测**为准。
+
+| 能力等级 | 在审查中的角色 | DSH 示例 | Claude Code 示例 |
+|---|---|---|---|
+| 强推理 | 结构审查 Agent（完整性/冗余/一致性） | 如 `glm-5.3`、`k3-256k` | 如 Opus 级 |
+| 快速 | 落地审查 Agent（可执行性/边界/兼容性） | 如 `deepseek-flash`、`glm-5.3-flash` | 如 Haiku 级 |
+| 中等 / 不同厂商 | 对齐审查 Agent（逐条对照/错漏检测）；修复子 Agent（须与审查 Agent 不同模型） | 如 `kimi-for-coding`（与前两者不同厂商） | 如 Sonnet 级或另一厂商模型 |
+
+**降级**：仅 2 个模型可用 → 结构+对齐用不同模型，落地与对齐共用；仅 1 个模型可用 → 串行执行（落地→对齐→结构）并在 `degradation` 中声明「缺少独立视角」。细则见 `skills/specpowers-review/refs/protocols.md` 协议 4。
+
 ## DSH 特有工具（值得 specpowers 利用）
 
 - `goal` 工具族（`create_goal` / `get_goal` / `update_goal`）：跨自动续轮的同会话完成目标。

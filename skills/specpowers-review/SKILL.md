@@ -241,7 +241,7 @@ Gate 1 审查对象包含多个独立文件（proposal.md / design.md / specs/ /
 3. 落地审查 Agent：优先使用快速模型，关注边界/兼容性检查——快速模型在细节问题（列对齐解析、转义字符、边界值处理）上常有意外发现
 4. 对齐审查 Agent：优先使用与前两者不同的模型，关注逐条对照+错漏检测的中等推理任务
 5. **降级策略**：仅两个模型/仅单一模型可用时的部署与串行顺序细则见 `refs/protocols.md` 协议 4「模型多样性降级细则」。
-6. 如在 TeamCreate/子 Agent 环境中执行，优先使用不同子 Agent 分配不同模型。
+6. 如在支持子 Agent 的环境中执行（DSH：`subagent` / `workflow` 工具；Claude Code：子 Agent 工具），优先为不同子 Agent 分配不同模型。工具与模型的平台对照见 `refs/platform-tools.md`。
 
 ### 与 UltraReview 的分工
 
