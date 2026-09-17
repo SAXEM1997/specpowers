@@ -1853,7 +1853,7 @@ node scripts/verify-dsh-provider.mjs
 
 ## 许可
 
-MIT。上游技能内容来自 [Superpowers](https://github.com/obra/superpowers)（MIT，© Jesse Vincent 及贡献者）与 [OpenSpec](https://github.com/Fission-AI/OpenSpec)（MIT）。
+MIT，见 [LICENSE](LICENSE)。上游技能内容改编自 [Superpowers](https://github.com/obra/superpowers)（MIT，© 2025 Jesse Vincent）与 [OpenSpec](https://github.com/Fission-AI/OpenSpec)（MIT，© 2024 OpenSpec Contributors）；完整上游版权声明见 LICENSE 的「上游归属」段。
 ````
 
 - [ ] **Step 3: 创建 README.en.md**
@@ -1877,6 +1877,7 @@ MIT。上游技能内容来自 [Superpowers](https://github.com/obra/superpowers
 - 硬依赖的 8 个技能名：`brainstorming`, `writing-plans`, `subagent-driven-development`, `test-driven-development`, `systematic-debugging`, `requesting-code-review`, `verification-before-completion`, `finishing-a-development-branch`。
 - 关于 frontmatter 解析器的警告段：必须传达「DSH routes skills solely by `description`; degrading the parser to single-line scalars makes skills visible but unselectable; always run `node scripts/verify-dsh-provider.mjs`」。
 - 评测限制段：evals require the Claude Code engine and cannot run on DSH.
+- `## License` 节必须写 `MIT, see [LICENSE](LICENSE).` 并点名两个上游项目及其**确切的**版权行 (`Copyright (c) 2025 Jesse Vincent` / `Copyright (c) 2024 OpenSpec Contributors`)，同时指向 LICENSE 的 upstream attribution 段——与中文档及 LICENSE 三方一致。
 
 - [ ] **Step 4: 验证两文件结构对称**
 
