@@ -1872,7 +1872,9 @@ MIT，见 [LICENSE](LICENSE)。上游技能内容改编自 [Superpowers](https:/
 
 必须逐字保留的英文段落（命令、路径、标识符不可翻译）：
 
-- 所有 ```sh / ```bash 代码块内容与 `README.md` 完全一致。
+- **可执行内容逐字一致**：所有 ```sh / ```bash 代码块中的**命令、路径、标识符、URL** 必须与 `README.md` 完全一致（不许翻译、不许改写）。
+- **叙述性代码块必须翻译**：围栏代码块里承载的是叙述而非命令时，内容要译成英文——包括：技能组架构 ASCII 图、Phase 工作流 ASCII 图、仓库目录树的行内注释、命令后的 `#` 注释、项目初始化勾选清单。这些是给读者看的说明文字，不是可执行内容。**只译文字，不动结构**：树线的 `├──`/`│`/`└──`、缩进、字段对齐保持不变，命令与路径原样保留。
+  （判据：`grep -nP '[\x{4e00}-\x{9fff}]' README.en.md` 只应命中第 3 行的语言切换链接 `[简体中文](README.md)`——那是一处刻意保留的中文。）
 - 平台适配表三行：DSH 行为 `skill(name: "specpowers")`；Claude Code 行为 bare name with fallback `Skill({skill: "specpowers:specpowers"})`；Codex 行为 **reserved · unverified**，路径 `.agents/skills/<name>/SKILL.md`。
 - 硬依赖的 8 个技能名：`brainstorming`, `writing-plans`, `subagent-driven-development`, `test-driven-development`, `systematic-debugging`, `requesting-code-review`, `verification-before-completion`, `finishing-a-development-branch`。
 - 关于 frontmatter 解析器的警告段：必须传达「DSH routes skills solely by `description`; degrading the parser to single-line scalars makes skills visible but unselectable; always run `node scripts/verify-dsh-provider.mjs`」。
