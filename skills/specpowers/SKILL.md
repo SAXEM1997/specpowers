@@ -74,7 +74,7 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 
 ### Step 2：推进纪律
 
-- 节点流转：每完成一个 Phase，`node <SKILL_BASE>/scripts/workflow-state.mjs next` 返回 `NEXT: <auto|blocked|manual|done>` + `SKILL: <Skill 工具全名，带 provider 前缀>` + `PHASE: <id>` + `REASON: <文本>`（auto 时 SKILL=下阶段技能；manual 时 SKILL 保持当前待用户决策；blocked 时 SKILL=回退 phase 对应技能；done 时无 SKILL）
+- 节点流转：每完成一个 Phase，`node <SKILL_BASE>/scripts/workflow-state.mjs next` 返回 `NEXT: <auto|blocked|manual|done>` + `SKILL: <技能裸名，如 specpowers-design>` + `PHASE: <id>` + `REASON: <文本>`（auto 时 SKILL=下阶段技能；manual 时 SKILL 保持当前待用户决策；blocked 时 SKILL=回退 phase 对应技能；done 时无 SKILL）
 - 出口守卫：每个子技能 Gate 完成后调 `node <SKILL_BASE>/scripts/workflow-guard.mjs exit <phase> --apply`
 - 决策停顿点：见 `refs/decision-points.md`（PP-01..PP-08），必须停顿等用户
 - 恢复规则（移植 kernel Decision Core 的恢复类规则）：恢复时复用已持久化选择（方案选择/跳过决定/worktree 同意/逐条裁决），只呈现未决部分；已持久化选择存于 state.json evidence 字段（跨会话恢复依赖该文件）；换话题先确认继续还是新任务，不得混用 name

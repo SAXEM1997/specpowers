@@ -182,7 +182,7 @@ function cmdNext() {
     if (completed.includes(PHASES[n]) && !gateOk(n, name)) {
       const reason = `${PHASES[n]} 在 completedPhases 中但 gate token 缺失或 name 不匹配`;
       writeState({ ...st.data, blockedReason: reason });
-      const skill = nodeOf(protocol, PHASES[n])?.skill || 'specpowers:specpowers-design';
+      const skill = nodeOf(protocol, PHASES[n])?.skill || 'specpowers-design';
       console.log(`NEXT: blocked\nSKILL: ${skill}\nPHASE: ${PHASES[n]}\nREASON: ${reason}`);
       return;
     }
@@ -195,9 +195,9 @@ function cmdNext() {
     const decided = (node?.pausePoints || []).every((pp) => (st.data.evidence || {})[PHASES[n]]?.[pp]);
     clear();
     if (pps.length && !decided) {
-      console.log(`NEXT: manual\nSKILL: ${node?.skill || 'specpowers:specpowers-design'}\nPHASE: ${PHASES[n]}\nREASON: 停顿点 ${pps.join('/')} 未持久化于 evidence（见 refs/decision-points.md）`);
+      console.log(`NEXT: manual\nSKILL: ${node?.skill || 'specpowers-design'}\nPHASE: ${PHASES[n]}\nREASON: 停顿点 ${pps.join('/')} 未持久化于 evidence（见 refs/decision-points.md）`);
     } else {
-      console.log(`NEXT: auto\nSKILL: ${node?.skill || 'specpowers:specpowers-design'}\nPHASE: ${PHASES[n]}\nREASON: 第一个未完成 phase`);
+      console.log(`NEXT: auto\nSKILL: ${node?.skill || 'specpowers-design'}\nPHASE: ${PHASES[n]}\nREASON: 第一个未完成 phase`);
     }
     return;
   }
@@ -207,7 +207,7 @@ function cmdNext() {
   if (archiveEvidence(name)) {
     console.log(`NEXT: done\nPHASE: phase4\nREASON: 归档证据已记录（git 严格检查由 guard exit phase4 执行）`);
   } else {
-    console.log(`NEXT: auto\nSKILL: ${archiveNode?.skill || 'specpowers:specpowers-archive'}\nPHASE: phase4\nREASON: token 0-3 齐，进入归档`);
+    console.log(`NEXT: auto\nSKILL: ${archiveNode?.skill || 'specpowers-archive'}\nPHASE: phase4\nREASON: token 0-3 齐，进入归档`);
   }
 }
 

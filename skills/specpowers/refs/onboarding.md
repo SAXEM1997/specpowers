@@ -25,6 +25,6 @@
 
 在下一个复杂功能前引入 OpenSpec 规范对齐：
 
-1. `superpowers:brainstorming` — 需求澄清+方案设计
+1. `brainstorming` — 需求澄清+方案设计
 2. 手动生成 OpenSpec 四件套（design.md + specs + tasks + proposal.md，Phase 1 不使用 `/opsx:propose`）
 3. 将 design.md 和 specs 加载为 Superpowers planning 上下文
