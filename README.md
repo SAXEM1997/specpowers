@@ -285,6 +285,14 @@ specpowers/
 node scripts/verify-dsh-provider.mjs
 ```
 
+另有一个内网信息/凭据泄漏自检（同样零依赖）：
+
+```bash
+node scripts/verify-no-internal-refs.mjs
+```
+
+它扫描**已追踪文件与提交信息**中的内网 TLD、私网 IPv4、凭据前缀与私钥块；项目专属主机名从已 gitignore 的 `.internal-refs.txt` 读取，因此脚本本身可安全公开。建议在 pre-push 或 CI 中执行。
+
 > **改 frontmatter 解析器时必读**：DSH 的 `description` 是技能路由的唯一依据。本仓库的 `lib/index.js` 解析器支持 4 种标量形态（单行、折叠块 `>`/`>-`、字面块 `|`/`|-`、多行 plain 续行）。若退化为只支持单行标量，`specpowers` 与 `specpowers-review` 的 `description` 会变成字面 `>`/`>-`，`specpowers-design` 与 `specpowers-plan` 的会被截断——技能会「看得见但选不中」。改完务必跑上面的自检。
 
 技能评测套件位于 `skills/*/evals/`：声明式 YAML 用例 + 规则断言。运行器是开源项目 [skill-up](https://github.com/alibaba/skill-up)（Alibaba，Apache-2.0），本仓库的 `eval.yaml`（`schema_version: v1alpha1`）与 `cases/*.yaml` 即其评测格式。

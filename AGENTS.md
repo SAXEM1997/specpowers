@@ -101,3 +101,4 @@ specpowers (入口, 决策模式+路由+状态机)
 - skills 目录下的 `pkg-xmake-template.md` 是 xmake 构建系统的 C/C++ 项目模板，仅在 specpowers 应用于此类项目时作为参考，不是本项目的构建系统。
 - `refs/` 下的文件是技能的 bundled resources，通过 `Skill` 工具加载技能时一并可用。
 - 入口技能的 "7 个常见 Pitfalls" 和 "故障排查" 表是跨所有子技能的共享知识，修改时需评估对子技能的影响。
+- **推送前必跑** `node scripts/verify-no-internal-refs.mjs`：扫描内网 TLD / 私网 IPv4 / 凭据 / 私钥。项目专属主机名放在 gitignore 的 `.internal-refs.txt`（脚本本身不含内网字面量，故可公开）。提交信息同样在扫描范围内。

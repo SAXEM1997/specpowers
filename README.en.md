@@ -285,6 +285,14 @@ Run the packaging self-check (zero dependencies; validates manifest validity + t
 node scripts/verify-dsh-provider.mjs
 ```
 
+A second zero-dependency check guards against leaking internal or credential material:
+
+```bash
+node scripts/verify-no-internal-refs.mjs
+```
+
+It scans **tracked files and commit messages** for internal TLDs, private IPv4 ranges, credential prefixes and private keys; project-specific hostnames come from the gitignored `.internal-refs.txt`, so the script itself is safe to publish. Wire it into a pre-push hook or CI.
+
 > **Required reading before changing the frontmatter parser**: DSH routes skills solely by `description`. The parser in this repo's `lib/index.js` supports 4 scalar forms (single-line, folded blocks `>`/`>-`, literal blocks `|`/`|-`, and multi-line plain continuations). If it degrades to single-line scalars only, the `description` of `specpowers` and `specpowers-review` collapses to the literal strings `">"`/`">-"`, and the `description` of `specpowers-design` and `specpowers-plan` gets truncated — the skills become visible but never selectable. Always run `node scripts/verify-dsh-provider.mjs` after changing the parser.
 
 The skill eval suite lives in `skills/*/evals/`: declarative YAML cases plus rule-based assertions. The runner is the open-source [skill-up](https://github.com/alibaba/skill-up) project (Alibaba, Apache-2.0); this repo's `eval.yaml` (`schema_version: v1alpha1`) and `cases/*.yaml` are its eval format.

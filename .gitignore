@@ -12,3 +12,6 @@
 
 # skill-up 评测输出目录（每个技能根目录下生成 <skill>-workspace/）
 skills/*-workspace/
+
+# 项目专属敏感 token denylist（含真实主机名，绝不入库）
+/.internal-refs.txt
