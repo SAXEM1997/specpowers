@@ -1427,6 +1427,27 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+**再追加上游归属段**（Task 9 审查发现：单挂本项目版权行会低报衍生来源；MIT 要求随实质部分保留原始版权声明。仓库的技能内容改编自下列 MIT 项目，版权行须原文照录）：
+
+```
+
+---
+
+## 上游归属 / Upstream attribution
+
+本项目的技能内容改编自以下 MIT 许可项目，其版权声明随附如下：
+
+- **Superpowers** — https://github.com/obra/superpowers
+  Copyright (c) 2025 Jesse Vincent
+
+- **OpenSpec** — https://github.com/Fission-AI/OpenSpec
+  Copyright (c) 2024 OpenSpec Contributors
+
+上述项目均以 MIT 许可发布，其许可条款与本文件正文相同。
+```
+
+> 版权行系从上游仓库的 `LICENSE` 原文取得（`obra/superpowers` → `Copyright (c) 2025 Jesse Vincent`；`Fission-AI/OpenSpec` → `Copyright (c) 2024 OpenSpec Contributors`），不是推测值。README 的「许可」节与本段须互相呼应。
+
 - [ ] **Step 6: 更新 plugin.json 的 repository**
 
 把 `.claude-plugin/plugin.json` 中的：
