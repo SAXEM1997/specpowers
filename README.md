@@ -74,6 +74,14 @@ specpowers (入口 — 决策树 + 路由 + 状态机)
 npx @deepseek-ai/dsh plugin --profile web add github:SAXEM1997/specpowers
 ```
 
+要**可复现**地钉住版本，在 `#` 后加标签（推荐生产使用）：
+
+```sh
+npx @deepseek-ai/dsh plugin --profile web add github:SAXEM1997/specpowers#v1.0.0
+```
+
+> 不加 `#` 时装的是 `main` 的当前 HEAD——今天装与以后装拿到的代码可能不同。`dsh plugin` 底层是 pnpm，`#` 后同样可以写 commit SHA。
+
 装完后重启 profile（停掉后重新运行 `dsh web` / `npx @deepseek-ai/dsh web`），刷新浏览器即可。
 
 也可以直接让 DeepSeek Harness 自己装——新建对话，把这句话发给它：

@@ -74,6 +74,14 @@ Simplest — run from any directory:
 npx @deepseek-ai/dsh plugin --profile web add github:SAXEM1997/specpowers
 ```
 
+To pin a **reproducible** version, append a tag after `#` (recommended for production):
+
+```sh
+npx @deepseek-ai/dsh plugin --profile web add github:SAXEM1997/specpowers#v1.0.0
+```
+
+> Without `#`, the current `main` HEAD is installed — what you get today may differ from what you get later. `dsh plugin` is backed by pnpm, so a commit SHA works after `#` too.
+
 After installation, restart the profile (stop it and run `dsh web` / `npx @deepseek-ai/dsh web` again), then refresh the browser.
 
 You can also let DeepSeek Harness install it itself — open a new conversation and send it this message:
