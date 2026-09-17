@@ -1,8 +1,14 @@
+# specpowers 运行时状态（状态机 state.json 与 Gate 产物）——不应进公开仓库
+/.superpowers/
+
+# openspec init 生成物（用户本地内容）——用 openspec init --tools claude 重建，
+# 见 README「依赖安装步骤」。注意 /.claude/ 与 /.claude-plugin/ 是不同目录：
+# 后者是本仓库资产，必须保留追踪。
+/.claude/
+
+# Codex / Zed Agent 共享技能根与 Codex 本地目录（生成物，同上）
+/.agents/
+/.codex/
+
 # skill-up 评测输出目录（每个技能根目录下生成 <skill>-workspace/）
-skills/specpowers-workspace/
-skills/specpowers-design-workspace/
-skills/specpowers-plan-workspace/
-skills/specpowers-apply-workspace/
-skills/specpowers-review-workspace/
-skills/specpowers-archive-workspace/
-skills/specpowers-group-workspace/
+skills/*-workspace/
