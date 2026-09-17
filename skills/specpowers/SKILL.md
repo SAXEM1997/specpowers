@@ -231,7 +231,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 | 工具 | 用途 | 检查命令 | 必选 |
 |------|------|---------|------|
 | **OpenSpec** | SDD | `openspec --version` | ✅ |
-| **Superpowers** | TDD | `/skills` 含 `*` | ✅ |
+| **Superpowers** | TDD | `/skills` 含 `brainstorming`、`subagent-driven-development` 等上游技能（插件命名空间形式见本技能「平台适配」节） | ✅ |
 | **CodeGraph** | 代码知识图谱 | 仓库根存在 `.codegraph/` 目录（MCP `codegraph_explore` / shell `codegraph explore`） | ⚠️ |
 | **Graphify** | 多模态知识图谱（代码+文档，架构理解） | `/graphify` 命令可用 | ⚠️ |
 | **TEST_COMMAND** | 全量测试 | 项目实际测试命令（见下方） | ⚠️ 需手动配置 |
