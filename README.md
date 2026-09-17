@@ -270,6 +270,7 @@ specpowers/
 ├── AGENTS.md                          # 厂商中立项目指令（正本）
 ├── CLAUDE.md                          # Claude Code 入口（导入 AGENTS.md）
 ├── README.md / README.en.md
+├── NOTICE
 └── LICENSE
 ```
 
@@ -312,4 +313,4 @@ skill-up run <path>
 
 ## 许可
 
-MIT，见 [LICENSE](LICENSE)。上游技能内容改编自 [Superpowers](https://github.com/obra/superpowers)（MIT，© 2025 Jesse Vincent）与 [OpenSpec](https://github.com/Fission-AI/OpenSpec)（MIT，© 2024 OpenSpec Contributors）；完整上游版权声明见 LICENSE 的「上游归属」段。
+MIT，见 [LICENSE](LICENSE)。上游技能内容改编自 [Superpowers](https://github.com/obra/superpowers)（MIT，© 2025 Jesse Vincent）与 [OpenSpec](https://github.com/Fission-AI/OpenSpec)（MIT，© 2024 OpenSpec Contributors）；完整上游版权声明见 [NOTICE](NOTICE)。

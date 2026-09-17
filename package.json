@@ -20,7 +20,8 @@
     "AGENTS.md",
     "README.md",
     "README.en.md",
-    "LICENSE"
+    "LICENSE",
+    "NOTICE"
   ],
   "license": "MIT",
   "keywords": [

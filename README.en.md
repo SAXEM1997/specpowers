@@ -270,6 +270,7 @@ specpowers/
 ├── AGENTS.md                          # vendor-neutral project instructions (source of truth)
 ├── CLAUDE.md                          # Claude Code entry (imports AGENTS.md)
 ├── README.md / README.en.md
+├── NOTICE
 └── LICENSE
 ```
 
@@ -312,4 +313,4 @@ See [AGENTS.md](AGENTS.md) for the development workflow and key design decisions
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Upstream skill content is adapted from [Superpowers](https://github.com/obra/superpowers) (MIT, Copyright (c) 2025 Jesse Vincent) and [OpenSpec](https://github.com/Fission-AI/OpenSpec) (MIT, Copyright (c) 2024 OpenSpec Contributors); the full upstream copyright notices are in the upstream-attribution section of LICENSE.
+MIT, see [LICENSE](LICENSE). Upstream skill content is adapted from [Superpowers](https://github.com/obra/superpowers) (MIT, Copyright (c) 2025 Jesse Vincent) and [OpenSpec](https://github.com/Fission-AI/OpenSpec) (MIT, Copyright (c) 2024 OpenSpec Contributors); the full upstream copyright notices are in [NOTICE](NOTICE).
