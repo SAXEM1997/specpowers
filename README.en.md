@@ -4,6 +4,12 @@
 
 </div>
 
+<div align="center">
+
+<img src="static/logo.png" alt="specpowers" width="880">
+
+</div>
+
 # specpowers
 
 **SDD + TDD engineering development methodology** — DeepSeek Harness plugin + Claude Code skill group

@@ -4,6 +4,12 @@
 
 </div>
 
+<div align="center">
+
+<img src="static/logo.png" alt="specpowers" width="880">
+
+</div>
+
 # specpowers
 
 **SDD + TDD 工程化开发方法论** — DeepSeek Harness 插件 + Claude Code 技能组
