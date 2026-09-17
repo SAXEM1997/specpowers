@@ -249,6 +249,7 @@ specpowers/
 │   ├── specpowers-review/SKILL.md     # 审查体系
 │   └── specpowers-archive/SKILL.md    # Phase 4
 ├── commands/specpowers.md             # Claude Code /specpowers 命令
+├── static/logo.png                    # 首页图（文生图生成）
 ├── static/architecture.svg            # 架构图
 ├── docs/superpowers/{specs,plans}/    # 本项目的设计与计划（开发史）
 ├── AGENTS.md                          # 厂商中立项目指令（正本）

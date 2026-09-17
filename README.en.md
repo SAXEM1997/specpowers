@@ -249,6 +249,7 @@ specpowers/
 │   ├── specpowers-review/SKILL.md     # review system
 │   └── specpowers-archive/SKILL.md    # Phase 4
 ├── commands/specpowers.md             # Claude Code /specpowers command
+├── static/logo.png                    # hero image (text-to-image generated)
 ├── static/architecture.svg            # architecture diagram
 ├── docs/superpowers/{specs,plans}/    # this project's designs and plans (development history)
 ├── AGENTS.md                          # vendor-neutral project instructions (source of truth)
