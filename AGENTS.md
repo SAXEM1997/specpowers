@@ -94,6 +94,7 @@ specpowers (入口, 决策模式+路由+状态机)
 | **OpenSpec CLI** | SDD 规范管理 | `openspec --version` |
 | **CodeGraph** | 代码知识图谱 | 仓库根 `.codegraph/` 目录存在 / MCP `codegraph_explore` 可用 |
 | **Graphify** | 多模态知识图谱（架构理解） | `/graphify` 命令可用 |
+| **skill-up**（[alibaba/skill-up](https://github.com/alibaba/skill-up)） | 技能评测（`skills/*/evals/` 下的评测套件） | `skill-up --version` |
 
 ## 注意事项
 

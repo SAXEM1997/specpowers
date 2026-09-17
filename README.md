@@ -265,7 +265,18 @@ node scripts/verify-dsh-provider.mjs
 
 > **改 frontmatter 解析器时必读**：DSH 的 `description` 是技能路由的唯一依据。本仓库的 `lib/index.js` 解析器支持 4 种标量形态（单行、折叠块 `>`/`>-`、字面块 `|`/`|-`、多行 plain 续行）。若退化为只支持单行标量，`specpowers` 与 `specpowers-review` 的 `description` 会变成字面 `>`/`>-`，`specpowers-design` 与 `specpowers-plan` 的会被截断——技能会「看得见但选不中」。改完务必跑上面的自检。
 
-技能评测套件位于 `skills/*/evals/`（YAML 用例 + 规则断言）。**评测引擎为 Claude Code，DSH 上无法运行**——这是已知限制。
+技能评测套件位于 `skills/*/evals/`：声明式 YAML 用例 + 规则断言。运行器是开源项目 [skill-up](https://github.com/alibaba/skill-up)（Alibaba，Apache-2.0），本仓库的 `eval.yaml`（`schema_version: v1alpha1`）与 `cases/*.yaml` 即其评测格式。
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/alibaba/skill-up/main/install.sh | bash
+```
+
+```bash
+skill-up validate <path>
+skill-up run <path>
+```
+
+`<path>` 为技能目录（技能的 `evals/` 与其 `SKILL.md` 同级）；`validate` 校验用例，`run` 执行评测，输出写到该目录下的 `<skill>-workspace/`（如 `iteration-1/result.json`），已被 `.gitignore` 排除。skill-up 内置 `claude_code` / `codex` / `qodercli` / `qwen_code` 四种 Agent Engine，并支持用 `engine.custom` 接入自定义引擎；**DeepSeek Harness 不是内置引擎**，本套件需在上述内置引擎之一或自定义引擎下运行。新增用例见[上游文档](https://alibaba.github.io/skill-up/zh/)。
 
 详见 [AGENTS.md](AGENTS.md) 了解开发工作流与关键设计决策。
 

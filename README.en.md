@@ -265,7 +265,18 @@ node scripts/verify-dsh-provider.mjs
 
 > **Required reading before changing the frontmatter parser**: DSH routes skills solely by `description`. The parser in this repo's `lib/index.js` supports 4 scalar forms (single-line, folded blocks `>`/`>-`, literal blocks `|`/`|-`, and multi-line plain continuations). If it degrades to single-line scalars only, the `description` of `specpowers` and `specpowers-review` collapses to the literal strings `">"`/`">-"`, and the `description` of `specpowers-design` and `specpowers-plan` gets truncated — the skills become visible but never selectable. Always run `node scripts/verify-dsh-provider.mjs` after changing the parser.
 
-The skill eval suite lives in `skills/*/evals/` (YAML cases + rule assertions). **The eval engine is Claude Code; it cannot run on DSH** — a known limitation.
+The skill eval suite lives in `skills/*/evals/`: declarative YAML cases plus rule-based assertions. The runner is the open-source [skill-up](https://github.com/alibaba/skill-up) project (Alibaba, Apache-2.0); this repo's `eval.yaml` (`schema_version: v1alpha1`) and `cases/*.yaml` are its eval format.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/alibaba/skill-up/main/install.sh | bash
+```
+
+```bash
+skill-up validate <path>
+skill-up run <path>
+```
+
+`<path>` is the skill directory (a skill's `evals/` sits next to its `SKILL.md`); `validate` checks the cases and `run` executes the suite, writing output to `<skill>-workspace/` in that directory (e.g. `iteration-1/result.json`), which `.gitignore` already excludes. skill-up ships four built-in Agent Engines — `claude_code` / `codex` / `qodercli` / `qwen_code` — plus custom engines via `engine.custom`; **DeepSeek Harness is not a built-in engine**, so the suite must run under one of those built-in engines or a custom engine. See the [upstream docs](https://alibaba.github.io/skill-up/) for authoring new cases.
 
 See [AGENTS.md](AGENTS.md) for the development workflow and key design decisions.
 
