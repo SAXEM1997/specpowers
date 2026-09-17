@@ -69,7 +69,7 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 1. 决策树判定模式（微小/中等/复杂/大规模）
 2. `Plan: <mode>` 写入会话上下文。**首次启动只决策不 init**——init 延迟到 Phase 0 产出 name 后（Phase 0 Step 0.3 之后）执行：`node <SKILL_BASE>/scripts/workflow-state.mjs init --name <name> --mode <mode>` 初始化 state.json
 3. 微小任务特判：状态机豁免规则见 kernel-fusion 设计文档（docs/superpowers/specs/2026-08-06-kernel-fusion-design.md）决策 3（不创建 state.json，不走状态机，直接子代理执行；区别于决策树的豁免线——那条是模式判定规则）。微小任务跨会话恢复仍按原版产物 + 会话上下文推断，不走状态机（state.json 不存在属预期）
-4. 迁移分支：若产物已存在（如 clarifications/design.md）→ 提示 `init --resume-artifacts --mode <mode>` + `set-name <name>`（name 从产物目录推断或用户提供）（kernel 用户迁移：kernel 的 state.json 路径（`.comet/runs/specpowers-kernel/state.json`）与本脚本读取的 `.superpowers/state.json` 不同，需运行 `init --resume-artifacts` 重建；`.superpowers/.gate-passed-*` 通用，Gate 进度不丢失；已完成归档的 kernel 用户跳过 Phase 4 直接收尾，不重跑 /opsx:archive）
+4. 迁移分支：若产物已存在（如 clarifications/design.md）→ 提示 `init --resume-artifacts --mode <mode>` + `set-name <name>`（name 从产物目录推断或用户提供）（历史 kernel 用户迁移：旧 kernel 的 state.json 路径与本脚本读取的 `.superpowers/state.json` 不同，需运行 `init --resume-artifacts` 重建；`.superpowers/.gate-passed-*` 通用，Gate 进度不丢失；已完成归档的用户跳过 Phase 4 直接收尾，不重跑 /opsx:archive）
 5. 微小→中等升级分支：微小任务中途升为中等（如变更范围扩大触发运行时升级）→ 补 Phase 0 流程（产生 name 与 design.md）后执行 `init --name <name> --mode medium`（**用 init 而非 --resume-artifacts**，以便 currentPhase=phase0 从头走 Gate 0/1/2 审查）；微小已写的 `.gate-passed-3` 保留——升级后 Phase 3 由既有 token 自动跳过（**前提：微小 token 的 name= 与新 Phase 0 产出 name 完全匹配；不匹配时 next 会回到 Phase 3 重新审查**），Phase 1/2 需追溯补做
 
 ### Step 2：推进纪律
@@ -292,7 +292,7 @@ master (main) ← 始终可部署
 
 ### Pre-Task
 ```
-□ 阅读 CLAUDE.md → openspec changes/ → 待办清单 → known-issues → 领域 SKILL → 主规范 → 基线测试
+□ 阅读项目指令文件（CLAUDE.md / AGENTS.md）→ openspec changes/ → 待办清单 → known-issues → 领域 SKILL → 主规范 → 基线测试
 ```
 
 ### Post-Task

@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+本文件是本仓库的开发指令正本，供所有 AI 编码工具读取（Codex、Zed、DeepSeek Harness、Claude Code 等遵循 `AGENTS.md` 约定的工具）。Claude Code 通过 `CLAUDE.md` 导入本文件。
 
 ## 项目概述
 
@@ -33,20 +33,29 @@ specpowers (入口, 决策模式+路由+状态机)
 | `skills/specpowers-apply/SKILL.md` | Phase 3: subagent-driven TDD 实现 + Gate 3 审查（code-review + spec-compliance-check） |
 | `skills/specpowers-review/SKILL.md` | 审查体系：两级路由（按轮数×规模路由到关键/完整审查）/ 收敛判定默认继续制（CONVERGENCE_CHECK 强制标记）+ Gate Token 产物依赖链 / 审查纪律自检 + 防偷懒协议 / 最终通读 Gate |
 | `skills/specpowers-archive/SKILL.md` | Phase 4: 全量测试 → openspec validate → /opsx:archive → 完整性验证 → finishing |
-| `.claude/skills/openspec-*/` | Claude Code 自动发现路径 — OpenSpec 五个子技能 |
-| `.claude/commands/opsx/` | `/opsx:*` 斜杠命令定义（apply/archive/explore/propose/sync） |
+| `.claude/skills/openspec-*/` | **生成物**（`openspec init --tools claude`）——不随仓库分发，见 README 依赖安装步骤 |
+| `.claude/commands/opsx/` | **生成物**（`openspec init --tools claude`）——不随仓库分发 |
 | `openspec/` | OpenSpec 规范目录（被应用项目使用时才填充） |
 
 ## 关键设计决策
 
 1. **技能拆分策略**: 原为单一庞大 SKILL.md（~2026-06-10 删除），现拆为 1 入口 + 5 子技能，按 Phase 按需加载以减少上下文消耗。
-2. **Phase 0 独立于 OpenSpec**: Phase 0 使用 `superpowers:brainstorming` 完成需求澄清+方案设计，产物为 `docs/superpowers/specs/<name>-design.md`。Phase 1 仅做格式转换+强制对照验证，不重复做需求分析。
+2. **Phase 0 独立于 OpenSpec**: Phase 0 使用 `brainstorming` 完成需求澄清+方案设计，产物为 `docs/superpowers/specs/<name>-design.md`。Phase 1 仅做格式转换+强制对照验证，不重复做需求分析。
 3. **Name 贯穿全流程**: `<name>` 由 Phase 0 定义（格式 `YYYY-MM-DD-<topic>`），贯穿 Phase 0-4，与 OpenSpec change 目录名同一标识符。
 4. **审查层级由 specpowers-review 内部两级路由矩阵自动判定**（按评审轮数×待评审物规模×行数地板路由到关键/完整，用户可手动覆盖），防退化机制全部保留并为 tier 路由补充防护。默认全量修复 P0-P3。UltraReview 阈值 ≥10 文件（中等 bucket 内部按 file_count 分叉：4-9=加强审查，10-19=UltraReview）。
 5. **硬 Gate 链不可跳过**: Phase 4 的四步 Gate（全量测试 → validate → archive → 完整性验证）任一失败强制终止，不允许降级为手动操作。Phase 0-3 各 Gate 通过 Gate Token 产物依赖链强制——`[GATE_PASSED]` 标记 + `.gate-passed-<N>` 文件（含 name 绑定）+ 入口验证 3（收敛判定完整性）+ 4 子技能前置检查 + Phase 自动检测 Gate 维度。
 6. **执行模式硬约束**: Phase 3 必须使用 `subagent-driven-development`（每个 task 独立子 Agent），禁止主 Agent 内联串行执行。specpowers-apply 内置执行模式路由表 + 合理化表 + 违规检测机制对抗长上下文下的内联退化。
 7. **审查防退化机制**: specpowers-review 内置三层防退化防御——审查纪律自检（合理化表 + Red Flags）、多轮审查防偷懒协议（主 Agent 自检）、审查层级边界（两层边界原则——分析不受限，评论受限制）。收敛判定为默认继续制（`[CONVERGENCE_CHECK]` 强制标记 + 5 触发条件【p0_raw>1 / p1_raw>5 / P0-P2 合计>10 / 全级>20 / p1_raw 轮间新增>3，全部基于原始发现数 p*_raw】+ review 内部循环 + 用户干预窗口；action=exit 即最终通读，无额外数值条件）。合并验证按问题数 N（raw_count_sum 口径）动态部署：p0_raw≥3 或 N>15→独立监督 Agent 完整 4 维；N∈[1,15] 且 p0_raw≤2→Step 5 兼并（p0_raw≥1 追加严重度校准抽查，构成 P0 重审载体）；N==0→trivial。修复阶段默认全量修复 P0-P3（子Agent逐条分析），同文件不并发硬约束防止编辑冲突。
-8. **状态机主导 + hooks 默认 off**: 入口启动协议融合 Decision Core——`node <SKILL_BASE>/scripts/workflow-state.mjs status`（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）状态机先行判定 Phase，`.gate-passed-<N>` 文件（name 绑定）最终裁决，Phase 自动检测降级为回退路径；4 个子技能（design/plan/apply/archive）Gate 出口调 `workflow-guard.mjs exit <phase> --apply`（token 先写、guard 后调，子技能为唯一责任方）；hooks 默认不注册（模板在 scripts/，启用需显式复制到 .claude/settings.json，与 comet-hook-router 互斥）。微小任务豁免（不 init 状态机，保留轻量行为）。
+8. **状态机主导 + hooks 默认 off**: 入口启动协议融合 Decision Core——`node <SKILL_BASE>/scripts/workflow-state.mjs status`（`<SKILL_BASE>` 见入口技能「脚本路径解析」节）状态机先行判定 Phase，`.gate-passed-<N>` 文件（name 绑定）最终裁决，Phase 自动检测降级为回退路径；4 个子技能（design/plan/apply/archive）Gate 出口调 `workflow-guard.mjs exit <phase> --apply`（token 先写、guard 后调，子技能为唯一责任方）；hooks 默认不注册（模板在 scripts/，启用需显式复制到 .claude/settings.json）。微小任务豁免（不 init 状态机，保留轻量行为）。
+
+## DSH 适配
+
+同一仓库双清单：仓库根既是 DSH 插件包根，也是 Claude Code 插件根，`skills/` 是双平台唯一技能真源。
+
+- **DSH 面**：`package.json`（`dsh.bundle.patch` → `./cordis.patch.yml`）+ `cordis.patch.yml`（向 dsh-base 之上 insert 一行）+ `lib/index.js`（`ctx.skills.registerProvider`）。
+- **provider 契约**：rank 550（低于 `BUNDLED_SKILL_RANK = 600`，使项目本地技能可覆盖打包技能）、`source: 'custom'`、`resourceBase` 指向 `skills/<name>/`、零运行时依赖。
+- **frontmatter 解析器必须支持 4 种标量形态**（单行、折叠块 `>`/`>-`、字面块 `|`/`|-`、多行 plain 续行）。`superpowers-dsh` 的朴素单行解析器会把 `specpowers` 与 `specpowers-review` 的 `description` 解析成字面 `">"`/`">-"`，把 `specpowers-design` 与 `specpowers-plan` 的截断——而 `description` 是 DSH 路由技能的唯一依据，退化即等于技能看得见但选不中。**改解析器时必须跑 `node scripts/verify-dsh-provider.mjs`。**
+- **平台适配**：技能调用一律裸名；Claude Code 的插件命名空间回退写在每个技能头部的「平台适配」块；三平台映射与降级路径见 `skills/specpowers/refs/platform-tools.md`（Codex 为预留·未验证）。
 
 ## 开发工作流
 
@@ -80,8 +89,9 @@ specpowers (入口, 决策模式+路由+状态机)
 
 | 工具 | 用途 | 安装验证 |
 |------|------|---------|
+| **DeepSeek Harness** (或 Claude Code) | 运行环境 | `dsh --version` / `claude --version` |
+| **superpowers-dsh**（DSH）/ **Superpowers**（Claude Code） | TDD 技能组 | DSH：`dsh --profile web --dump-config` 含 `superpowers-dsh` 行 |
 | **OpenSpec CLI** | SDD 规范管理 | `openspec --version` |
-| **Superpowers** | TDD 技能组 | `/skills` 列表中包含 `superpowers:*` |
 | **CodeGraph** | 代码知识图谱 | 仓库根 `.codegraph/` 目录存在 / MCP `codegraph_explore` 可用 |
 | **Graphify** | 多模态知识图谱（架构理解） | `/graphify` 命令可用 |
 
@@ -90,20 +100,3 @@ specpowers (入口, 决策模式+路由+状态机)
 - skills 目录下的 `pkg-xmake-template.md` 是 xmake 构建系统的 C/C++ 项目模板，仅在 specpowers 应用于此类项目时作为参考，不是本项目的构建系统。
 - `refs/` 下的文件是技能的 bundled resources，通过 `Skill` 工具加载技能时一并可用。
 - 入口技能的 "7 个常见 Pitfalls" 和 "故障排查" 表是跨所有子技能的共享知识，修改时需评估对子技能的影响。
-
-<comet-ambient-resume>
-<!-- Managed by Comet. Edits inside this block may be replaced by comet init/update. -->
-<!-- Contract: comet.resume_probe.v2 -->
-
-## Comet Ambient Resume
-
-在这个仓库中，开始处理需要改动或调查的任务前，如果可能存在活跃 Comet workflow，把当前用户请求传入只读探针：`comet resume-probe . --stdin --json`。
-
-- 如果用户通过宿主明确调用任意 Comet Skill（例如 `@comet`、`/comet`、`@comet-native` 或 `/comet-hotfix`），显式调用优先于本恢复协议；不要运行 resume probe，直接进入被调用的 Skill。
-- 只信任返回的 `workflow`、`skill` 和 `entrySource`；它们只由项目配置或无配置兼容回退决定。不得扫描或切换另一套 workflow。
-- 如果 probe 返回 `auto_resume`，简短说明选中的 active change，并进入 `nextCommand` 指向的永久入口。不要把状态命令当作恢复入口直接推进。
-- 如果 probe 返回 `ask_user`，只问一个简短问题并等待用户回复。
-- 如果当前请求未明确调用 Comet Skill，且 probe 返回 `out_of_scope` 或 `none`，不要进入 Comet workflow。
-- 如果配置或状态无效且没有 `nextCommand`，停止并报告原因；不要猜测另一个 workflow。
-- 不能只因为存在 active change 就把无关任务挂到该 change。Native 的未提交改动由 Native 入口检查，不由探针自动归因。
-</comet-ambient-resume>

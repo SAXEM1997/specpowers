@@ -31,7 +31,7 @@ description: Use when the user says "brainstorm this feature", "write the design
 **目的**: 带着完整上下文进入提问，避免基于不完整信息做出假设。
 
 ```
-□ 读取 CLAUDE.md（项目指令+架构）
+□ 读取项目指令文件（CLAUDE.md / AGENTS.md）（项目指令+架构）
 □ 读取相关 memory（项目上下文、迁移决策、经验教训）
 □ 读取相关 OpenSpec specs（了解已有规范约束）
 □ 读取相关代码（了解现有实现状态，避免重复造轮子）
