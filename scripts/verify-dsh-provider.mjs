@@ -34,3 +34,55 @@ assert.deepEqual(
   'cordis.patch.yml 必须只含一行 insert，插入 id/name 均为 specpowers'
 )
 console.log('PASS manifests: package.json + cordis.patch.yml')
+
+// ---- provider list() 契约 ----
+const mod = await import(join(root, 'lib', 'index.js'))
+assert.equal(mod.name, 'specpowers', 'provider 名必须为 specpowers')
+assert.deepEqual(mod.inject, ['skills'], 'provider 必须注入 skills 服务')
+
+let factory
+mod.apply({ skills: { registerProvider(fn) { factory = fn } } })
+assert.equal(typeof factory, 'function', 'apply() 必须通过 ctx.skills.registerProvider 注册工厂')
+
+const provider = factory({ invalidate() {} })
+assert.equal(provider.name, 'specpowers', 'provider.name 必须为 specpowers')
+
+const candidates = await provider.list({})
+assert.equal(candidates.length, 6, `skills/ 下应有 6 个技能，实测 ${candidates.length}`)
+
+// 锚点取各自 description 的末句——折叠块未展开或续行被截断时必然缺失
+const EXPECTED = [
+  ['specpowers', 'Do NOT use for: single-file bugfixes'],
+  ['specpowers-design', 'routes to Phase 0 or Phase 1'],
+  ['specpowers-plan', 'routes to Phase 2'],
+  ['specpowers-apply', 'execute TDD tasks'],
+  ['specpowers-review', 'before proceeding to next phase'],
+  ['specpowers-archive', 'finish this change']
+]
+
+for (const [skillName, anchor] of EXPECTED) {
+  const candidate = candidates.find((entry) => entry.name === skillName)
+  assert.ok(candidate, `缺少技能 ${skillName}`)
+  assert.equal(candidate.rank, 550, `${skillName} rank 应为 550`)
+  assert.equal(candidate.source, 'custom', `${skillName} source 应为 custom`)
+  assert.equal(candidate.invocation.modelInvocable, true, `${skillName} 应可被模型调用`)
+  assert.equal(candidate.invocation.userInvocable, true, `${skillName} 应可被人调用`)
+  const description = candidate.description
+  assert.ok(
+    description.length > 40,
+    `${skillName} description 过短（${description.length}）：${JSON.stringify(description)}`
+  )
+  assert.ok(
+    !description.startsWith('>') && !description.startsWith('|'),
+    `${skillName} description 未展开块标量：${JSON.stringify(description)}`
+  )
+  assert.ok(
+    !description.includes('\n'),
+    `${skillName} description 含内部换行：${JSON.stringify(description)}`
+  )
+  assert.ok(
+    description.includes(anchor),
+    `${skillName} description 缺末句锚点 ${JSON.stringify(anchor)}：${JSON.stringify(description)}`
+  )
+}
+console.log(`PASS list(): ${EXPECTED.length} 技能，裸名与 description 锚点全部正确`)
