@@ -49,7 +49,7 @@
 | 文件 | 改动 |
 |---|---|
 | `skills/*/SKILL.md` ×6 | 站点前缀剥除 + 头部新增「平台适配」块 |
-| `skills/specpowers/SKILL.md` | 另：第 70 行 `带 provider 前缀` 描述改裸名；第 65 行移除 `.comet/` 引用 |
+| `skills/specpowers/SKILL.md` | 另：`带 provider 前缀` 描述改裸名；移除 `.comet/` 引用（均按内容定位，插入平台块后行号会偏移） |
 | `skills/specpowers/refs/workflow-protocol.json` | 5 个 `skill` 字段 → 裸名 |
 | `skills/specpowers/scripts/workflow-state.mjs` | 4 处硬编码兜底 → 裸名 |
 | `skills/specpowers/refs/onboarding.md` | 1 处 `superpowers:brainstorming` → 裸名 |
@@ -972,7 +972,7 @@ git commit -m "docs(skills): 6 个技能头部新增平台适配块——裸名�
 - Modify: `skills/specpowers/refs/workflow-protocol.json`
 - Modify: `skills/specpowers/scripts/workflow-state.mjs`
 - Modify: `skills/specpowers/refs/onboarding.md`
-- Modify: `skills/specpowers/SKILL.md`（第 70 行 `带 provider 前缀` 描述）
+- Modify: `skills/specpowers/SKILL.md`（`带 provider 前缀` 描述，按内容定位）
 
 **Interfaces:**
 - Consumes: Task 4 建立的裸名约定
@@ -1001,7 +1001,7 @@ Run:
 sed -i 's/superpowers://g' skills/specpowers/refs/onboarding.md
 ```
 
-然后修改 `skills/specpowers/SKILL.md` 第 70 行的描述。把：
+然后修改 `skills/specpowers/SKILL.md` 中的描述。**按内容定位，不要用行号**——Task 6 已在文件顶部插入 7 行平台适配块，原行号已整体偏移。把：
 
 ```
 `SKILL: <Skill 工具全名，带 provider 前缀>`
@@ -1220,13 +1220,13 @@ specpowers 的技能正文把「项目指令文件」硬编码为 `CLAUDE.md`。
 
 - [ ] **Step 8: 移除 hooks-reference.yaml 与 SKILL.md 的 comet 引用**
 
-在 `skills/specpowers/scripts/hooks-reference.yaml` 中，把第 5-6 行的 comet 互斥说明整段删除。删除前查看原文：
+在 `skills/specpowers/scripts/hooks-reference.yaml` 中，把含 `comet-hook-router` 的互斥说明整段删除（**按内容定位**，该文件未被前面任务改动，行号可用但优先按内容匹配更稳）。删除前查看原文：
 
 Run: `sed -n '1,10p' skills/specpowers/scripts/hooks-reference.yaml`
 
 把其中含 `comet-hook-router` 的注释行（单行或连续多行说明）整段移除，保留同位置的「启用后先手动跑一次验证」与「复制时与既有 settings.json 合并」两条有效说明。
 
-在 `skills/specpowers/SKILL.md` 第 65 行，把括号内的 kernel 迁移说明中的 `.comet/` 路径引用改为不含第三方工具名的等价表述。把：
+在 `skills/specpowers/SKILL.md` 中（**按内容定位，不要用行号**——Task 6 已在顶部插入 7 行），把括号内的 kernel 迁移说明中的 `.comet/` 路径引用改为不含第三方工具名的等价表述。把：
 
 ```
 （kernel 用户迁移：kernel 的 state.json 路径（`.comet/runs/specpowers-kernel/state.json`）与本脚本读取的 `.superpowers/state.json` 不同，需运行 `init --resume-artifacts` 重建；`.superpowers/.gate-passed-*` 通用，Gate 进度不丢失；已完成归档的 kernel 用户跳过 Phase 4 直接收尾，不重跑 /opsx:archive）
@@ -1377,13 +1377,15 @@ SOFTWARE.
   "repository": "https://github.com/SAXEM1997/specpowers.git",
 ```
 
-- [ ] **Step 7: 验证零内网地址**
+- [ ] **Step 7: 验证零内网地址（README 除外）**
 
 Run:
 ```bash
-grep -rnE 'gitlab\.ai\.<internal-domain>\.lan|<internal-domain>' --include='*' . 2>/dev/null | grep -v '^\./\.git/' | wc -l
+grep -rnE 'gitlab\.ai\.<internal-domain>\.lan|<internal-domain>' --include='*' . 2>/dev/null | grep -v '^\./\.git/' | grep -v '^\./README\.md' | grep -v '^\./README\.en\.md' | wc -l
 ```
 Expected: `0`
+
+> **编排说明**：`README.md` 的 2 处内网地址由 Task 10 整体重写时消除，因此本任务必须把它们排除在断言之外——否则此处必然失败。仓库级（含 README）的零残留断言由 Task 11 判据 7 在 Task 10 之后执行。这不是放松要求，而是把断言放在它成立的那个时点。
 
 - [ ] **Step 8: 验证清单仍合法**
 
@@ -1787,7 +1789,9 @@ Run:
 echo "zh sections: $(grep -c '^## ' README.md)"; echo "en sections: $(grep -c '^## ' README.en.md)"
 grep -c '^## ' README.md README.en.md
 ```
-Expected: 两个文件的 `## ` 计数均为 **10**
+Expected: 两个文件的 `## ` 计数均为 **9**（`技能组架构`/`Skill Group Architecture`、`安装`/`Installation`、`快速开始`/`Quick Start`、`Phase 工作流`/`Phase Workflow`、`审查体系`/`Review System`、`平台适配`/`Platform Adaptation`、`目录结构`/`Repository Layout`、`开发`/`Development`、`许可`/`License`）。
+
+> 注意：代码块内的 shell 注释（如 `# 卸载后同样需要重启 profile`）以 `# ` 开头，不计入 `^## `；但若后续在 README 里写以 `## ` 开头的 shell 注释会污染此判据——不要那样写。
 
 Run:
 ```bash
