@@ -71,4 +71,4 @@ UltraPlan 提供两个专家角色，针对不同类型的任务：
 - 代码专家完整提示词：`refs/ultraplan-code-expert.md`
 - 调研专家完整提示词：`refs/ultraplan-research-expert.md`
 
-> 概述：代码专家派遣最多 5 个并行代理探索代码库 → 综合生成实施计划 → 审查计划 → ExitPlanMode 提交 → 执行后组建 Code Review Team。调研专家同理，但侧重多维度调研（行业/学术/竞品）+ 可选产品 Demo。
+> 概述：代码专家派遣最多 5 个并行代理探索代码库 → 综合生成实施计划 → 审查计划 → 提交计划（Claude Code：`ExitPlanMode`）→ 执行后组建 Code Review Team。调研专家同理，但侧重多维度调研（行业/学术/竞品）+ 可选产品 Demo。

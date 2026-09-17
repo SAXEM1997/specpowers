@@ -238,7 +238,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 | 工具 | 用途 | 检查命令 | 必选 |
 |------|------|---------|------|
 | **OpenSpec** | SDD | `openspec --version` | ✅ |
-| **Superpowers** | TDD | `/skills` 含 `brainstorming`、`subagent-driven-development` 等上游技能（插件命名空间形式见本技能「平台适配」节） | ✅ |
+| **Superpowers** | TDD | 技能目录含 `brainstorming`、`subagent-driven-development` 等上游技能（Claude Code 用 `/skills` 查看；插件命名空间形式见本技能「平台适配」节） | ✅ |
 | **CodeGraph** | 代码知识图谱 | 仓库根存在 `.codegraph/` 目录（MCP `codegraph_explore` / shell `codegraph explore`） | ⚠️ |
 | **Graphify** | 多模态知识图谱（代码+文档，架构理解） | `/graphify` 命令可用 | ⚠️ |
 | **TEST_COMMAND** | 全量测试 | 项目实际测试命令（见下方） | ⚠️ 需手动配置 |
@@ -353,7 +353,7 @@ master (main) ← 始终可部署
 | design.md 决策不合理 | 回 Phase 1 Step 3 人工审核 |
 | 实现中需修改规范 | 暂停 Superpowers，回 OpenSpec 修改 |
 | 多变更并行 | 独立 git worktree |
-| UltraPlan 中途溢出 | `/clear` + 重新加载 openspec 产物 |
+| UltraPlan 中途溢出 | 清空上下文（Claude Code：`/clear`）+ 重新加载 openspec 产物 |
 | 跨会话中断 | 跨会话中断恢复：优先运行 `node <SKILL_BASE>/scripts/workflow-state.mjs status` 状态机判定当前 Phase；脚本不可用时按上述 Phase 自动检测表（回退路径）判定。 |
 | refs/ 缺失 | UltraPlan → 降级中等任务 |
 
