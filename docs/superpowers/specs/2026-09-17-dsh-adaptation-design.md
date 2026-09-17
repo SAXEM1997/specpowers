@@ -280,7 +280,7 @@ docs/superpowers/plans/**             （不改，仅登记为不改动项）
 1. **`.gitignore` 必须先于 `git rm --cached`**：先写入 `/.claude/`、`/.superpowers/`、`/.agents/`、`/.codex/`，再执行取消追踪；顺序反了后续 `git add -A` 会把它们重新加回。
 2. **必须用 `git rm -r --cached`**：绝不能省 `--cached`，否则本地 `.claude/` 被物理删除，Claude Code 自动发现路径失效。
 3. **解析器须对「未修改的 frontmatter」独立验证**：技能改造只新增平台适配块、不改 frontmatter，因此验证 #1 应在技能编辑**之前**即可跑通——解析器要解决的是既有的 4 个非标量 `description`，与本次编辑无关。这也让解析器缺陷与编辑缺陷可分离定位。
-4. **站点剥除不得触及 6 个平台适配块内的回退示例**：回退示例必然包含 `specpowers:specpowers-design`、`superpowers:<skill>` 字样，它们是指南内容而非调用站点。建议**先剥站点、后加平台适配块**，可天然避免自伤。
+4. **站点剥除不得触及 6 个平台适配块内的回退示例**：回退示例必然包含 `specpowers:specpowers-design`、`superpowers:<skill>` 字样，它们是指南内容而非调用站点。建议**先剥站点、后加平台适配块**，可天然避免自伤。另：剥除指令必须用 `s/specpowers:specpowers/specpowers/g`（**无尾随连字符**），否则入口技能的 8 个 `specpowers:specpowers` 站点漏改（实测）。
 5. **`workflow-protocol.json` 与 `workflow-state.mjs` 必须同步改**：两者是同一契约的生产者与消费者；只改一处会导致状态机输出与协议不匹配（验证 #4 拦截）。
 6. **`.claude-plugin/` 不可被误伤**：用根锚定 `/.claude/`，并在验证 #5 中校验两个清单文件仍被 git 追踪。
 7. **`.claude/` 移出后本仓库自身仍可用**：磁盘文件保留，本地 Claude Code 会话的自动发现不受影响；仅是不再随仓库分发。
@@ -290,7 +290,7 @@ docs/superpowers/plans/**             （不改，仅登记为不改动项）
 | # | 验证项 | 方法 | 通过判据 |
 |---|---|---|---|
 | 1 | frontmatter 解析 | `node scripts/verify-dsh-provider.mjs`，以 stub `ctx` 注册 provider 后调 `list()` | 6 技能解析出正确裸名；`description` 非空、首字符非 `>`/`\|`、无内部换行、且含各自**末句锚点**：`specpowers`→`Do NOT use for: single-file bugfixes`；`specpowers-review`→`before proceeding to next phase`；`specpowers-design`→`routes to Phase 0 or Phase 1`；`specpowers-plan`→`routes to Phase 2`；`specpowers-apply`→`execute TDD tasks`；`specpowers-archive`→`finish this change` |
-| 2 | 前缀残留 | grep `specpowers:specpowers-` 与 `superpowers:`，作用域 `skills/ lib/ commands/ .claude-plugin/ CLAUDE.md AGENTS.md README*.md` | **白名单外**残留 = 0。白名单（这些位置**应当**保留前缀字样，因为它们是回退指南而非调用站点）：① 6 个 `skills/*/SKILL.md` 的「平台适配」块；② `skills/specpowers/refs/platform-tools.md`；③ `README.md`、`README.en.md` 的平台适配表。逐块/逐文件校验而非整文件豁免——`docs/` 历史不计入 |
+| 2 | 前缀残留 | grep `specpowers:specpowers` 与 `superpowers:`，作用域 `skills/ lib/ commands/ .claude-plugin/ CLAUDE.md AGENTS.md README*.md` | **白名单外**残留 = 0。注意模式必须写作 `specpowers:specpowers`（**无尾随连字符**）——入口技能引用是 `specpowers:specpowers`，带连字符的模式会漏掉 8 个站点（实测）。白名单（这些位置**应当**保留前缀字样，因为它们是回退指南而非调用站点）：① 6 个 `skills/*/SKILL.md` 的「平台适配」块；② `skills/specpowers/refs/platform-tools.md`；③ `README.md`、`README.en.md` 的平台适配表。逐块/逐文件校验而非整文件豁免——`docs/` 历史不计入 |
 | 3 | provider 契约 | 自检脚本调 `get()` | `content` 非空；`resourceBase.kind === 'directory'` 且指向 `skills/<name>/`；`refs/`、`scripts/` 真实可达 |
 | 4 | 协议/状态机一致 | 解析 `workflow-protocol.json` + 跑 `workflow-state.mjs status` | 5 个 `skill` 字段全裸名；状态机输出的 `SKILL:` 值全裸名 |
 | 5 | 清单有效性 | 解析三个清单文件 | `package.json` JSON 合法且 `dsh.bundle.patch` 指向存在的文件；`cordis.patch.yml` 能解析出 `id: specpowers` 的 insert 行；`.claude-plugin/*.json` 合法 |
