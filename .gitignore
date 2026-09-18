@@ -15,3 +15,6 @@ skills/*-workspace/
 
 # 项目专属敏感 token denylist（含真实主机名，绝不入库）
 /.internal-refs.txt
+
+# Mnemon 本地记忆文档库（会话投影，含凭据位置等内部记述）——同 /.superpowers/，不应进公开仓库
+/.mnemon/
