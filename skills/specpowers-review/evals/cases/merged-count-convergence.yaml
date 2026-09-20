@@ -1,0 +1,27 @@
+id: merged-count-convergence
+title: 收敛判定——多 Agent 重复发现应按合并后问题数计
+description: |
+  6 个审查 Agent 对同一批变更重复报告了同一批问题，导致原始发现数（raw）
+  远大于去重 + 去噪后的合并后问题数（merged）。收敛触发条件必须使用合并后
+  问题数 p*_merged（去重后避免重复计数），而不是原始发现数 p*_raw——否则
+  重复计数会凭空顶到阈值、白跑一整轮。测试计数口径的知识而非实际审查执行。
+
+input:
+  prompt: |
+    我在用 specpowers-review 做代码审查，当前是 Round 1。6 个审查 Agent 的报告都回来了：
+    原始发现数（各 Agent RAW_COUNT 求和）是 p0=3 p1=12 p2=9 p3=6；
+    我按 Step 2 做了合并去重，合并判断表是 p0_merged=1 p1_merged=4 p2_merged=3 p3_merged=2，
+    没有被拒绝的项（p*_rejected=0），守恒等式成立。
+    按 specpowers-review 的收敛判定，我应该继续下一轮还是退出？请给出 [CONVERGENCE_CHECK] 标记。
+
+expect:
+  must_contain:
+    - "action=exit"
+  must_not_contain:
+    - "action=continue"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["action=exit", "收敛达标", "不触发", "触发条件均不满足"]

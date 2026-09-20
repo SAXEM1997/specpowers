@@ -17,6 +17,7 @@ cases:
     - evals/cases/tier-routing-small.yaml
     - evals/cases/tier-routing-large.yaml
     - evals/cases/anti-laziness-step-skip.yaml
+    - evals/cases/merged-count-convergence.yaml
   defaults:
     timeout_seconds: 300
     max_turns: 8
