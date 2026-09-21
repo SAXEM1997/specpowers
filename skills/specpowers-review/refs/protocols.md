@@ -47,7 +47,7 @@ session_ledger = {
                 "p1_rejected": 1,   // 未纳入数 P1
                 "p2_rejected": 0,   // 未纳入数 P2
                 "p3_rejected": 0,   // 未纳入数 P3
-                "agent_rejected": 0,   // 主 Agent 判定不成立而拒绝的项数（未纳入清单中 disposition=agent_rejected 的条数，含被否决的监督 sup3 项；与 user_rejected 共同构成 rejected 的两个来源。[拒绝异常] 分子仅计其中计入 Σp*_raw 的部分——被否决 sup3 项不占分子，由 [补充否决异常] 单独承接）
+                "agent_rejected": 1,   // 主 Agent 判定不成立而拒绝的项数（未纳入清单中 disposition=agent_rejected 的条数，含被否决的监督 sup3 项；与 user_rejected 共同构成 rejected 的两个来源——**恒等式 rejected = agent_rejected + user_rejected**。[拒绝异常] 分子仅计其中计入 Σp*_raw 的部分——被否决 sup3 项不占分子，由 [补充否决异常] 单独承接。本例 = 1：守恒验算中 12 条原始发现里被拒绝的那 1 条 P1（1 ≤ 3 且 1/12 ≈ 8% ≤ 30%，不触发 [拒绝异常]））
                 "user_rejected": 0,   // 用户裁决拒绝的项数（**仅** Step 2 阶段记入未纳入清单的 user_rejected 条数；Step 4 前置 Gate 的用户豁免 P0 **不更新此字段**——改记 user_exempt_p0）——与 agent_rejected 共同构成 rejected 的两个来源
                 "user_exempt_p0": 0,  // Step 4 前置 Gate 后的用户豁免 P0 数（独立计数字段，单列；rejected = agent_rejected + user_rejected，**不含**此数）——须在 [GATE_PASSED]、[CONVERGENCE_CHECK] 与用户提示中单列体现（「用户豁免 P0」说明）
                 "p0_supplement": 0, // 监督补充数 P0（p*_supplement 按 SKILL.md「问题数口径权威定义」的记账口径统计——发现型计入；更正型不计入。Step 3 结束后写入；Step 2 时恒为 0）。守恒等式：Σ(所有行的 sources 条数) + Σp*_rejected == Σp*_raw + Σp*_supplement
