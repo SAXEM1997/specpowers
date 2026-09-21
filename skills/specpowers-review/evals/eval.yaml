@@ -17,6 +17,11 @@ cases:
     - evals/cases/tier-routing-small.yaml
     - evals/cases/tier-routing-large.yaml
     - evals/cases/anti-laziness-step-skip.yaml
+    - evals/cases/merged-count-convergence.yaml
+    - evals/cases/rejected-abnormal-upgrade.yaml
+    - evals/cases/conservation-equation.yaml
+    - evals/cases/raw-caliber-step3-deployment.yaml
+    - evals/cases/reinforced-path-raw-and-trivial-rejection.yaml
   defaults:
     timeout_seconds: 300
     max_turns: 8

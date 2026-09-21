@@ -1,0 +1,41 @@
+# expect 为声明式断言；实际评分以 judge.success 的谓词为准。
+# 本用例不设 must_not_contain——正确答案的"不输出 STEP3_TIER_SKIPPED"等否定式表述会命中这些串。
+id: rejected-abnormal-upgrade
+title: 拒绝异常——无视档位强制独立 Step 3，加强审查子路径不得裁剪 Step 3
+description: |
+  测试 [拒绝异常] 覆盖规则的触发条件与载体：未纳入清单中 agent_rejected 与 user_rejected
+  合计 > 3 条时，无论 Step 3 档位判定结果如何都必须无视档位强制 mode=standard（本例
+  N=8 ∈ [1,15] 且 p0_raw=1 ≤ 2，按档位本应 mode=transferred_to_step5），且加强审查子路径
+  （recipe=[STEP1-2]）在 N>0 检出时不得裁剪 Step 3（不得输出 STEP3_TIER_SKIPPED）。
+  该防护是纯文本协议、无独立执行者，且与 tier 裁剪规则在优先级上直接冲突——最易失配的正是
+  "子路径裁剪全裁 STEP3" 与 "覆盖规则无视一切档位" 两条规则的取舍，故需回归用例锁定。
+
+input:
+  prompt: |
+    我是 specpowers-review 的审查主 Agent，本轮为完整层的「加强审查子路径」
+    （recipe=[STEP1-2]：代码类 6 个文件 / 约 400 行、Round 1），现在做 Step 2 合并判断。
+
+    Step 1（汇总）：2 个审查主体（specpowers-apply 的 code-review + 对齐 Agent 单审，
+    code-review 结论并入 alignment 报告的编号序列，不单独编号）的原始报告均已返回且完整，
+    共 10 条发现，raw_count_sum 为 p0_raw=1 / p1_raw=4 / p2_raw=3 / p3_raw=2，
+    N = p0_raw+p1_raw+p2_raw = 1+4+3 = 8（raw 口径）。
+
+    Step 2（合并判断）：合并判断表共 6 行：p0_merged=1 / p1_merged=3 / p2_merged=1 /
+    p3_merged=1，各行 sources 条数合计 6（sources 引用 alignment#k 编号序列，
+    已涵盖 code-review 结论）；未纳入清单 4 条，全部是主 Agent 拒绝的
+    （agent_rejected=4，user_rejected=0），每条都写了具体事实依据。守恒等式自验：
+    Σsources(6) + Σp*_rejected(4) == Σp*_raw(10) + Σp*_supplement(0)，10 == 10 成立。
+
+    本轮 Step 3 应当如何部署（启动谁、mode 取什么值）？请给出结论与判定依据，
+    并说明本子路径的原有规则在本轮是否适用。
+
+expect:
+  must_contain:
+    - "[拒绝异常]"
+    - "standard"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["standard", "[拒绝异常]", "独立监督", "拒绝异常"]

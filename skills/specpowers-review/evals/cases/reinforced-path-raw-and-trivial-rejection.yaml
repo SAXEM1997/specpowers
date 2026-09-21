@@ -1,0 +1,57 @@
+# expect 为声明式断言；实际评分以 judge.success 的谓词为准。
+# 本用例不设 must_not_contain——正确答案的"不输出零问题自执行块"等否定式表述会命中这些串。
+id: reinforced-path-raw-and-trivial-rejection
+title: 加强审查子路径——收敛按 raw 口径，trivial 且有被拒项时 Step 5 必须独立复核
+description: |
+  测试两个本轮新增/加固分支的组合：①加强审查子路径（recipe=[STEP1-2]，STEP3/4/5 全裁、
+  无独立验证者复核合并表）的收敛触发按 raw 口径计算——不依赖合并表的保守默认口径，账本记
+  caliber=raw；②N==0（trivial）但未纳入清单存在被拒项（agent_rejected + user_rejected ≥ 1）时，
+  Step 5 不得由主 Agent 自执行输出零问题自执行块，必须由独立 Quick Review Agent 复核拒绝理由
+  与守恒等式（此时不输出 STEP5_TIER_SKIPPED，须输出 STEP5_EXECUTED）。
+  本例 p0_raw=p1_raw=p2_raw=0 / p3_raw=5 → N=0（trivial），合并判断表 3 行（p3_merged=3，
+  均为 disposition=agent_accepted）、未纳入清单 1 条（agent_rejected=1，写明具体事实依据，
+  属噪声），守恒等式成立：Σsources(4) + Σrejected(1) == Σraw(5) + Σsupplement(0)，5 == 5。
+  该分支最易失配之处：被拒项既是 trivial 档位独立复核的触发面，也是压低合并口径的唯一直接
+  通道，"问题数为 0" 极易被等同于"无需任何独立复核"，从而以主 Agent 自执行的零问题块收尾。
+  数值说明（刻意隔离双触发）：本用例使 agent_rejected=1、占比 1/5 = 20%，**仅触发**「N==0 且
+  被拒项 ≥ 1 → Step 5 必须由独立 Quick Review Agent 复核」这一分支，**不触发** [拒绝异常]
+  （分子 1 ≤ 3 且占比 20% ≤ 30%），以免两条规则结论重合、无法区分被测分支；p3_raw=5 亦用于
+  覆盖 p3_raw>0 的 trivial 轮（该轮 Step 4 由主 Agent 自执行修复全部 P3，而 Step 5 的独立
+  复核不得因此免掉）。
+  待补覆盖（本轮未建用例，标注为待补）：③触发条件⑤的口径切换（任一轮 caliber=raw 时两轮同取
+  p1_raw 比对，并在 notes 标注「触发口径切换（merged→raw）」）；④Step 5 误合抽查拆行后重算
+  p*_merged（采用拆行后修正值，并在 notes 记录拆行前后差值）。
+
+input:
+  prompt: |
+    我是 specpowers-review 的审查主 Agent，本轮 Round 1，代码类完整层的「加强审查子路径」
+    （recipe=[STEP1-2]：代码类 4 个文件 / 约 120 行），Step 2 合并判断刚做完。
+
+    Step 1（汇总）：2 个审查主体（specpowers-apply 的 code-review + 对齐 Agent 单审，
+    code-review 结论并入 alignment 报告的编号序列，不单独编号）的原始报告均已返回且完整，
+    共 5 条发现（全部 P3），raw_count_sum 为 p0_raw=0 / p1_raw=0 / p2_raw=0 / p3_raw=5，
+    Σp*_raw = 5，N = p0_raw+p1_raw+p2_raw = 0（raw 口径，不计 p3_raw）。
+
+    Step 2（合并判断）：合并判断表 3 行，全部是 P3 且 disposition=agent_accepted
+    （p0_merged=0 / p1_merged=0 / p2_merged=0 / p3_merged=3），各行 sources 条数分别为
+    2 / 1 / 1，合计 4；未纳入清单 1 条，是主 Agent 拒绝的（agent_rejected=1，
+    user_rejected=0），写明了具体事实依据（该条属噪声，与已采纳的 3 行不重复）。
+    守恒等式自验：Σsources(4) + Σp*_rejected(1) == Σp*_raw(5) + Σp*_supplement(0)，
+    5 == 5 成立。
+
+    反正 P0/P1/P2 一条都没有（N=0），本子路径的 Step 5 本来也是裁剪的，我看 Step 5 就
+    不必启动什么独立 Agent 了，由我自执行完成复核并收尾即可吧？
+
+    请给出两个结论：①本轮收敛判定（5 个触发条件）应当用哪个口径计算；②本轮 Step 5 由谁
+    执行、输出什么标记块。
+
+expect:
+  must_contain:
+    - "raw"
+    - "独立"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["raw", "独立", "Quick Review", "N==0"]

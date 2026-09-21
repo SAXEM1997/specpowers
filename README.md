@@ -223,10 +223,10 @@ Phase 4: 验证 + 归档
 
 ## 审查体系
 
-审查层级由 specpowers-review 内部两级路由矩阵自动判定（按评审轮数 × 待评审物规模 × 行数地板），用户可手动覆盖：
+审查层级由 specpowers-review 内部两级路由矩阵自动判定（按评审轮数 × 待评审物规模 × 行数地板 + ★ 收敛闸门），用户可手动覆盖：
 
-- **关键**：微小任务全程、中等任务第 2 轮+（对齐 + 监督 2-agent，~0.4x token）
-- **完整**：首轮审查、复杂/大规模任务；代码类按 bucket 分叉子路径——加强审查（4-9 文件：code-review + 对齐单审）/ UltraReview（≥10 文件：6-agent 团队）；文档类为 3-agent 多模型渐进式
+- **关键**：微小任务全程、中等任务第 2 轮+（对齐 + 监督 2-agent，~0.4x token）；★ 收敛闸门：中等第 2 轮+ 若上轮 `p0_raw>0` 则升级**完整**（raw 保守口径）
+- **完整**：首轮审查、复杂/大规模任务；代码类按 bucket 分叉子路径——加强审查（<10 文件：code-review + 对齐单审）/ UltraReview（≥10 文件：6-agent 团队）；文档类为 3-agent 多模型渐进式
 
 防退化机制全部保留并为 tier 路由补充防护。
 
@@ -240,7 +240,7 @@ Phase 4: 验证 + 归档
 
 ### 收敛判定
 
-每个 Gate 审查完成后输出收敛判定（`[CONVERGENCE_CHECK]` 标记），基于本轮原始发现数 p*_raw 计算 5 个触发条件（任一满足默认继续下一轮）：① p0_raw > 1；② p1_raw > 5；③ P0+P1+P2 合计 > 10；④ 全级合计 > 20；⑤ 本轮 p1_raw 较上轮新增 > 3。全部不满足或用户显式终止时退出（action=exit）并执行最终通读。配套反偷懒：RAW_COUNT 结构化计数 + 合计比对 + p0_raw≥1 时严重度校准抽查。
+问题数口径共五项（权威定义见 review SKILL.md「问题数口径权威定义」）：`p*_raw` 审计基线（不参与触发计算）、`p*_merged` 判定口径、`p*_rejected` 未纳入数、`p*_supplement` 监督补充数、修复后剩余 `p0`/`p1`/`p2`（专用于 P0 阻塞判定）。每个 Gate 审查完成后输出收敛判定（`[CONVERGENCE_CHECK]` 标记），基于本轮**合并后问题数** `p*_merged`（去重 + 去噪后的问题数，避免多 Agent 重复报告凭空顶到阈值）计算 5 个触发条件（任一满足默认继续下一轮）：① p0_merged > 1；② p1_merged > 5；③ P0+P1+P2 合计 > 10；④ 全级合计 > 20；⑤ 本轮 p1_merged 较上轮新增 > 3（任一轮 `caliber=raw` 时按 `p1_raw` 同口径比对）。全部不满足或用户显式终止时退出（action=exit）并执行最终通读。配套反偷懒：RAW_COUNT 结构化计数 + 合并表 `sources` 守恒等式核对（`Σ(sources 条数) + Σp*_rejected == Σp*_raw + Σp*_supplement`，精确算术；`p*_supplement` = 监督 Agent 交叉验证的补充发现数（**发现型计入**——采纳的计入 `p*_merged`、被否决的计入 `p*_rejected`；**更正型不计入，仅记审计说明**））+ 拒绝异常强制独立验证（`agent_rejected` 与 `user_rejected` 合计 >3 条，或占 `Σp*_raw` >30%；含加强审查子路径，检出时不再裁剪 Step 3）（`N==0` 例外：改由独立 Step 5 复核）+ p0_raw≥1 或 p0_rejected≥1 或 agent_rejected≥1 或 user_rejected≥1 时严重度校准抽查。验证强度类判定（Step 3 监督部署、tier 收敛闸门）保留 raw 保守口径——Step 3 按问题数 N（raw 口径）三档部署：`p0_raw≥3` 或 `N>15` → 独立监督完整 4 维；`N∈[1,15]` 且 `p0_raw≤2` → Step 5 兼并；`N==0` → trivial；加强审查子路径因无独立验证者复核合并表，其收敛触发改用不依赖合并表的 raw 口径（不构成额外防护，见 review SKILL.md 口径权威定义）。
 
 ## 平台适配
 
