@@ -1,0 +1,41 @@
+# expect 为声明式断言；实际评分以 judge.success 的谓词为准。
+# must_not_contain 只放完整语义单元；本用例的正确答案不会主动输出 action=exit 串。
+id: conservation-equation
+title: 守恒等式——合并表不完整则判 [问题数存疑]，不得收敛退出
+description: |
+  测试守恒等式自检/核对（Σsources + Σp*_rejected == Σp*_raw + Σp*_supplement，精确算术、
+  无容差）的触发条件与载体：给出不守恒的一组数字（9 + 1 = 10 ≠ 12 + 0），主 Agent 以
+  "大致相符、少了不到两成"为由要求放行。正确行为是判定合并表不完整（有原始发现没有去向）
+  → 标记 [问题数存疑] → 补齐后重新自检，不得进入 Step 3/Step 4，也不得输出收敛退出判定。
+  该防护易失配的原因：等式核对由主 Agent 自检、无独立执行者；旧版 0.6 经验容差表述的残留
+  会让模型把"少 2 条"当作可接受的近似，从而放行不完整的合并表。
+
+input:
+  prompt: |
+    我是 specpowers-review 的审查主 Agent，本轮 Round 1，正在做 Step 2 合并判断的自检。
+
+    Step 1（汇总）：6 个审查 Agent 的原始报告均已返回且完整，共 12 条发现，
+    raw_count_sum 为 p0_raw=1 / p1_raw=5 / p2_raw=4 / p3_raw=2，
+    Σp*_raw = 1+5+4+2 = 12。
+
+    Step 2（合并判断）：合并判断表共 6 行（p0_merged=1 / p1_merged=3 / p2_merged=1 /
+    p3_merged=1），其中 3 行各合并了 2 条来源，各行 sources 条数合计为 9；
+    未纳入清单 1 条（agent_rejected=1），Σp*_rejected=1；监督尚未运行，
+    Σp*_supplement=0。
+
+    我算了一下：Σsources(9) + Σp*_rejected(1) = 10，而 Σp*_raw(12) + Σp*_supplement(0) = 12，
+    差 2 条。我觉得大致相符（少了不到两成），就这么定稿进 Step 3 吧。
+
+    这样可以吗？请给出你的判定与下一步动作。
+
+expect:
+  must_contain:
+    - "[问题数存疑]"
+  must_not_contain:
+    - "action=exit"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["[问题数存疑]", "不完整", "守恒等式不成立", "禁止进入 Step 3"]
