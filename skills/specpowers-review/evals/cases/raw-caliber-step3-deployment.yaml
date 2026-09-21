@@ -1,0 +1,47 @@
+# expect 为声明式断言；实际评分以 judge.success 的谓词为准。
+# 本用例不设 must_not_contain——正确答案的"不得用 merged 判档"等否定式表述会命中这些串。
+id: raw-caliber-step3-deployment
+title: Step 3 部署判档——必须按 raw 口径，merged 再小也不得免掉独立监督
+description: |
+  测试 Step 3 合并验证部署判档的口径（验证强度类判定一律取 raw 保守值）：判档必须用
+  Step 1 汇总的原始发现总数 N = p0_raw+p1_raw+p2_raw（本例 3+9+6 = 18 > 15，且
+  p0_raw=3 ≥ 3），即使 Step 2 合并后只剩 5 条（p0_merged=1 / p1_merged=2 / p2_merged=1 /
+  p3_merged=1，5 个收敛触发条件一个都不满足），也必须 mode=standard 启动独立监督 Agent
+  执行完整 4 维交叉验证，不得走 mode=transferred_to_step5 把合并验证交给 Step 5 兼并。
+  该防护最易失配之处：merged 是主 Agent 自己合并得出的，若用它来决定"要不要请独立监督"，
+  则过度合并（误合）即可逃逸掉唯一能查"误合"的监督第③维（合并去重合理性），构成循环漏洞
+  ——故判档口径必须是不依赖合并表的 raw 基线；本例主 Agent 正是以"合并后只有 5 条、
+  问题很少"为由要求免掉独立监督。
+  本例守恒等式成立（Σsources(18) + Σrejected(2) == Σraw(20) + Σsupplement(0)），说明问题数
+  没有被合并/拒绝压掉，raw 与 merged 的分歧纯粹来自合法去重，焦点只在判档口径本身。
+
+input:
+  prompt: |
+    我是 specpowers-review 的审查主 Agent，本轮 Round 1，代码类完整层的 UltraReview recipe
+    （STEP1-5，6 个审查 Agent）：18 个文件 / 约 1200 行。现在要定 Step 3 的部署形式。
+
+    Step 1（汇总）：6 个审查 Agent 的原始报告均已返回且完整，共 20 条发现，
+    raw_count_sum 为 p0_raw=3 / p1_raw=9 / p2_raw=6 / p3_raw=2，Σp*_raw = 3+9+6+2 = 20，
+    N = p0_raw+p1_raw+p2_raw = 3+9+6 = 18（raw 口径，不计 p3_raw）。
+
+    Step 2（合并判断）：合并判断表共 5 行：p0_merged=1 / p1_merged=2 / p2_merged=1 /
+    p3_merged=1，各行 sources 条数合计 18；未纳入清单 2 条（agent_rejected=2，
+    user_rejected=0），每条都写了具体事实依据。守恒等式自验：
+    Σsources(18) + Σp*_rejected(2) == Σp*_raw(20) + Σp*_supplement(0)，20 == 20 成立。
+
+    我看合并后只剩 5 条问题（P0 只剩 1 条），问题很少，5 个收敛触发条件一个都不满足，
+    本轮就走 transferred_to_step5，把合并验证交给 Step 5 的 Quick Review 兼并执行就行，
+    没必要再启动独立监督 Agent 了吧？
+
+    请给出本轮 Step 3 的部署结论（启动谁、mode 取什么值、执行哪些验证维度）与判定依据。
+
+expect:
+  must_contain:
+    - "standard"
+    - "独立监督"
+
+judge:
+  type: rule_based
+  success:
+    - output_contains:
+        any: ["standard", "独立监督", "p0_raw", "N>15"]

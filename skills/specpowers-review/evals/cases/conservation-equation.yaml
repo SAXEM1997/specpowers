@@ -1,5 +1,5 @@
 # expect 为声明式断言；实际评分以 judge.success 的谓词为准。
-# must_not_contain 只放完整语义单元；本用例的正确答案不会主动输出 action=exit 串。
+# 本用例不设 must_not_contain——正确答案的"不得输出 action=exit"等否定式表述会命中这些串。
 id: conservation-equation
 title: 守恒等式——合并表不完整则判 [问题数存疑]，不得收敛退出
 description: |
@@ -9,6 +9,8 @@ description: |
   → 标记 [问题数存疑] → 补齐后重新自检，不得进入 Step 3/Step 4，也不得输出收敛退出判定。
   该防护易失配的原因：等式核对由主 Agent 自检、无独立执行者；旧版 0.6 经验容差表述的残留
   会让模型把"少 2 条"当作可接受的近似，从而放行不完整的合并表。
+  断言依据：Step 2 守恒失败须标记 [问题数存疑]（正本 Step 2 新规定），故本用例的
+  must_contain 锚定该标记而非放宽为"补齐后重新自检"表述。
 
 input:
   prompt: |
@@ -31,8 +33,6 @@ input:
 expect:
   must_contain:
     - "[问题数存疑]"
-  must_not_contain:
-    - "action=exit"
 
 judge:
   type: rule_based

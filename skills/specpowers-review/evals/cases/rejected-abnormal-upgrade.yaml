@@ -15,12 +15,14 @@ input:
     我是 specpowers-review 的审查主 Agent，本轮为完整层的「加强审查子路径」
     （recipe=[STEP1-2]：代码类 6 个文件 / 约 400 行、Round 1），现在做 Step 2 合并判断。
 
-    Step 1（汇总）：6 个审查 Agent 的原始报告均已返回且完整，共 10 条发现，
-    raw_count_sum 为 p0_raw=1 / p1_raw=4 / p2_raw=3 / p3_raw=2，
+    Step 1（汇总）：2 个审查主体（specpowers-apply 的 code-review + 对齐 Agent 单审，
+    code-review 结论并入 alignment 报告的编号序列，不单独编号）的原始报告均已返回且完整，
+    共 10 条发现，raw_count_sum 为 p0_raw=1 / p1_raw=4 / p2_raw=3 / p3_raw=2，
     N = p0_raw+p1_raw+p2_raw = 1+4+3 = 8（raw 口径）。
 
     Step 2（合并判断）：合并判断表共 6 行：p0_merged=1 / p1_merged=3 / p2_merged=1 /
-    p3_merged=1，各行 sources 条数合计 6；未纳入清单 4 条，全部是主 Agent 拒绝的
+    p3_merged=1，各行 sources 条数合计 6（sources 引用 alignment#k 编号序列，
+    已涵盖 code-review 结论）；未纳入清单 4 条，全部是主 Agent 拒绝的
     （agent_rejected=4，user_rejected=0），每条都写了具体事实依据。守恒等式自验：
     Σsources(6) + Σp*_rejected(4) == Σp*_raw(10) + Σp*_supplement(0)，10 == 10 成立。
 

@@ -47,8 +47,9 @@ session_ledger = {
                 "p1_rejected": 1,   // 未纳入数 P1
                 "p2_rejected": 0,   // 未纳入数 P2
                 "p3_rejected": 0,   // 未纳入数 P3
-                "agent_rejected": 0,   // 主 Agent 判定不成立而拒绝的项数（未纳入清单中 disposition=agent_rejected 的条数；与 user_rejected 共同构成 rejected 的两个来源，也是 [拒绝异常] 分子的两半之一）
-                "user_rejected": 0,   // 用户裁决拒绝/豁免的项数（Step 2 阶段记入未纳入清单的 user_rejected 条数；Step 4 前置 Gate 后更新为用户豁免 P0 数）——与 agent_rejected 共同构成 rejected 的两个来源
+                "agent_rejected": 0,   // 主 Agent 判定不成立而拒绝的项数（未纳入清单中 disposition=agent_rejected 的条数，含被否决的监督 sup3 项；与 user_rejected 共同构成 rejected 的两个来源。[拒绝异常] 分子仅计其中计入 Σp*_raw 的部分——被否决 sup3 项不占分子，由 [补充否决异常] 单独承接）
+                "user_rejected": 0,   // 用户裁决拒绝的项数（**仅** Step 2 阶段记入未纳入清单的 user_rejected 条数；Step 4 前置 Gate 的用户豁免 P0 **不更新此字段**——改记 user_exempt_p0）——与 agent_rejected 共同构成 rejected 的两个来源
+                "user_exempt_p0": 0,  // Step 4 前置 Gate 后的用户豁免 P0 数（独立计数字段，单列；rejected = agent_rejected + user_rejected，**不含**此数）——须在 [GATE_PASSED]、[CONVERGENCE_CHECK] 与用户提示中单列体现（「用户豁免 P0」说明）
                 "p0_supplement": 0, // 监督补充数 P0（p*_supplement 按 SKILL.md「问题数口径权威定义」的记账口径统计——发现型计入；更正型不计入。Step 3 结束后写入；Step 2 时恒为 0）。守恒等式：Σ(所有行的 sources 条数) + Σp*_rejected == Σp*_raw + Σp*_supplement
                 "p1_supplement": 1, // 监督补充数 P1（Step 3 结束后写入；Step 2 时恒为 0）
                 "p2_supplement": 0, // 监督补充数 P2（Step 3 结束后写入；Step 2 时恒为 0）
@@ -88,13 +89,13 @@ session_ledger = {
 | 写入 rounds（原始发现数 + 合并后问题数 + 未纳入数 + **监督补充数（Step 2 恒为 0）**） | 每轮审查 Step 2 汇总完成后 | 主 Agent |
 | 写入 rounds（caliber） | 每轮审查 Step 2 / 收敛判定时（加强审查子路径轮填 raw） | 主 Agent |
 | 写入 rounds（`user_rejected`） | 每轮审查 Step 2 汇总完成后 | 主 Agent |
-| 更新 rounds（`user_rejected`） | Step 4 前置 Gate 用户裁决后（如发生） | 主 Agent |
+| 写入 rounds（`user_exempt_p0`） | Step 4 前置 Gate 用户豁免 P0 后（如发生；**不更新 `user_rejected`**——该字段仅记 Step 2 未纳入清单的用户裁决拒绝数） | 主 Agent |
 | 写入 rounds（合并后问题数终值） | 每轮审查 Step 3 完成后（监督 Agent 调整过合并判断表时） | 主 Agent |
 | 写入 rounds（监督补充数） | 每轮审查 Step 3 完成后（监督有 [补充] 项时） | 主 Agent |
-| 写入 rounds（`p*_merged` 误合拆行修正值） | Step 5 误合抽查发现误合、拆行之后，或加强审查子路径轻量通读之后（如发生） | 主 Agent |
+| 写入 rounds（`p*_merged` 误合拆行修正值） | Step 5 误合抽查发现误合、拆行之后，或加强审查子路径轻量通读之后（如发生）；加强审查子路径**检出 `[拒绝异常]` 的例外轮**——N>0 的例外 Step 3（监督第③维合并去重合理性）或 N==0 的例外独立 Step 5 发现误合并拆行之后（如发生） | 主 Agent |
 | 写入 rounds（中止标记 `aborted`） | 用户在本轮 Step 1-5 进行中终止时 | 主 Agent |
 | 写入 lessons_learned | 每轮审查 Step 5 完成后，追加本轮新教训 | 主 Agent |
-| 写入 rounds（修复后剩余）+ lessons_learned【加强审查子路径】 | 该子路径 STEP2 收敛判定输出后（无 Step 5） | 主 Agent |
+| 写入 rounds（修复后剩余）+ lessons_learned【加强审查子路径】 | 该子路径**轻量通读 + 收敛判定输出后**（**默认子路径无 Step 5——`[拒绝异常]` N==0 例外除外**（该分支例外启动独立 Step 5）；执行顺序写死：STEP2 合并 → 内联修复 + 对齐复检（P0 清零）→ 轻量通读 → 收敛判定 → Gate Token，见 SKILL.md「加强审查」节——内联修复先于轻量通读与收敛判定；**检出 `[拒绝异常]` 的例外分支**：N>0 的账本写入时机在例外 Step 3（口径冻结）→ 内联修复 + 轻量通读之后，N==0 在例外独立 Step 5 复核输出之后——`supplement/rejected/conservation` 取终值，见 SKILL.md「收敛判定（按分支锚定）」） | 主 Agent |
 | 读取 rounds | 下一轮审查开始前（Step 0），构建上轮对比数据 | 主 Agent |
 | 读取 lessons_learned | 下一 Gate 加载时，注入对齐 Agent prompt（Step 0） | 主 Agent |
 | 写入 final_readthrough | 最终通读完成后 | 主 Agent |
@@ -203,6 +204,7 @@ conservation: pass|fail   # 仅 Step 2/3 必填（守恒等式自检/核对结�
 merged_count_final: p0=N p1=N p2=N p3=N, rejected=N, supplement=N   # 仅 Step 3 必填（mode=standard 时；transferred/trivial 可省略（终值等于 Step 2 值）；口径冻结后的终值，含监督补充行）
 agents: [<agent_name>(<model>), ...]
 issues_found: <N>
+result: pass|fail   # 仅 STEP_FINAL_READTHROUGH 必填（通读结果，独立字段——status 仍取通用枚举 complete|degraded|failed，不承载通读结论；FAIL 时 status 取 degraded（修复后可重新通读）或 failed（不可继续），映射见协议 9「输出」）
 degradation: none|<具体原因>|<影响分析>|<替代措施>
 notes: <自由文本>   # 可选（如 Step 5 兼并合并验证声明、回退标注等）
 ref: AgentId=<id>, tokens=<N>
@@ -211,11 +213,11 @@ ref: AgentId=<id>, tokens=<N>
 
 > **degradation 字段说明**: pipe 三段对应协议 4 退化声明三要素：(a) 具体原因（缺失能力+模型名），(b) 影响分析（尝试过的调用方式+失败信息），(c) 替代措施（降级路径选择依据）。`none` 表示无退化。
 
-> **mode 字段说明（仅 Step 3 必填）**: 描述 Step 3 合并验证的部署形式，独立于 degradation（能力损失）。下文 N=p0_raw+p1_raw+p2_raw（**raw 口径**——验证强度类判定一律取保守值，见 SKILL.md「问题数口径权威定义」；不计 p3_raw，定义见 SKILL.md Step 3；轮次编号（协议 6 的 round / SKILL.md 防偷懒协议的 N）与问题总数 N 同名不同义）。取值：`standard`=独立监督 Agent 执行（p0_raw≥3 或 N>15，完整 4 维）；`transferred_to_step5`=不启动独立 Agent，合并验证转移至 Step 5 兼并执行（N∈[1,15] 且 p0_raw≤2，结构重组非能力损失，故 degradation=none；Step 5 兼并执行溯源+遗漏+守恒等式核对+误合抽查，p0_raw≥1 或 p0_rejected≥1 或 agent_rejected≥1 或 user_rejected≥1 时追加严重度校准抽查）；`trivial`=无 P0/P1/P2 问题特判（N==0；p3_raw>0 时主 Agent 自修 P3 后走 Step 5 常规验证，防零进展循环）。**覆盖规则**：Step 2 检测到 `[拒绝异常]`（未纳入清单中 `agent_rejected` 与 `user_rejected` 合计 > 3 条，或占 `Σp*_raw` 比例 > 30%——`user_rejected` 部分仅核验「用户裁决记录是否存在且理由已如实记录」，不质疑用户判断）（**分母口径**：`Σp*_raw` = `p0_raw + p1_raw + p2_raw + p3_raw` **四项合计**，与判档用的 `N`（不计 `p3_raw`）**不是同一个数**——占比一律用四项合计。）时无视上述档位强制 `standard`——merged 口径排除了被拒项，拒绝是唯一能直接压低收敛判定的通道，不得靠 Step 5 兼并复核（兼并模式不含"合并合理性/判断充分性"维度，查不出误拒）。详见 SKILL.md Step 3。（**例外**：N==0 且触发 `[拒绝异常]` 时不启动 Step 3 监督，改为独立 Step 5 复核拒绝理由与守恒等式，见 SKILL.md Step 3 覆盖规则；**加强审查子路径（recipe=[STEP1-2]）检出 `[拒绝异常]` 时按 N 分叉**——N>0 强制 `standard` 且不输出 `STEP3_TIER_SKIPPED`，N==0 不启动 Step 3、例外启动独立 Step 5（不输出 `STEP5_TIER_SKIPPED`，须输出 `STEP5_EXECUTED`），见 SKILL.md「加强审查」节例外条）（**代触发**：`Σp*_raw` 不可得（如原始报告被截断）时，占比判据失效 → 以「被拒项（`agent_rejected + user_rejected`）≥ 1」**代触发** `[拒绝异常]`，强制独立 Step 3（mode=standard），并在报告中标注分母不可得；见 SKILL.md Step 2 的 `[拒绝异常]` 检测条。）
+> **mode 字段说明（仅 Step 3 必填）**: 描述 Step 3 合并验证的部署形式，独立于 degradation（能力损失）。下文 N=p0_raw+p1_raw+p2_raw（**raw 口径**——验证强度类判定一律取保守值，见 SKILL.md「问题数口径权威定义」；不计 p3_raw，定义见 SKILL.md Step 3；轮次编号（协议 6 的 round / SKILL.md 防偷懒协议的 N）与问题总数 N 同名不同义）。取值：`standard`=独立监督 Agent 执行（p0_raw≥3 或 N>15，完整 4 维）；`transferred_to_step5`=不启动独立 Agent，合并验证转移至 Step 5 兼并执行（N∈[1,15] 且 p0_raw≤2，结构重组非能力损失，故 degradation=none；Step 5 兼并执行溯源+遗漏+守恒等式核对+误合抽查，p0_raw≥1 或 p0_rejected≥1 或 agent_rejected≥1 或 user_rejected≥1 时追加严重度校准抽查）；`trivial`=无 P0/P1/P2 问题特判（N==0；p3_raw>0 时主 Agent 自修 P3 后走 Step 5 常规验证，防零进展循环）。**覆盖规则**：Step 2 检测到 `[拒绝异常]`（未纳入清单中**计入 `Σp*_raw` 的**被拒项（`agent_rejected` 与 `user_rejected`）合计 > 3 条，或占 `Σp*_raw` 比例 > 30%——被否决的监督 `sup3` 项不在 `Σp*_raw` 内、不占分子，由 `[补充否决异常]` 单独承接；`user_rejected` 部分仅核验「用户裁决记录是否存在且理由已如实记录」，不质疑用户判断）（**分母口径**：`Σp*_raw` = `p0_raw + p1_raw + p2_raw + p3_raw` **四项合计**，与判档用的 `N`（不计 `p3_raw`）**不是同一个数**——占比一律用四项合计。）时无视上述档位强制 `standard`——merged 口径排除了被拒项，拒绝是唯一能直接压低收敛判定的通道，不得靠 Step 5 兼并复核（兼并模式不含"合并合理性/判断充分性"维度，查不出误拒）。详见 SKILL.md Step 3。（**例外**：N==0 且触发 `[拒绝异常]` 时不启动 Step 3 监督，改为独立 Step 5 复核拒绝理由与守恒等式，见 SKILL.md Step 3 覆盖规则；**加强审查子路径（recipe=[STEP1-2]）检出 `[拒绝异常]` 时按 N 分叉**——N>0 强制 `standard` 且不输出 `STEP3_TIER_SKIPPED`，N==0 不启动 Step 3、例外启动独立 Step 5（不输出 `STEP5_TIER_SKIPPED`，须输出 `STEP5_EXECUTED`），见 SKILL.md「加强审查」节例外条）（**代触发**：`Σp*_raw` 不可得（如原始报告被截断）时，占比判据失效 → 以「被拒项（`agent_rejected + user_rejected`）≥ 1」**代触发** `[拒绝异常]`，强制独立 Step 3（mode=standard），并在报告中标注分母不可得；见 SKILL.md Step 2 的 `[拒绝异常]` 检测条。）
 
 > **merged_count_final 字段说明（仅 Step 3 必填，mode=standard 时）**: merged_count_final 是 Step 3 冻结后的判定口径终值；**mode=standard 时必填**（Step 3 可能调整合并表），**transferred/trivial 档位可省略**（终值等于 Step 2 的 merged_count；若填则应与 Step 2 值一致，差异须在 notes 说明）；未调整合并表时，**`p0`–`p3` 分量**等于 Step 2 的 `merged_count`，**`supplement` / `rejected` 分量仍按 Step 3 终值填写**（被否决的监督补充计入 `supplement` 与 `rejected`，不改变 merged 分量）。
 
-> **补充否决的复核（监督 `[补充]` 项被主 Agent 否决时）**: 主 Agent 否决监督 `[补充]` 项时须逐条写明事实依据（同拒绝项的要求）。若**否决比例 ≥ 50% 或否决条数 ≥ 3**，标记 `[补充否决异常]`，并将否决清单回传监督 Agent 复议一次；复议后监督维持原意见而主 Agent 仍否决的，须把双方理由一并写入报告，且该轮**强制注入 Step 5 复核**（无论 Step 3 为何 mode）。
+> **补充否决的复核（监督 `[补充]` 项被主 Agent 否决时）**: 主 Agent 否决监督 `[补充]` 项时须逐条写明事实依据（同拒绝项的要求）。若**否决比例 ≥ 50% 或否决条数 ≥ 3**，标记 `[补充否决异常]`，并将否决清单回传监督 Agent 复议一次；复议后监督维持原意见而主 Agent 仍否决的，须把双方理由一并写入报告，且该轮**强制注入 Step 5 复核**（无论 Step 3 为何 mode；**例外——加强审查子路径检出 `[拒绝异常]` 且 N>0 时**：Step 5 保持裁剪、不注入 Step 5 字段组，该复核转移为 Step 3 复议留痕——监督复议结论与双方理由写入 `STEP3_EXECUTED` 的 `notes`（或审计说明），并同步写入 `[CONVERGENCE_CHECK]` 的 `notes`，见 SKILL.md「加强审查」节例外条）。
 
 > **ref 行说明**: `ref: AgentId=<id>[, tokens=<N>]` 由**主 Agent 在汇总时追加**（非子 Agent 输出）。AgentId 从子 Agent 的 `Agent` 工具返回值提取（必填）；tokens 为主 Agent 估算的消耗（可选字段，不可用时省略或填 `null`）。AgentId 格式为 `a` + 16 位 hex（系统生成）。主 Agent 在遵循协议时从该路径获取真实 AgentId；但技术上可生成格式合法的虚假值——此为辅助真实度信号，非密码学验证。完整限制声明见标记块验证规则中的"验证能力与限制"表。
 
@@ -232,7 +234,16 @@ ref: AgentId=<id>, tokens=<N>
 | Step 3 | 按 mode 分叉（见上方 mode 字段说明）：standard=必须启动独立监督 Agent；transferred_to_step5=主Agent自执行(转移至Step5)；trivial=主Agent自执行(N==0) | complete / degraded | mode=standard（p0_raw≥3 或 N>15 启动独立监督 Agent 完整4维，含守恒等式核对；单一模型时声明缺少独立视角）；mode=transferred_to_step5（主 Agent 自执行，agents=self，degradation=none，合并验证转移至 Step 5；p0_raw≥1 或 p0_rejected≥1 或 agent_rejected≥1 或 user_rejected≥1 时 Step 5 追加严重度校准抽查）；mode=trivial（N==0，主 Agent 自执行；p3_raw>0 时自修 P3 后走 Step 5）（例外：Step 2 检出 `[拒绝异常]` → 档位判定不适用，按覆盖规则处理）；输出 merged_count_final（终值，mode=standard 时） |
 | Step 4 | 修复子 Agent + 主 Agent | complete / degraded / failed | 子 Agent 不可用时声明"退回主 Agent 自行修复"；修复重试超限声明"修复失败" |
 | Step 5 | Quick Review Agent | complete / degraded | 单一 Agent 时声明"缺少独立视角"；Step 4 退化时声明"执行两轮补偿验证"；mode=transferred_to_step5 **或检出 `[拒绝异常]`（含加强审查子路径 N==0 例外启动的独立 Step 5）**时经 notes 字段输出"兼并 Step 3 合并验证（溯源+遗漏+守恒等式核对+误合抽查；p0_raw≥1 或 p0_rejected≥1 或 agent_rejected≥1 或 user_rejected≥1 时含严重度校准抽查）"（非 degradation——与 SKILL.md Step 5 统一） |
-| 最终通读 | 独立子 Agent 或主 Agent（自执行） | complete / fail | 沿用通用标记块格式（STEP_FINAL_READTHROUGH）。agents 填子 Agent 模型名或 self（主 Agent 自执行）。issues_found 填残余问题数。子 Agent 工具不可用时由主 Agent 自执行，degradation 声明"单一模型，最终通读缺少独立视角" |
+| 最终通读 | 独立子 Agent 或主 Agent（自执行） | complete / degraded / failed（**通读结果另由 `result: pass\|fail` 字段表达**——`status` 不承载通读结论，仍取通用枚举；`PASS → result: pass`（status: complete）；`FAIL → result: fail`，status 取 `degraded`（修复后可重新通读）或 `failed`（不可继续），映射见协议 9「输出」节） | 沿用通用标记块格式（STEP_FINAL_READTHROUGH）。agents 填子 Agent 模型名或 self（主 Agent 自执行）。issues_found 填残余问题数。子 Agent 工具不可用时由主 Agent 自执行，degradation 声明"单一模型，最终通读缺少独立视角" |
+
+> **`issues_found` 逐 Step 语义（同字段多义的正名；父技能按标记块存在性检查、不解析该字段，本注仅供审计与人类阅读）**：
+> - **Step 1** = 审查发现总数（= `raw_count_sum` 四值合计）
+> - **Step 2** = 合并表行数（= Σ`p*_merged`）
+> - **Step 3** = 监督 `[补充]` 项数（= Σ`p*_supplement` 记账条数；mode=transferred/trivial 时为 0）
+> - **Step 4** = 修复过程中**新发现**的问题数（`issues_found: 0` = 未发现新问题，Step 正常完成）
+> - **Step 5** = 复核后**残余**问题数
+> - **最终通读** = 残余问题数
+> **trivial 档位显式例外**：`N==0` 且 `p3_raw>0` 时 Step 4 由主 Agent 自执行修复全部 P3，其 `issues_found` = 本轮**修复的 P3 项数**（= `p3_raw`，默认全量修复）——这是 Step 4 语义定义域上的**显式例外**（该档位无独立修复子 Agent、无「修复中新发现」的来源，修复数是该标记块唯一有意义的内容），非与「新发现问题数」语义矛盾（见 SKILL.md Step 3 trivial 档）。
 
 **多修复子 Agent 合并规则（Step 4）**: 当修复项涉及 ≥ 2 个无依赖文件时，拆分为多个修复子 Agent 并行执行（以文件为分组维度，无修复项数量阈值）；单文件内 > 10 条时分批顺序执行（见 SKILL.md Step 4 "同文件不并发"硬约束），主 Agent 收集所有修复子 Agent 的输出后，合并为**单个** STEP4_EXECUTED 标记块。issues_found 汇总所有修复子 Agent 发现的新问题数。agents 列表包含所有修复子 Agent 的名称和模型。degradation 取所有修复子 Agent 中最严重的退化状态（严重度序: `failed` > `degraded` > `complete`；多个 `degraded` 时保留覆盖范围最广的一条，如同时有 '子Agent不可用' 和 '环境不支持并行'，保留前者因其覆盖范围更广）。
 
@@ -243,7 +254,7 @@ ref: AgentId=<id>, tokens=<N>
 - **例外**: Step 2（主 Agent 自执行）、Step 3 转移/trivial 路径（mode=transferred_to_step5|trivial，主 Agent 自执行）、最终通读（主 Agent 自执行路径）除外——主 Agent 为自己执行的 Step 输出标记块，ref 行 AgentId 填 `self`
 - 汇总方式: 将子 Agent 输出中的 `STEP<N>_EXECUTED` 块原样附加到审查报告中。标记块附加在审查报告的执行日志表格之后，统一以 `## 执行标记原始记录` 标题开头，按 Step 编号排序
 - 如果某 Step 的子 Agent 未输出标记块 → 主 Agent 标注 `STEP<N>_EXECUTED: missing`（不可补写内容）
-- 汇总时必须在每个标记块末尾追加 `ref` 行（AgentId 必填，从子 Agent 的 `Agent` 工具返回值中提取，格式: `a` 开头 + 16 位 hex，由系统生成）；tokens 为可选估算值，不可用时省略或填 `null`。格式: `ref: AgentId=<id>[, tokens=<N>]`
+- 汇总时必须在每个标记块末尾追加 `ref` 行（AgentId 必填，从子 Agent 的 `Agent` 工具返回值中提取，格式: `a` 开头 + 16 位 hex，由系统生成；**上方「例外」列出的主 Agent 自执行路径（Step 2 / Step 3 transferred·trivial / 最终通读自执行）填字面量 `self`**——属规范允许的合法值，见下方父技能校验规则的例外子句）；tokens 为可选估算值，不可用时省略或填 `null`。格式: `ref: AgentId=<id>[, tokens=<N>]`
 
 **父技能（验证者）规则**:
 - specpowers-review 返回后，父技能在 specpowers-review 的输出中检查每个应执行的 Step 的标记块是否存在
@@ -255,15 +266,15 @@ ref: AgentId=<id>, tokens=<N>
 | Gate 3（代码类） | 按 [TIER_ROUTING] expected_steps 动态检查（非固定 STEP 集）。无 TIER_ROUTING 标记时回退旧逻辑——2 文件且 ≤200 行：STEP1, STEP2；其他：STEP1, STEP2, STEP3, STEP4, STEP5 |
 | 最终通读 | STEP_FINAL_READTHROUGH（独立调用场景由 SELF_VERIFY 检查，非父技能验证范围） |
 
-> **动态检查规则**: 父技能（验证者）搜索 `[TIER_ROUTING]` 标记，提取 `expected_steps` 数组，以此作为应存在的 STEP 列表。无 TIER_ROUTING 标记时回退旧逻辑（上表"回退旧逻辑"列）以保证向前兼容。
+> **动态检查规则**: 父技能（验证者）搜索 `[TIER_ROUTING]` 标记，提取 `expected_steps` 数组，以此作为应存在的 STEP 列表。`expected_steps` 必须为**离散 STEP 列表**（如 `[STEP1, STEP2]`（文档2Agent / 加强审查）、`[STEP1, STEP2, STEP3, STEP4, STEP5]`）——**禁止区间记法**（recipe 表的 `[STEP1-5]`/`[STEP1-2]` 仅为编排简写，父技能按单个 STEP 机械匹配、无法展开区间，见 SKILL.md「STEP 集合记法约定」）。**多轮审查时以最后一个 `[TIER_ROUTING]` 的 `expected_steps` 为准**（每轮 Step 0d 均输出该标记，轮间 tier/recipe 可变；与 `[CONVERGENCE_CHECK]` 的「最后一个」规则、「多轮循环标记块保留策略」的仅检查最后一轮规则一致——取首轮会多要求/少要求 STEP）。无 TIER_ROUTING 标记时回退旧逻辑（上表"回退旧逻辑"列）以保证向前兼容。
 >
-> **TIER_SKIPPED 块识别规则**: `STEP<N>_TIER_SKIPPED` 块（见协议 6）表示 tier 裁剪主动跳过的 Step。识别规则：(a) 该块既不计入已执行的 STEP，也不计入缺失；(b) 仅当对应 STEP 号在 expected_steps 中且未找到 STEP<N>_EXECUTED 时，才视为缺失；(c) TIER_SKIPPED 块本身不参与完整性判断——父技能在 expected_steps 检查之外可忽略之。
+> **TIER_SKIPPED 块识别规则**: `STEP<N>_TIER_SKIPPED` 块（见协议 6）表示 tier 裁剪主动跳过的 Step。**识别方法与 `STEP<N>_EXECUTED` 相同**：搜索以 `` ```STEP<N>_TIER_SKIPPED `` 开头的 fenced code block（行首 `` ``` `` 后紧跟 `STEP<N>_TIER_SKIPPED` 作为围栏起始标记，见下方检查方法；审查报告使用了非标准 code fence 如 `~~~` 时同规则搜索）——协议 6 的层级裁剪声明块必须以该围栏形式输出。**正文中以否定式/引述形式出现的裸串不构成标记块**：不在行首围栏起始标记位置的 `STEP<N>_TIER_SKIPPED` / `STEP<N>_EXECUTED` 字符串（如 SKILL.md 加强审查节「**且不输出 `STEP3_TIER_SKIPPED`**」这类否定句）仅为规则说明，字符串搜索不得误判为「已输出裁剪声明」。计数规则：(a) 该块既不计入已执行的 STEP，也不计入缺失；(b) 仅当对应 STEP 号在 expected_steps 中且未找到 STEP<N>_EXECUTED 时，才视为缺失；(c) TIER_SKIPPED 块本身不参与完整性判断——父技能在 expected_steps 检查之外可忽略之。
 
 > **加强审查标记块均在 specpowers-review 内部产出，非跨 skill**: specpowers-apply 的 code-review 结果作为上下文**注入** specpowers-review 的对齐 Agent prompt。对齐 Agent 接收 code-review 结果后执行对齐检查，输出 `STEP1_EXECUTED`（标记块中记录 code-review 结果引用）；主 Agent 综合判断后输出 `STEP2_EXECUTED`。两个标记块均由 specpowers-review 内部 Agent 产出，父技能（specpowers-apply）在 Gate 3 返回后统一检查。
 
 - 缺失任一块 → 视为审查未完成，阻塞当前 Phase，要求重新执行 specpowers-review
 - 检查方法: 搜索以 `` ```STEP<N>_EXECUTED `` 开头的 fenced code block（即匹配行首的 `` ``` `` 后紧跟 `STEP<N>_EXECUTED`，作为 fenced code block 的起始标记）。此匹配方式利用标记块固定为 fenced code block 的事实，排除审查报告正文中的示例引用或讨论提及。如果审查报告使用了非标准 code fence（如 `~~~`），同时搜索 `~~~STEP<N>_EXECUTED`
-- 辅助真实度信号: 检查每个标记块末尾的 `ref: AgentId=<id>, tokens=<N>` 行——AgentId 格式必须匹配 `^a[0-9a-f]{16}$`，格式不符或缺失 → 记录警告但仍以标记块存在性为主要判断依据
+- 辅助真实度信号: 检查每个标记块末尾的 `ref: AgentId=<id>, tokens=<N>` 行——AgentId 格式必须匹配 `^a[0-9a-f]{16}$`，**或为字面量 `self`（仅限上方「主 Agent 规则」例外列出的自执行路径：Step 2 / Step 3 transferred·trivial / 最终通读自执行——`self` 为协议合法值，不记警告）**；其余格式不符或缺失 → 记录警告但仍以标记块存在性为主要判断依据
 
 **验证能力与限制（显式声明）**:
 
@@ -303,13 +314,14 @@ Gate 审查最终通过（收敛判定 action=exit + 最终通读 PASS）后，r
 
 **第 1 层：会话标记**
 ```
-[GATE_PASSED] gate=<N>, round=<N>, tier=<tier>, p0_merged=<N>, p1_merged=<N>, p0_raw=<N>, p1_raw=<N>, supplement=<N>, rejected=<N>, agent_rejected=<N>, user_rejected=<N>, convergence_triggers=<编号列表|none>
+[GATE_PASSED] gate=<N>, round=<N>, tier=<tier>, p0_merged=<N>, p1_merged=<N>, p2_merged=<N>, p3_merged=<N>, p0_raw=<N>, p1_raw=<N>, p2_raw=<N>, p3_raw=<N>, supplement=<N>, rejected=<N>, agent_rejected=<N>, user_rejected=<N>, user_exempt_p0=<N>, convergence_triggers=<编号列表|none>
 ```
-与现有的 `[TIER_ROUTING]`、`STEP<N>_EXECUTED` 同类机制。`[GATE_PASSED]` 仅在 Gate 确实通过后输出；P0 未清零时输出 `[GATE_BLOCKED]`（现有机制不变）。`p*_merged` 为判定口径、`p*_raw` 为审计基线、`supplement` 为监督补充数（守恒等式核对用）（定义见 SKILL.md「问题数口径权威定义」）——三者都列出，供父技能与人类审计分辨"真的问题少"与"被合并/拒绝压下去的"。
+与现有的 `[TIER_ROUTING]`、`STEP<N>_EXECUTED` 同类机制。`[GATE_PASSED]` 仅在 Gate 确实通过后输出；P0 未清零时输出 `[GATE_BLOCKED]`（现有机制不变）。`p*_merged` 为判定口径、`p*_raw` 为审计基线、`supplement` 为监督补充数（守恒等式核对用）（定义见 SKILL.md「问题数口径权威定义」）——**`p0`–`p3` 全级四字段对 merged 与 raw 都完整列出**（只加不删：审计者须能据本标记单独核验触发条件③④（依赖 `p2_merged`/`p3_merged`）与全级合计的判定输入，而不必回读账本），供父技能与人类审计分辨"真的问题少"与"被合并/拒绝压下去的"。
 
 > **字段说明（补充）**：
-- `rejected` / `agent_rejected`：未纳入总数 / 其中主 Agent 拒绝数——**仅供审计 `[拒绝异常]` 是否触发**（不参与判定，也不影响 5 触发条件的计算）
-- `user_rejected`：**用户**裁决拒绝/豁免的项数（区别于主 Agent 拒绝的 `agent_rejected`）——用于审计「用户豁免 P0」声明。
+- `rejected` / `agent_rejected`：未纳入总数 / 其中主 Agent 拒绝数——**仅供审计 `[拒绝异常]` 是否触发**（不参与判定，也不影响 5 触发条件的计算）；`rejected = agent_rejected + user_rejected`，**不含** `user_exempt_p0`
+- `user_rejected`：**用户**裁决拒绝的项数（**仅** Step 2 阶段记入未纳入清单的条目；区别于主 Agent 拒绝的 `agent_rejected`）——与 `agent_rejected` 共同构成 `rejected` 的两个来源
+- `user_exempt_p0`：Step 4 前置 Gate 后的**用户豁免 P0 数**（独立计数字段，单列；**不计入 `rejected`**）——用于审计「用户豁免 P0」声明，须在用户提示中一并单列体现
 
 > **与 `[CONVERGENCE_CHECK]` 的时序关系**：多轮审查进行中时，每轮输出 `[CONVERGENCE_CHECK]` 但不输出 `[GATE_PASSED]`——Gate 尚未最终通过。仅在 action=exit + 最终通读 PASS 后输出 `[GATE_PASSED]`。
 
@@ -335,8 +347,8 @@ tier=<critical|full>
 
 1. 从 `[TIER_ROUTING]` 标记中提取 `expected_steps`，动态确定应存在的 STEP 集合（无 `[TIER_ROUTING]` 标记时回退为全集 `[STEP1, STEP2, STEP3, STEP4, STEP5, STEP_FINAL_READTHROUGH]`）
 2. 搜索 `STEP<N>_EXECUTED` 和 `STEP<N>_TIER_SKIPPED` 标记块，确认 `expected_steps` 中的每个 STEP 要么已输出 `_EXECUTED` 标记块，要么已输出 `_TIER_SKIPPED` 标记块
-3. 确认最终通读标记块已输出（缺失时标注"最终通读可能未执行"）
-4. 确认 `[CONVERGENCE_CHECK]` 标记已输出（缺失时标注"收敛判定可能未执行"）
+3. 确认最终通读标记块已输出（缺失时在 `[SELF_VERIFY]` 的 `readthrough_present` 字段填 `false`——即旧措辞"最终通读可能未执行"的承载字段）
+4. 确认 `[CONVERGENCE_CHECK]` 标记已输出（缺失时在 `[SELF_VERIFY]` 的 `convergence_present` 字段填 `false`——即旧措辞"收敛判定可能未执行"的承载字段）
 5. 以 `[SELF_VERIFY]` 标记输出检查结果
 
 **自检结果格式**:
@@ -346,16 +358,27 @@ verified_steps: <动态取值——从 [TIER_ROUTING] expected_steps，无 TIER_
 missing_steps: <expected_steps 中既无 _EXECUTED 也无 _TIER_SKIPPED 的 STEP>
 skipped_steps: <被 tier 裁剪的 STEP 列表——由 STEP<N>_TIER_SKIPPED 标记识别，识别规则见本协议「标记块验证规则」的 TIER_SKIPPED 块识别规则>
 all_present: true|false
+readthrough_present: true|false
+convergence_present: true|false
 ```
 
-> `missing_steps` 排除已输出 `STEP<N>_TIER_SKIPPED` 的 STEP（tier 裁剪是预期行为，非缺失）。`skipped_steps` 记录因 tier 裁剪而未执行的 STEP，用于诊断 tier 路由是否按预期工作。
+> `missing_steps` 排除已输出 `STEP<N>_TIER_SKIPPED` 的 STEP（tier 裁剪是预期行为，非缺失）。`skipped_steps` 记录因 tier 裁剪而未执行的 STEP，用于诊断 tier 路由是否按预期工作。**`all_present` 仅覆盖 `expected_steps` 内的 STEP**（= `missing_steps` 为空）；**最终通读与收敛判定为横切项，不在 `expected_steps` 内、不计入 `all_present`**——其存在性由 `readthrough_present` / `convergence_present` 两个布尔字段单独承载（`false` 即对应标记缺失的显式告警，人类审计据此追查）。
 
 此自检与父技能验证处于同一信任域（同一 Agent），但至少确保标记块在独立调用场景下不会被完全忽略。独立调用场景下 `[GATE_BLOCKED]` 标记不触发外部阻塞（无父技能读取），仅作为信息性声明。
 
-> **注**: 独立调用 specpowers-review 时，`修改总行数` 由主 Agent 自行计算：
+> **注**: 独立调用 specpowers-review 时，`file_count`（变更文件数）与 `line_count` 由主 Agent 自行计算（一次性输出 files + lines 两条值）。**`line_count` 口径按对象类型固定（与 SKILL.md 0c-pre、协议 6 `bucket_doc` 一致，不得互换）**：文档类＝**审查对象总行数**（`wc -l`，多文件取合计——不依赖 git diff，空 diff 不影响其取值）；代码类＝**修改总行数**（git diff，下方命令）。**命令兜底（强制）**：任何情形下都必须输出数字，**不得输出空串**——当 `HEAD == merge-base(BASE, HEAD)`（在本分支 tip 上审查已提交的工作，最常见情形）时 `git diff --shortstat` 无输出，awk 无输入行故主块不执行，原 `if(s=="") s=0` 是死代码；且 `diff base..HEAD` 不含未提交改动：
 > ```bash
-> BASE=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'); BASE=${BASE:-master}; git diff --shortstat $(git merge-base $BASE HEAD)..HEAD | awk '{s=$4+$6; if(s=="") s=0; print s}'
+> BASE=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'); BASE=${BASE:-master}
+> MB=$(git merge-base "$BASE" HEAD 2>/dev/null) || MB=""
+> OUT=$([ -n "$MB" ] && git diff --shortstat "$MB"..HEAD)
+> FILES=$(printf '%s\n' "$OUT" | awk 'NR==1{f=$1} END{print f+0}')       # file_count＝变更文件数（shortstat 首字段）
+> LINES=$(printf '%s\n' "$OUT" | awk 'NR==1{s=$4+$6} END{print s+0}')   # line_count＝修改总行数；END 兜底：无输入行时输出 0
+> echo "file_count=$FILES line_count=$LINES"
 > ```
+> - **`file_count` 算法**：`git diff --shortstat` 输出的首字段（"N files changed" 的 N；单文件时 git 输出 "1 file changed" 同样取首字段）。空 diff 回退见下条。
+> - **空 diff 的回退算法**（`OUT` 为空时）：**文档类** → `line_count` 主算法即 `wc -l`（不受空 diff 影响），仅需补 `file_count`——按审查对象文件数直接清点（不依赖 git diff）；**代码类** → `file_count` 回退为 `git status --porcelain | wc -l` 计数（覆盖未提交改动），`line_count` 记 0。
+> - **file_count=0 的分桶归属**：所有回退执行后仍为 0 时，**归入微小**（协议 6 代码类 bucket 的下界延拓；不判为「不可判定」，tier 路由正常进行）。
+> - **[DEGRADED] 声明（强制）**：任一回退发生时，在 `[TIER_ROUTING]` 的 notes 与审查报告中输出 `[DEGRADED] 空diff回退:<所用回退算法>`，注明所用回退算法（`wc-l-total`＝文档类 wc -l / `porcelain-count`＝代码类 porcelain 计数）。
 > （与 specpowers-apply Step 0 同款逻辑；specpowers-apply「降级声明」中的"与 review 独立调用同款降级策略"即指此处）
 > 若无 git 历史可用（如新项目），回退为手动估算文件行数。
 
@@ -384,7 +407,7 @@ all_present: true|false
 | Step 4 | 环境不支持并行 | 修复子 Agent 串行执行 | 主 Agent |
 | Step 5 | 仅 1 个 Agent 可用 | 声明"缺少独立视角" | Quick Review Agent |
 | Step 5 | Step 4 退化 | 执行两轮补偿验证 | Quick Review Agent |
-| Step 5 | 子 Agent 工具不可用 | 同 Step 1（Quick Review 的独立复核不可用）；**例外**：本轮为 trivial（N==0）**且未触发 `[拒绝异常]`** 时可由主 Agent 自执行并声明退化——若 N==0 但触发了 `[拒绝异常]`，Step 5 **必须由独立 Quick Review Agent** 复核拒绝理由与守恒等式（见 SKILL.md Step 3 的 `[拒绝异常]` 覆盖规则） | 主 Agent |
+| Step 5 | 子 Agent 工具不可用 | 同 Step 1（Quick Review 的独立复核不可用）；**例外**：本轮为 trivial（N==0）**且未纳入清单无被拒项（`agent_rejected + user_rejected == 0`）** 时可由主 Agent 自执行并声明退化。**该退化豁免不适用于 SKILL.md 要求的「`N==0` 且被拒项 ≥ 1 → 独立 Step 5 复核」情形**（含 `agent_rejected∈[1,3]`、未达 `[拒绝异常]` 阈值的组合）——此时 Step 5 **必须由独立 Quick Review Agent** 复核拒绝理由与守恒等式（见 SKILL.md Step 3 的 `[拒绝异常]` 覆盖规则与 trivial 档例外）；子 Agent 工具不可用时须按本协议「最低独立性原则」**中断并告知用户**，不得以主 Agent 自执行冒充独立复核 | 主 Agent |
 | 最终通读 | 子 Agent 工具不可用 | 由主 Agent 自行执行 | 主 Agent |
 
 > **最低独立性原则**：Step 1/3/5 依赖独立子 Agent。环境不提供子 Agent 时，specpowers-review **不满足最低独立性要求**，应中断并告知用户——而非以主 Agent 自审产出无法校验的计数。
@@ -411,7 +434,7 @@ all_present: true|false
 | 上轮审查经验 | lessons_learned（来自账本或 review-cache.json） | 主 Agent 通过 prompt 参数传递 | Step 0 / 对齐 Agent 注入 | 无（经验为辅助输入） |
 | 标记块输出指令 | 每个子 Agent 完成审查/修复/检查后，必须在输出末尾附加结构化标记块 | 主 Agent 通过 prompt 参数注入子 Agent | 每个 Step 启动前 | **强制**: 子 Agent 需输出 STEP<N>_EXECUTED 标记块 |
 
-截断策略：注入内容总长度超过 Agent prompt 限制时（通常 > 8000 字），优先保留"问题清单 + 问题编号 + 严重度 + 证据"部分，截断"分析过程"和"冗余上下文"，截断处标注 `[... 已截断，完整报告已由主 Agent 在合并阶段审查 ...]`。合并判断表不截断；**问题编号与 RAW_COUNT 行不截断**（截断即无法核对守恒等式——此时必须声明退化并将核对降级为"抽样比对 + 显式记录抽样范围"；抽样比对发现**任何**不匹配仍按 [问题数存疑] 升级重审）。
+截断策略：注入内容总长度超过 Agent prompt 限制时（通常 > 8000 字），优先保留"问题清单 + 问题编号 + 严重度 + 证据"部分，截断"分析过程"和"冗余上下文"，截断处标注 `[... 已截断，完整报告已由主 Agent 在合并阶段审查 ...]`。合并判断表不截断；**问题编号与 RAW_COUNT 行不截断**（截断即无法核对守恒等式——此时必须声明退化并将核对降级为"抽样比对 + 显式记录抽样范围"；抽样比对发现**任何**不匹配仍按 [问题数存疑] 升级重审）。（本降级规则由 SKILL.md Step 2 守恒等式自检、Step 2 `[拒绝异常]` 检测代触发与 Step 3 前置条件直接引用：`Σp*_raw` 因截断不可得 ⇒ `N` 不可得（同源）⇒ Step 3 档位判定一律保守回退 mode=standard，均须记录 `[DEGRADED]` 与抽样范围。）
 
 ### 子 Agent prompt 注入模板
 
@@ -434,21 +457,23 @@ all_present: true|false
 
 此声明让修复子 Agent 知情，捕获修复过程中发现的合并遗漏。
 
+> **`[疑似合并遗漏]` 的消费规则（主 Agent 收到上报后）**：① 上报发生在 Step 5 之前（含修复进行中）→ **转交 Step 5 遗漏检测复核并计入核对范围**（该条计入遗漏检测的对照清单——原始报告有但合并表缺失的发现之一，按其处置路径走）；② 上报发生在 Step 5 之后（无后续 Step 5 可承接）→ 按 `[问题数存疑]` 升级路径处理（补独立 Step 3（mode=standard）→ 对新发现问题重修复（Step 4）→ 重 Step 5）。两条路径均须在报告中留痕上报原文与处置结论。
+
 ### Step 5 合并验证模式注入模板（mode=transferred_to_step5 **或** 检出 `[拒绝异常]` **或** 未纳入清单存在 `user_rejected≥1` 时）
 
 触发条件：Step 3 为 mode=transferred_to_step5，**或 Step 2/Step 3 检出了 `[拒绝异常]`，或未纳入清单存在 `user_rejected≥1`**（后两者即便 mode=standard 也须注入同一组字段——Step 5 需要它们复核拒绝理由、用户裁决记录与守恒等式）。当 Step 3 因 N∈[1,15] 且 p0_raw≤2（raw 口径）转移至 Step 5 时，主 Agent 启动 Quick Review Agent 的 prompt **必须注入**以下字段（不得省略，否则 Step 5 无法做合并验证+守恒等式核对）：
 
 | 必注入字段 | 内容 | 用途 |
 |---|---|---|
-| 全部审查 Agent 原始报告全文 | Step 1 各 Agent 的完整审查报告（含**问题编号 `#1…#k`** 与 RAW_COUNT 行） | 溯源检查 + 遗漏检测 + 守恒等式核对 |
+| 全部审查 Agent 原始报告全文 | Step 1 各 Agent 的完整审查报告（含**问题编号 `#1…#k`** 与 RAW_COUNT 行；加强审查路径下 `alignment` 报告的编号与 RAW_COUNT **连续覆盖 code-review 与对齐两部分的全部条目**——守恒核对按该合并序列数，见 SKILL.md Step 1 RAW_COUNT 强制） | 溯源检查 + 遗漏检测 + 守恒等式核对 |
 | 最终合并判断表 | Step 2 输出的合并表（含 **`sources` 来源映射列**、**未纳入清单**与 disposition 列） | 溯源/遗漏对照基准 + 守恒等式左侧 |
-| 账本上轮有效轮次的 `p*_merged`（及 `p*_raw`） | 上一轮合并后问题数（上轮 = 协议 6 的 `effective` 序列最后一个，跳过被中止轮） | 趋势对照（⑤用 merged；缺 merged 时按协议 1「⑤（差值型条件）特殊处理」的三差值规则计算） |
+| 账本上轮有效轮次的 `p*_merged`（及 `p*_raw`） | 上一轮合并后问题数（上轮 = 协议 6 的 `effective` 序列最后一个，跳过被中止轮；**首轮无有效上轮时（`effective` 为空，如 Round 1 即落入 transferred_to_step5 档）填 `n/a` 并说明**——⑤ 按 SKILL.md 收敛判定节「首轮无上轮基准时⑤不参与判定」处理，不视为注入缺失） | 趋势对照（⑤用 merged；缺 merged 时按协议 1「⑤（差值型条件）特殊处理」的三差值规则计算） |
 | Step 1 raw_count_sum | STEP1_EXECUTED 中汇总的各 Agent 计数求和 | 守恒等式右侧基线（与重新数出的编号总数比对） |
 
 强制指令（追加到 Quick Review Agent prompt）：
 - 守恒等式核对必须从注入的原始报告**重新数问题编号**并重算 `Σ(所有行的 sources 条数) + Σp*_rejected`（不从 STEP1_EXECUTED 的 raw_count_sum 或 STEP2_EXECUTED 的 merged_count 直接取信——防止主 Agent 篡改），与 `各 Agent RAW_COUNT 求和 + Σp*_supplement` **比对总量**（按严重度分级的漂移由第 5 项严重度校准抽查负责，**不由等式负责**）
-- 兼并执行合并验证 4 项：①**溯源检查**（`sources` 列的 `<Agent名>#<编号>` 逐条真实存在且语义对应）；②**遗漏检测**（原始报告有但合并表缺失的发现；区分 disposition=user_adjudicated 的用户裁决项 vs agent_rejected 的主 Agent 拒绝项；agent_rejected 与 user_rejected 合计 >3 条或占比 >30% → [拒绝异常]（`user_rejected` 部分仅核验记录存在性，不质疑用户判断），该情形本应已在 Step 3 走 mode=standard，此处才发现即说明档位走错，按 [问题数存疑] 升级）；③**守恒等式核对**（**精确算术，无容差**——等式不成立 → [问题数存疑] 触发重审：补独立 Step 3（mode=standard）→ 对新发现问题重修复（Step4）→ 重 Step5，不重跑 Step1-2）；④**误合抽查**（抽取 `sources` 条数 ≥2 的行，逐行判断被合并的各条是否确为同一问题——误合会同时压低 merged 计数并掩盖问题，是 merged 口径下的主要新增风险；发现误合 → 拆行并标记 [误合]，重算 `p*_merged`）
-- `p0_raw≥1` 或 `p0_rejected≥1` 或 `agent_rejected≥1` 或 `user_rejected≥1` 时追加第 5 项严重度校准抽查（`user_rejected` 是压低合并口径的另一条通道，任何存在被拒项的轮次都至少核验用户裁决记录的存在性——见第 5 项复核标准）：合并表**每条非 P0 行（P1/P2/P3）**逐条对照其**全部 `sources`** 在原始报告中的严重度——任一 source 原始标 P0 而该行最终严重度低于 P0 的，**或将 P1 来源降为 P2/P3、P2 来源降为 P3 的项**（这些降级会直接移动触发条件②③④的分级合计），均须有书面降级理由（用户裁决记录或具体事实依据），**P0→P1 与 P0→P2/P3 同等适用**；发现无理由降级 → [问题数存疑] 触发重审升级。**并须独立判断未纳入清单中 `agent_rejected` 项**与 `user_rejected` 项**的理由是否成立——范围覆盖全部严重度（P0/P1 优先）**；判断时须对照**原始报告与审查对象内容核对理由的事实前提**（如理由称"X 处已有 Y 约束"，须确认 X 处确有 Y 约束），不得仅评估措辞是否具体；若事实前提无法在审查对象中找到对应内容 → 视为理由不成立，按 `[拒绝存疑]` 升级。理由不成立 → 标记 [拒绝存疑]，按重审升级路径处理（补独立 Step 3 mode=standard）。**`user_rejected` 项的复核标准与 `agent_rejected` 不同——不质疑用户判断本身，只核验「用户裁决记录是否存在且裁决理由已如实记录」（防主 Agent 伪造用户裁决）；发现无记录或理由与用户实际表述不符 → 标记 `[拒绝存疑]` 并按重审升级路径处理**
+- 兼并执行合并验证 4 项：①**溯源检查**（`sources` 列的 `<Agent名>#<编号>` 逐条真实存在且语义对应）；②**遗漏检测**（原始报告有但合并表缺失的发现；区分 disposition=user_adjudicated 的用户裁决项 vs agent_rejected 的主 Agent 拒绝项；**计入 `Σp*_raw` 的**被拒项（agent_rejected 与 user_rejected）合计 >3 条或占比 >30%——**占比分母为 `Σp*_raw`（= `p0_raw+p1_raw+p2_raw+p3_raw` 四项合计，与判档用的 `N`（不计 `p3_raw`）不是同一个数，勿用 `N` 作分母）**→ [拒绝异常]（被否决 `sup3` 项不占分子，由 [补充否决异常] 承接；`user_rejected` 部分仅核验记录存在性，不质疑用户判断），该情形本应已在 Step 3 走 mode=standard，此处才发现即说明档位走错，按 [问题数存疑] 升级）；③**守恒等式核对**（**精确算术，无容差**——等式不成立 → [问题数存疑] 触发重审：补独立 Step 3（mode=standard）→ 对新发现问题重修复（Step4）→ 重 Step5，不重跑 Step1-2）；④**误合抽查＋降级理由存在性核对（恒查项——兼并模式下无论如何都执行，不受第 5 项触发面约束）**（抽取 `sources` 条数 ≥2 的行，逐行判断被合并的各条是否确为同一问题——误合会同时压低 merged 计数并掩盖问题，是 merged 口径下的主要新增风险；发现误合 → 拆行并标记 [误合]，重算 `p*_merged`；**同时核对每条非 P0 行的最终严重度是否低于其任一 source 的原始严重度——若有降级，必须存在书面降级理由（用户裁决记录或具体事实依据），否则标记 [问题数存疑]**——跨阈值降级即使第 5 项触发面四轴全为零（如 `p0_raw=0` ∧ 全无被拒项 ∧ transferred 档）也由此恒查项兜底）
+- `p0_raw≥1` 或 `p0_rejected≥1` 或 `agent_rejected≥1` 或 `user_rejected≥1` 时追加第 5 项严重度校准抽查（`user_rejected` 是压低合并口径的另一条通道，任何存在被拒项的轮次都至少核验用户裁决记录的存在性——见第 5 项复核标准）：合并表**每条非 P0 行（P1/P2/P3）**逐条对照其**全部 `sources`** 在原始报告中的严重度——任一 source 原始标 P0 而该行最终严重度低于 P0 的，**或将 P1 来源降为 P2/P3、P2 来源降为 P3 的项**（这些降级会直接移动触发条件②③④的分级合计——**跨阈值降级的存在性核对不依赖本项触发面，已由上方第 4 项误合抽查的恒查部分承载**），均须有书面降级理由（用户裁决记录或具体事实依据），**P0→P1 与 P0→P2/P3 同等适用**；发现无理由降级 → [问题数存疑] 触发重审升级。**并须独立判断未纳入清单中 `agent_rejected` 项**与 `user_rejected` 项**的理由是否成立——范围覆盖全部严重度（P0/P1 优先）**；判断时须对照**原始报告与审查对象内容核对理由的事实前提**（如理由称"X 处已有 Y 约束"，须确认 X 处确有 Y 约束），不得仅评估措辞是否具体；若事实前提无法在审查对象中找到对应内容 → 视为理由不成立，按 `[拒绝存疑]` 升级。理由不成立 → 标记 [拒绝存疑]，按重审升级路径处理（补独立 Step 3 mode=standard）。**`user_rejected` 项的复核标准与 `agent_rejected` 不同——不质疑用户判断本身，只核验「用户裁决记录是否存在且裁决理由已如实记录」（防主 Agent 伪造用户裁决）；发现无记录或理由与用户实际表述不符 → 标记 `[拒绝存疑]` 并按重审升级路径处理**
 - STEP5_EXECUTED 中注明"兼并 Step 3 合并验证（溯源+遗漏+守恒等式核对+误合抽查；p0_raw≥1 或 p0_rejected≥1 或 agent_rejected≥1 或 user_rejected≥1 时含严重度校准抽查）"
 
 > **守恒等式替代了旧的 0.6 经验容差**：合法去重（多 Agent 报同一问题）会使合并表行数小于原始报告条数，这是**预期行为**——每条被吸收的原始发现都由合并行的 `sources` 列承载，等式左侧自动把这些条数算回来。真正异常的是"原始发现没有去向"（既不在任何 `sources`，也不在未纳入清单），而非"计数小于 raw"。旧容差"合并表计数 ≥ raw_count_sum × 0.6"已废除：它会在少掉 39% 的发现时仍判为合法。
@@ -462,7 +487,7 @@ all_present: true|false
 ### 路由矩阵
 
 规模分桶按对象类型区分（详见下方算法预计算和 `bucket_doc` 函数）：
-- **代码类**按 `file_count`：微小 1-3 / 中等 4-19 / 复杂 20-49 / 大规模 50+
+- **代码类**按 `file_count`：微小 1-3（`file_count=0` 归入微小——空 diff 回退后仍为 0 的归属，见协议 3「独立调用场景自检」）/ 中等 4-19 / 复杂 20-49 / 大规模 50+
 - **文档类**按 `line_count`：微小 ≤100 / 中等 101-300 / 复杂 301-600 / 大规模 >600
 
 > 代码类中等 bucket=4-19，须与入口 skill 分桶定义一致。
@@ -483,7 +508,7 @@ all_present: true|false
 - `floor(line_count)`: 行数地板函数，定义见下方"行数地板"节（round1: line>500→完整; 200<line≤500→关键; line≤200→矩阵tier）
 - tier 序：关键 < 完整（用于 `max()` 比较）
 - `MATRIX`: 本协议上方"路由矩阵"表
-- `RECIPES`: SKILL.md "recipe 表"（代码类完整层按 bucket_class 选 加强审查/UltraReview）
+- `RECIPES`: SKILL.md "recipe 表"——5 种编排的统一命名表，`[TIER_ROUTING]` 的 `recipe` 取值必须取自其中（禁止自造字符串，否则父技能验证 1 无法按枚举解析）：**文档类完整层=`文档3Agent`**（结构+落地+对齐 3 Agent）；**文档类关键层=`文档2Agent`**（对齐 Agent + `supervisor1` 监督 2 Agent）；**代码类关键层=`3视角`**（recipe 表「3 独立视角」行）；**代码类完整层**按 bucket_class 选 **`加强审查`**（小代码，STEP1-2）/**`UltraReview`**（大代码，STEP1-5）。文档类手动指定 UltraReview 时 recipe 仍填 `文档3Agent`（映射到完整层 3-agent，见下方步骤 2b）。
 - UltraReview：代码类完整层大代码 bucket（中等且file_count≥10/复杂/大规模）的 6-agent recipe（见本文件协议 8）
 
 ```text
@@ -510,7 +535,7 @@ all_present: true|false
 
 **评估顺序（箭头=先后，非覆盖；每层只升不降）**：护栏 1（ledger 缺失 early-return）→ 手动覆盖 → 矩阵 → 行数地板（max 升级）→ 收敛闸门（条件升级）。
 
-**文档类 bucket 函数（按 line_count）**：`bucket_doc(line≤100)=微小; bucket_doc(100<line≤300)=中等; bucket_doc(300<line≤600)=复杂; bucket_doc(line>600)=大规模`。文档行数与内容复杂度正相关——1 个 design.md 可能描述 3 个文件的简单修改，也可能描述 50 个文件的系统重构。file_count 对文档无区分度（Gate 0/2 始终 1 文件，Gate 1 通常 4-6 文件），故文档类按 line_count 分桶。
+**文档类 bucket 函数（按 line_count）**：`bucket_doc(line≤100)=微小; bucket_doc(100<line≤300)=中等; bucket_doc(300<line≤600)=复杂; bucket_doc(line>600)=大规模`。**`line_count` 口径来源**：文档类＝**审查对象总行数**（`wc -l`，见协议 3「独立调用场景自检」）；代码类＝修改总行数（git diff），不进入本函数——700 行 design.md 只改 20 行时按总行数口径判（复杂→完整层），不得用 git diff 口径判微小。文档行数与内容复杂度正相关——1 个 design.md 可能描述 3 个文件的简单修改，也可能描述 50 个文件的系统重构。file_count 对文档无区分度（Gate 0/2 始终 1 文件，Gate 1 通常 4-6 文件），故文档类按 line_count 分桶。
 
 > 文档类 bucket 阈值（100/300/600）与代码类 bucket 阈值（3/19/49 文件）语义对齐。行数地板对文档类仍生效（作为安全网）。
 
@@ -520,14 +545,15 @@ all_present: true|false
 
 ### 层级裁剪声明块
 
-tier 裁剪专用，与协议 4「退化声明」区分。review 侧在裁剪掉的 STEP 输出此块。当前仅完整层加强审查子路径使用（裁剪 STEP3/4/5）。
+tier 裁剪专用，与协议 4「退化声明」区分。review 侧在裁剪掉的 STEP 输出此块。当前仅完整层加强审查子路径使用（裁剪 STEP3/4/5；**`[拒绝异常]` 例外分支除外**——N>0 该轮不输出 `STEP3_TIER_SKIPPED`（例外 Step 3 独立监督）、N==0 不输出 `STEP5_TIER_SKIPPED`（例外启动独立 Step 5 复核拒绝理由与守恒等式，须输出 `STEP5_EXECUTED`），见 SKILL.md「加强审查」节例外条）。**输出形态与 `STEP<N>_EXECUTED` 一致**：以 `` ```STEP<N>_TIER_SKIPPED `` 围栏行起始的 fenced code block（识别规则见协议 3「TIER_SKIPPED 块识别规则」）。
 
-```
-STEP<N>_TIER_SKIPPED
+```markdown
+\`\`\`STEP<N>_TIER_SKIPPED
 tier: full
 step: <N>
 reason: 完整层加强审查子路径轻量
-fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收敛闸门；**误合风险由轻量通读兜底（无独立复核，已知残留）**
+fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收敛闸门；**误合风险由轻量通读兜底（无独立复核，已知残留）**；**例外注记：检出 `[拒绝异常]` 时本声明对该 STEP 失效**——N>0 → STEP3 改为 EXECUTED（独立监督复核合并表），N==0 → STEP5 改为 EXECUTED（独立 Quick Review 复核拒绝理由与守恒等式）
+\`\`\`
 ```
 
 | 字段 | 说明 |
@@ -535,7 +561,7 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 | `tier` | 当前路由层级（full） |
 | `step` | 被裁剪的 STEP 编号 |
 | `reason` | 完整层加强审查子路径：轻量路径无需监督+QuickReview（STEP3/4/5） |
-| `fallback_coverage` | 裁剪的补偿机制：最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收敛闸门；**误合风险由轻量通读兜底（无独立复核，已知残留）** |
+| `fallback_coverage` | 裁剪的补偿机制：最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收敛闸门；**误合风险由轻量通读兜底（无独立复核，已知残留）**；**例外注记：检出 `[拒绝异常]` 时本声明对相应 STEP 失效**——N>0 → STEP3 改为 EXECUTED（独立监督复核合并表），N==0 → STEP5 改为 EXECUTED（独立 Quick Review 复核拒绝理由与守恒等式），见 SKILL.md「加强审查」节例外条 |
 
 **review 侧（必须输出）**：tier 裁剪掉的 STEP 输出此块，供父技能 reason 抽查与人类审计追溯。
 
@@ -543,7 +569,7 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 
 ### 典型场景验证
 
-以下场景覆盖路由算法全部路径：
+以下场景覆盖路由算法全部路径（含步骤 2b 文档类 UltraReview 特殊路径、文档类微小/中等/复杂/大规模全部 bucket、代码类手动 UltraReview）：
 
 | # | 场景 | 预期 tier | 关键路径 |
 |---|------|----------|---------|
@@ -556,14 +582,18 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 | 6b | 代码类 10 文件/400 行 round1（假设 ledger 存在） | 完整（UltraReview 子路径） | 矩阵→完整，bucket=中等但 file_count≥10→bucket_class=大代码→recipe=UltraReview STEP1-5 |
 | 7 | 代码类 3 文件 round2（假设 ledger 存在） | 关键（3 独立视角） | 矩阵→关键，recipe=3 独立视角 |
 | 8 | round1 手动指定关键但 line>500（假设 ledger 存在） | 完整 | 手动→关键 → 行数地板升级完整 |
-| 9 | **文档类** design.md 1 文件/450 行 round1（假设 ledger 存在） | 完整（3-agent 多模型渐进式） | bucket_doc(450)=复杂 → 矩阵→完整 |
-| 10 | **文档类** plan.md 1 文件/80 行 round1（假设 ledger 存在） | 关键（对齐+监督 2-agent） | bucket_doc(80)=微小 → 矩阵→关键 |
+| 9 | **文档类** design.md 1 文件/450 行 round1（假设 ledger 存在） | 完整（recipe=文档3Agent，3-agent 多模型渐进式） | bucket_doc(450)=复杂 → 矩阵→完整 |
+| 10 | **文档类** plan.md 1 文件/80 行 round1（假设 ledger 存在） | 关键（recipe=文档2Agent，对齐+监督 2-agent） | bucket_doc(80)=微小 → 矩阵→关键 |
+| 11 | **文档类** 手动指定 "UltraReview"（任意 bucket，round1，假设 ledger 存在） | 完整（recipe=文档3Agent） | 护栏1 → 步骤 2b：跳过步骤 3-5，直接完整层 3-agent 多模型渐进式（不经 bucket_class 分支；文档类 UltraReview 不走 6-agent） |
+| 12 | **文档类** proposal 四件套合计 250 行 round1（假设 ledger 存在） | 完整（recipe=文档3Agent） | bucket_doc(250)=中等 → 矩阵→完整 |
+| 13 | **文档类** README 1 文件 900 行 round1（假设 ledger 存在） | 完整（recipe=文档3Agent） | bucket_doc(900)=大规模 → 矩阵→完整（行数地板 line>500 同向升级） |
+| 14 | **代码类** 12 文件手动指定 "UltraReview"（round1，假设 ledger 存在） | 完整（recipe=UltraReview） | 手动覆盖关键词 "UltraReview" → 代码类按完整层 6-agent recipe 处理（SKILL.md 手动覆盖关键词节）→ 大代码 bucket 命中 recipe=UltraReview STEP1-5 |
 
 ## 协议 7: 收敛判定与硬阻止输出模板
 
 > 由 specpowers-review SKILL.md「收敛判定与硬阻止机制」节引用。
 
-**输出判定**（依据本轮**合并后问题数** p0_merged/p1_merged/p2_merged/p3_merged，禁止用修复后剩余数；加强审查子路径按 raw 口径——该路径无独立验证者复核合并表，见 SKILL.md「问题数口径权威定义」）：
+**输出判定**（依据本轮**合并后问题数** p0_merged/p1_merged/p2_merged/p3_merged，禁止用修复后剩余数；加强审查子路径按 raw 口径——该路径默认轮无独立验证者复核合并表（**`[拒绝异常]` 子分支除外**：N>0 有例外 Step 3、N==0 有例外独立 Step 5），见 SKILL.md「问题数口径权威定义」）：
 
 | 场景 | 条件 | 输出 |
 |------|------|------|
@@ -586,21 +616,22 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 ### `[CONVERGENCE_CHECK]` 标记格式
 
 ```
-[CONVERGENCE_CHECK] triggers=<编号列表|none>, action=<continue|exit>, p0_merged=<N>, p1_merged=<N>, p2_merged=<N>, p3_merged=<N>, p0_raw=<N>, p1_raw=<N>, p2_raw=<N>, p3_raw=<N>, supplement=<N>, rejected=<N>, agent_rejected=<N>, user_rejected=<N>, conservation=<pass|fail>, exit_reason=<文本|n/a>, notes=<文本|n/a>
+[CONVERGENCE_CHECK] triggers=<编号列表|none>, action=<continue|exit>, p0_merged=<N>, p1_merged=<N>, p2_merged=<N>, p3_merged=<N>, p0_raw=<N>, p1_raw=<N>, p2_raw=<N>, p3_raw=<N>, supplement=<N>, rejected=<N>, agent_rejected=<N>, user_rejected=<N>, user_exempt_p0=<N>, conservation=<pass|fail>, exit_reason=<文本|n/a>, notes=<文本|n/a>
 ```
 
 - `triggers`：满足的触发条件编号列表（如 `[1,3]`），none 表示无触发
 - `p*_merged`：**判定口径**（合并判断表**行**数——行均为已采纳项（`disposition ∈ {agent_accepted, user_adjudicated}`），不含被拒项（被拒项在未纳入清单）；Step 3 结束后冻结终值）——5 个触发条件全部由它计算；加强审查子路径（recipe=[STEP1-2]）的 `p*_merged` **如实填 Step 2 合并表值**（仅**触发计算**改用 raw 口径，不得把 merged 字段也填成 raw）。若本轮 Step 5 发生误合拆行，`p*_merged` 采用拆行后的修正值，并在 notes 中记录拆行前后的差值
 - `p*_raw`：**审计基线**（各 Agent RAW_COUNT 求和，去重前）——不参与触发计算，仅供审计分辨"真的问题少"与"被合并/拒绝压下去的"
 - `supplement`：监督补充数（`p*_supplement` 按 SKILL.md「问题数口径权威定义」的记账口径统计——发现型计入；更正型不计入；Step 2 时为 0）——审计字段，守恒等式 `Σ(所有行的 sources 条数) + Σp*_rejected == Σp*_raw + Σp*_supplement` 核对用（右侧 `Σp*_supplement` 只含"两类去向各有承载"的发现型——更正型不参与，否则等式假失败）
-- `rejected` / `agent_rejected`：未纳入总数 / 其中主 Agent 拒绝数——**仅供审计 `[拒绝异常]` 是否触发**（不参与判定，也不影响 5 触发条件的计算）
-- `user_rejected`：**用户**裁决拒绝/豁免的项数（区别于主 Agent 拒绝的 `agent_rejected`）——用于审计「用户豁免 P0」声明。
+- `rejected` / `agent_rejected`：未纳入总数 / 其中主 Agent 拒绝数——**仅供审计 `[拒绝异常]` 是否触发**（不参与判定，也不影响 5 触发条件的计算）；`rejected = agent_rejected + user_rejected`，**不含** `user_exempt_p0`
+- `user_rejected`：**用户**裁决拒绝的项数（**仅** Step 2 阶段记入未纳入清单的条目；区别于主 Agent 拒绝的 `agent_rejected`）——与 `agent_rejected` 共同构成 `rejected` 的两个来源
+- `user_exempt_p0`：Step 4 前置 Gate 后的**用户豁免 P0 数**（独立计数字段，单列；**不计入 `rejected`**）——用于审计「用户豁免 P0」声明，须在用户提示中一并单列体现
 - `conservation`：守恒等式核对结果；不成立时不得输出 action=exit。
 - `action`：triggers 非空时默认 `continue`；triggers 为空时 `exit`（exit_reason=收敛达标）；用户显式终止时 `exit` + exit_reason
 - `exit_reason`：仅 action=exit 时填写。用户显式终止须记录理由；无触发条件时填 `收敛达标`；P0 未清零（[GATE_BLOCKED] 循环进行中）的轮次如输出此标记，exit_reason 必须填 `p0 未清零，修复-重审循环继续`，禁止填 `收敛达标`
 - `notes`：触发口径切换（merged→raw）、回退口径使用、口径外扣除明细等需披露信息的标注处；无则填 `n/a`。
 
-**无论是否触发，此标记必须输出。** 加强审查子路径（STEP5 被裁剪）在 STEP2 完成后输出此标记。
+**无论是否触发，此标记必须输出。** 加强审查子路径（STEP5 被裁剪）按分支锚定（见 SKILL.md「加强审查」节「收敛判定（按分支锚定）」）：**默认轮（无 Step 3）在轻量通读完成后**输出此标记（顺序写死：STEP2 合并 → 内联修复 + 对齐复检（P0 清零）→ 轻量通读 → 收敛判定 → Gate Token）；**检出 `[拒绝异常]` 的轮**——N>0（例外 Step 3，mode=standard）在**口径冻结后**输出（同标准路径，`supplement/rejected/conservation` 取终值），N==0 在**例外独立 Step 5 复核输出后**输出。
 
 > **设计理由（writing-skills "Match the Form to the Failure"）**：收敛判定被跳过属于"omits a required element"——正确形式是 structural（REQUIRED field），而非 prohibition 或 prose reminder。`[CONVERGENCE_CHECK]` 是 structural form——必须输出的结构化字段，父技能验证链检查其存在性。
 
@@ -612,7 +643,7 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 > 本轮合并后问题数 P0: <p0_merged>, P1: <p1_merged>, P2: <p2_merged>, P3: <p3_merged>（**判定口径**——Step 2 合并判断表**行**数——行均为已采纳项（`disposition ∈ {agent_accepted, user_adjudicated}`），不含被拒项（被拒项在未纳入清单）；Step 3 结束后冻结；非修复后剩余数）。
 > 本轮原始发现 P0: <p0_raw>, P1: <p1_raw>, P2: <p2_raw>, P3: <p3_raw>（**审计基线**——去重前，含多 Agent 重复；不参与触发计算）。
 > 未纳入清单 P0: <p0_rejected>, P1: <p1_rejected>, P2: <p2_rejected>, P3: <p3_rejected>；守恒等式 conservation: <pass|fail>。
-> 其中主 Agent 拒绝 `<agent_rejected>` 条；监督补充 `<supplement>` 条；用户裁决拒绝/豁免 `<user_rejected>` 条（如有 → 同时输出「用户豁免 P0」说明）（`[拒绝异常]` 阈值：`agent_rejected` 与 `user_rejected` 合计 > 3 条或占比 > 30%——`user_rejected` 部分仅核验「用户裁决记录是否存在且理由已如实记录」，不质疑用户判断）。
+> 其中主 Agent 拒绝 `<agent_rejected>` 条；监督补充 `<supplement>` 条；用户裁决拒绝 `<user_rejected>` 条（Step 2 未纳入清单口径）；用户豁免 P0 `<user_exempt_p0>` 条（Step 4 前置 Gate 口径，如有 → 同时输出「用户豁免 P0」说明；**不计入 rejected**）（`[拒绝异常]` 阈值：`agent_rejected` 与 `user_rejected` 合计 > 3 条或占比 > 30%——**占 `Σp*_raw`（= `p0_raw+p1_raw+p2_raw+p3_raw` 四项合计，与判档用的 `N` 不是同一个数）的比例**；**分子仅计计入 `Σp*_raw` 的被拒项（被否决 `sup3` 项不占分子，由 `[补充否决异常]` 承接）**；`user_rejected` 部分仅核验「用户裁决记录是否存在且理由已如实记录」，不质疑用户判断）。
 >
 > [p0 未清零时] P0 未清零，审查 Gate 未通过，当前 Phase 被阻塞。specpowers-review 必须执行修复-重审循环（修复子 Agent 修 P0 → 主 Agent 逐条校验 → 重跑 Step 1-5），直到 P0（修复后剩余）清零——循环出口仅看 P0；P1 轮间趋势由触发条件⑤监控，不参与阻塞循环出口判定。本轮修复+重审中发现的 P1/P2 纳入累积计数。调用方将检查 [GATE_BLOCKED]，P0>0 时拒绝进入下一 Phase。
 >
@@ -659,8 +690,8 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 - 收集全部子 Agent 评审报告
 - 相同问题（同一文件+同一符号+同一问题类型）→ 合并为一条，**`sources` 列逐条引用被吸收的原始发现**（`<Agent名>#<编号>`）——格式与强制要求同 SKILL.md Step 2（来源映射、未纳入清单、守恒等式自检缺一不可）
 - 冲突结论（如 code-reviewer 说 P0，specs-reviewer 说 P3）→ 标注冲突，不做自动裁决，提级用户判断
-- **守恒等式自检（强制）**：`Σ(所有行的 sources 条数) + Σp*_rejected == Σp*_raw + Σp*_supplement`（Step 2 自检时监督尚未运行，`Σp*_supplement=0`），通过方可继续
-- 记录 `p*_merged`（合并表行数，`disposition ∈ {agent_accepted, user_adjudicated}`）、`p*_rejected`（未纳入清单条数）与 `p*_supplement`（监督补充数——按 SKILL.md「问题数口径权威定义」的记账口径统计：发现型计入（采纳入 `sources`、被否决入未纳入清单；已采纳者不得产生无 sources 行）；更正型不计入（不参与守恒等式）；Step 3 完成后按终值记录）；`[拒绝异常]`（未纳入清单中 agent_rejected 与 user_rejected 合计 > 3 条，或占 Σp*_raw 比例 > 30%——user_rejected 部分仅核验「用户裁决记录是否存在且理由已如实记录」，不质疑用户判断）→ 强制走独立 Step 3（同 SKILL.md Step 2/3 规则）
+- **守恒等式自检（强制）**：`Σ(所有行的 sources 条数) + Σp*_rejected == Σp*_raw + Σp*_supplement`（Step 2 自检时监督尚未运行，`Σp*_supplement=0`），通过方可继续；不成立 → **一律标记 `[问题数存疑]`**（与通用流程 Step 2 同规定）→ 补齐后重新自检
+- 记录 `p*_merged`（合并表行数，`disposition ∈ {agent_accepted, user_adjudicated}`）、`p*_rejected`（未纳入清单条数）与 `p*_supplement`（监督补充数——按 SKILL.md「问题数口径权威定义」的记账口径统计：发现型计入（采纳入 `sources`、被否决入未纳入清单；已采纳者不得产生无 sources 行）；更正型不计入（不参与守恒等式）；Step 3 完成后按终值记录）；`[拒绝异常]`（未纳入清单中**计入 `Σp*_raw` 的**被拒项（agent_rejected 与 user_rejected）合计 > 3 条，或占 Σp*_raw 比例 > 30%——被否决 `sup3` 项不占分子，由 `[补充否决异常]` 单独承接；user_rejected 部分仅核验「用户裁决记录是否存在且理由已如实记录」，不质疑用户判断）→ 强制走独立 Step 3（同 SKILL.md Step 2/3 规则）
 
 **Step C — 逐条判断**（不可批量——批量判断忽略问题间差异，每条问题的接受/拒绝依据不同，须独立评估）
 - 对每条合并后的问题，主 Agent 判断: 接受 / 拒绝 / 部分接受（「部分接受」按原始发现粒度拆记：采纳部分入合并行 `agent_accepted`、拒绝部分入未纳入清单，**不得发明新 `disposition` 值**——同 SKILL.md Step 2 记账规则）
@@ -673,7 +704,9 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 | # | 问题 | 来源（sources） | 严重度 | 判断 | disposition | 原因 | 修改方案 |
 |---|------|------|--------|------|-------------|------|---------|
 | 1 | ...  | code#3, specs#1 | P0 | 接受 | agent_accepted | ... | ... |
-| 2 | ...  | code#2, specs#4 | P0 | 冲突 | user_adjudicated | [冲突: code=P0, specs=P3] ... | 待用户裁决 |
+| 2 | ...  | code#2, specs#4 | P0 | 冲突 | 待裁决 | [冲突: code=P0, specs=P3] ... | 待用户裁决 |
+
+> **示例行 2 的 `disposition=待裁决` 为占位值**（仅存在于 Step D → Step E 的裁决窗口）——**Step E 用户裁决通过后回填 `user_adjudicated`**（届时该行才落入 `disposition ∈ {agent_accepted, user_adjudicated}` 取值域）；不得在裁决前预填 `user_adjudicated`（该值语义为「用户裁决的冲突项」，裁决前填写即为伪造裁决记录）。
 
 **未纳入清单（示例）**（被拒项登记于此，不构成上表表行）：
 
@@ -681,13 +714,14 @@ fallback_coverage: 最终通读 Gate 横切 + 主 Agent STEP2 合并判断 + 收
 
 > `sources` 格式为 `<Agent名>#<该 Agent 报告内的问题编号>`，供 Step 5 兼并验证逐条溯源 + 守恒等式核对。合并后问题数 `p*_merged` 以本表行数计（`disposition ∈ {agent_accepted, user_adjudicated}`）；**被拒绝项不构成合并判断表行**——未采纳项登记在未纳入清单（`p*_rejected`），`disposition=agent_rejected` / `user_rejected` 仅用于清单标注。
 
-**Step E — 用户审批**（硬 Gate）
-- 用户逐条确认合并判断表
+**Step E — 用户审批**（硬 Gate；**审批范围为整表**——用户逐条确认合并判断表的**全部行（P0-P3）**。与通用路径的差别：通用 Step 4 前置 Gate 默认**仅 P0** 需逐条用户确认、P1/P2/P3 直接纳入修复（见 SKILL.md Step 4 前置 Gate）；UltraReview 路径采用更严的整表逐条确认，两路径共享的只是修复策略（Step F），不是审批范围）
+- 用户逐条确认合并判断表（全表：P0-P3 各行）
 - 冲突项由用户裁决
 - 审批通过后方可执行修复
+- **用户裁决的计数规则（不重算 `p*_merged` 分桶）**：Step E 的用户裁决（含降级某冲突行严重度）**不改变 `p*_merged` 分桶**——分桶恒取 `max(sources)`（见 Step C 冲突行入桶规则）；用户裁决只决定**处置与修复范围**及 `disposition` 的最终标注（裁决通过回填 `user_adjudicated`；用户拒绝某 P0 按 SKILL.md Step 4 前置 Gate 记账规则处理——记 `user_exempt_p0`，不改 disposition）。**不重算 `p*_merged`**——与 SKILL.md Step 4 记账规则「冻结不因裁决类事由回改（Step 5 误合拆行是唯一例外）」一致（保守方向：该问题**确实被发现过**，保留在计数中）
 
 **Step F — 执行修复**（与多模型渐进式 Step 4 修复策略一致）
-- 默认全量修复 P0/P1/P2/P3（修复范围见 SKILL.md「审查规则」节"Gate 通过标准 vs 修复范围"；用户可显式指定跳过）
+- 默认全量修复 P0/P1/P2/P3（修复范围见 SKILL.md「P0 阻塞规则（权威定义）」节"Gate 通过标准 vs 修复范围"注；用户可显式指定跳过）
 - P0 项须人工确认后修改
 - 启动独立修复子 Agent，逐条分析判断并执行修复
 - 修复后运行全文 grep 验证残留
@@ -706,7 +740,7 @@ Step 5 检查本轮修复质量（单轮范围），最终通读 Gate 检查跨�
 ### 触发时机
 
 当审查进入最终通读环节，**在进入下一环节（如下一 Phase、Gate 3 进入 Phase 4 等）之前**，必须执行最终通读。触发时机按 tier 分支：
-- **加强审查子路径（STEP5 被裁剪）**：最终通读以主 Agent STEP2 合并判断后执行的轻量通读形式完成——即 SKILL.md 质量底线第④条所指的"轻量替代"。PASS 四条件相同，但通读范围为变更区域+关联上下文（非全文逐行）。仍须输出 STEP_FINAL_READTHROUGH 标记块（status 注明"轻量替代"）。**轻量替代的附加检查**：对照 `STEP2` 合并判断表，抽取 `sources` 条数 ≥2 的行，逐行判断被合并的各条是否确为同一问题（文档类＝同一段落/章节/代码块且类型相同；代码类＝同一文件+同一符号+同一类型）。发现误合 → 拆行并重算 `p*_merged`，并在 `STEP_FINAL_READTHROUGH` 中记录。**拆行后的记账与留痕**：拆行后更新账本 `rounds` 的 `p*_merged`，并在 `STEP_FINAL_READTHROUGH` 中记录拆行前后的差值；`[CONVERGENCE_CHECK]` **不重出**（该子路径触发口径为 raw，拆行不影响触发结论），差值随标记块留痕。**注意本检查由主 Agent 自执行，无独立复核**——协议 6 `fallback_coverage` 中的「已知残留」表述保持
+- **加强审查子路径（STEP5 被裁剪）**：最终通读以主 Agent 在**内联修复 + 对齐复检（P0 清零）之后**执行的轻量通读形式完成（执行顺序写死：`STEP2 合并 → 内联修复 + 对齐复检（P0 清零）→ 轻量通读（记录拆行差值）→ 收敛判定 → Gate Token`，见 SKILL.md「加强审查」节——不得在 STEP2 合并后立即通读，否则 PASS 条件 (a) 不可满足）——即 SKILL.md 质量底线第④条所指的"轻量替代"。PASS 四条件相同，但通读范围为变更区域+关联上下文（非全文逐行）。仍须输出 STEP_FINAL_READTHROUGH 标记块（**`notes` 注明「轻量替代」**——`status` 仍取通用枚举 complete|degraded|failed、不承载「轻量替代」；通读结果由 `result: pass|fail` 字段表达）。**轻量替代的附加检查**：对照 `STEP2` 合并判断表，抽取 `sources` 条数 ≥2 的行，逐行判断被合并的各条是否确为同一问题（文档类＝同一段落/章节/代码块且类型相同；代码类＝同一文件+同一符号+同一类型）。发现误合 → 拆行并重算 `p*_merged`，并在 `STEP_FINAL_READTHROUGH` 中记录。**拆行后的记账与留痕**：拆行后更新账本 `rounds` 的 `p*_merged`，并在 `STEP_FINAL_READTHROUGH` 中记录拆行前后的差值；`[CONVERGENCE_CHECK]` **不重出**（该子路径触发口径为 raw，拆行不影响触发结论），差值随标记块留痕。**注意本检查由主 Agent 自执行，无独立复核**——协议 6 `fallback_coverage` 中的「已知残留」表述保持
 - **关键/完整层**：单轮审查在 Step 5 完成后执行标准最终通读；多轮审查在 [CONVERGENCE_CHECK] action=exit（5 触发条件全不满足或用户显式终止）且 Step 5 完成后执行标准最终通读。通读触发与收敛判定 action 单一对应，不另设数值条件——原"P0≤1 且 P1≤5 且新增 P1≤3"数值表述已废止，其语义分别由触发条件①②⑤承接
 
 ### 执行方式
@@ -724,20 +758,20 @@ Step 5 检查本轮修复质量（单轮范围），最终通读 Gate 检查跨�
 
 ### 输出
 
-最终通读报告 [PASS/FAIL] + 残余问题清单（如有）
+最终通读结果以标记块的 **`result: pass|fail` 字段**表达 + 残余问题清单（如有）。映射：**PASS → `result: pass`（`status: complete`）**；**FAIL → `result: fail`（`status` 取 `degraded`——存在残余问题、修复后可重新通读；或 `failed`——不可继续、须提请用户裁决）**。`status` 一律取通用枚举 complete|degraded|failed，「轻量替代」「单一模型」等限定一律写 `notes`，不得写进 `status`。
 
 ### PASS 标准
 
 （四条全部满足）：
-- (a) 所有已确认修复均已正确应用
+- (a) 所有已确认修复均已正确应用（加强审查子路径：指主 Agent 内联修复 + 对齐复检（P0 清零）后的状态——轻量通读在该修复之后执行，见上方触发时机）
 - (b) 无修复间冲突
 - (c) 全文术语和格式一致
 - (d) 无废弃引用或残留旧术语
 
 ### 判定
 
-- PASS → 允许进入下一环节
-- FAIL（存在残余问题）→ 修复后重新通读，直到 PASS
+- `result: pass`（即 PASS）→ 允许进入下一环节（`status: complete`）
+- `result: fail`（即 FAIL，存在残余问题）→ 修复后重新通读，直到 pass（FAIL 轮 `status: degraded`；不可继续/重通读不可行时 `status: failed` 并提请用户裁决）
 - 此 Gate 不可跳过，不设自动循环上限
 
 目的：防止多轮修复累积后在文档中留下残余不一致（如术语两写、废弃引用残留、修复冲突）。多轮审查中每次修复只关注局部，最终通读提供全局一致性检查。
