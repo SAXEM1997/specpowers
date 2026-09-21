@@ -1,27 +1,42 @@
 id: merged-count-convergence
 title: 收敛判定——多 Agent 重复发现应按合并后问题数计
 description: |
-  6 个审查 Agent 对同一批变更重复报告了同一批问题，导致原始发现数（raw）
-  远大于去重 + 去噪后的合并后问题数（merged）。收敛触发条件必须使用合并后
-  问题数 p*_merged（去重后避免重复计数），而不是原始发现数 p*_raw——否则
-  重复计数会凭空顶到阈值、白跑一整轮。测试计数口径的知识而非实际审查执行。
+  测试收敛触发条件的计数口径知识：5 个触发条件必须使用合并后问题数 p*_merged
+  （去重 + 去噪后的合并判断表终值），而不是原始发现数 p*_raw——多 Agent 重复
+  报告同一批问题会凭空顶到阈值、白跑一整轮。场景为 Round 1 的 Step 1-5 均已完成、
+  口径已冻结（mode=standard 独立监督 Agent 未改动合并表，p*_merged 为终值），
+  测试计数口径知识而非实际审查执行。
 
 input:
   prompt: |
-    我在用 specpowers-review 做代码审查，当前是 Round 1。6 个审查 Agent 的报告都回来了：
-    原始发现数（各 Agent RAW_COUNT 求和）是 p0=3 p1=12 p2=9 p3=6；
-    我按 Step 2 做了合并去重，合并判断表是 p0_merged=1 p1_merged=4 p2_merged=3 p3_merged=2，
-    没有被拒绝的项（p*_rejected=0），守恒等式成立。
-    按 specpowers-review 的收敛判定，我应该继续下一轮还是退出？请给出 [CONVERGENCE_CHECK] 标记。
+    我是 specpowers-review 的审查主 Agent，当前 Round 1，Step 1-3 都已完成，现在要出本轮收敛判定。
+
+    Step 1（汇总）：6 个审查 Agent 的报告全部返回且完整，各 Agent RAW_COUNT 求和为
+    raw_count_sum: p0=3 p1=12 p2=9 p3=6（原始发现总数 3+12+9+6=30）。
+
+    Step 2（合并判断）：已输出合并判断表，合并后问题数为
+    p0_merged=1 p1_merged=4 p2_merged=3 p3_merged=2，未纳入清单 0 条（p*_rejected 全为 0）。
+    守恒等式可自验：Σ(所有行的 sources 条数)=30，Σp*_rejected=0，30+0==30 与 raw 总数一致。
+
+    Step 3（合并验证）：因 N=p0_raw+p1_raw+p2_raw=3+12+9=24 > 15（raw 口径），
+    已按 mode=standard 启动独立监督 Agent 做完整 4 维交叉验证；监督 Agent 未改动任何合并表行、
+    未新增 [补充] 项（Σp*_supplement=0）。按「口径冻结」，p*_merged 已冻结为终值：
+    p0_merged=1 p1_merged=4 p2_merged=3 p3_merged=2。
+
+    Step 4/Step 5 已完成：合并判断表内的问题已全部修复，Step 5 修复验证通过且未新增发现。
+
+    现在按 specpowers-review 的收敛判定：本轮应当继续下一轮还是收敛退出？
+    请给出 [CONVERGENCE_CHECK] 标记。
 
 expect:
   must_contain:
     - "action=exit"
   must_not_contain:
-    - "action=continue"
+    - "即将开始 Round"
+    - "action=continue 是正确判定"
 
 judge:
   type: rule_based
   success:
     - output_contains:
-        any: ["action=exit", "收敛达标", "不触发", "触发条件均不满足"]
+        any: ["action=exit", "triggers=none", "收敛达标", "触发条件均不满足"]
