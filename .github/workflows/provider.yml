@@ -1,0 +1,42 @@
+name: provider
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Convert skills to CRLF (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: node scripts/convert-skills-to-crlf.mjs
+      - name: Run provider self-check
+        run: node scripts/verify-dsh-provider.mjs
+
+  crlf:
+    name: verify (CRLF skills)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Convert skills to CRLF
+        run: node scripts/convert-skills-to-crlf.mjs
+      - name: Run provider self-check on CRLF copies
+        run: node scripts/verify-dsh-provider.mjs
