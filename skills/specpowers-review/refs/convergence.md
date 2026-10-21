@@ -17,11 +17,11 @@
 
 > **为什么中途终止不放行**：`[CONVERGENCE_CHECK]` 的字段（含 `p*_merged`）要求本轮判定已算出；中途终止时判定不存在，任何"补一个 exit"的写法都是伪造。阻塞是安全行为——Gate 不应放行一个审查未完成的轮次。
 
-**下一轮 5 触发条件**（任一满足即默认继续，全部基于**合并后问题数** p*_merged）：① p0_merged > 1；② p1_merged > 5；③ p0_merged+p1_merged+p2_merged > 10；④ p0_merged+p1_merged+p2_merged+p3_merged > 20；⑤ p1_merged − 上轮有效轮次的 p1_merged > 3（轮间新增 P1 趋势；上轮基准取协议 6 的 `effective` 序列最后一个——跳过被中止轮，无有效上轮时⑤为 n/a；两轮必须同口径比对（同口径与否按账本轮次条目的 `caliber` 字段判定），旧轮次缺 p*_merged 时按协议 1「⑤（差值型条件）特殊处理」的三差值规则计算；round 1 无上轮基准时⑤不参与判定，视为 n/a）。
+**下一轮 5 触发条件**（任一满足即默认继续，全部基于**合并后问题数** p*_merged）：① p0_merged > 1；② p1_merged > 5；③ p0_merged+p1_merged+p2_merged > 10；④ p0_merged+p1_merged+p2_merged+p3_merged > 20；⑤ p1_merged − 上轮有效轮次的 p1_merged > 3（轮间新增 P1 趋势；上轮基准取 `refs/routing.md` 协议 6 的 `effective` 序列最后一个——跳过被中止轮，无有效上轮时⑤为 n/a；两轮必须同口径比对（同口径与否按账本轮次条目的 `caliber` 字段判定），旧轮次缺 p*_merged 时按 `refs/ledger.md` 协议 1「⑤（差值型条件）特殊处理」的三差值规则计算；round 1 无上轮基准时⑤不参与判定，视为 n/a）。
 
 > 条件 1（p0_merged > 1）与 `[GATE_BLOCKED]` 独立：本轮发现 ≥2 个**互不相同**的 P0 时，即使已全部修复（Gate 通过），仍默认继续下一轮验证修复质量；p0_merged=1 且已修复时不因此强制下一轮。注意"≥2 个"指合并去重后的**不同** P0——同一个 P0 被 k 个 Agent 重复报告只算 1 个（这正是改用 merged 口径的目的）。多条件同时触发时按编号升序列出全部。
 >
-> 条件 5 同样基于合并后问题数：上轮修复引入的回归 P1 会被本轮 Step 1 重新发现、经 Step 2 去重后计入 p1_merged，⑤ 捕获"修复引入问题"的轮间恶化趋势。两轮口径必须一致（默认两轮同取 merged；**任一轮的 `caliber=raw`（加强审查子路径轮）时，⑤ 对两轮同取 `p1_raw`**，并在 notes 标注「触发口径切换（merged→raw）」——不称"口径混合"；某轮缺失 `p*_merged` 时按协议 1「⑤（差值型条件）特殊处理」的三差值规则计算，并在 notes 标注使用了回退口径）。
+> 条件 5 同样基于合并后问题数：上轮修复引入的回归 P1 会被本轮 Step 1 重新发现、经 Step 2 去重后计入 p1_merged，⑤ 捕获"修复引入问题"的轮间恶化趋势。两轮口径必须一致（默认两轮同取 merged；**任一轮的 `caliber=raw`（加强审查子路径轮）时，⑤ 对两轮同取 `p1_raw`**，并在 notes 标注「触发口径切换（merged→raw）」——不称"口径混合"；某轮缺失 `p*_merged` 时按 `refs/ledger.md` 协议 1「⑤（差值型条件）特殊处理」的三差值规则计算，并在 notes 标注使用了回退口径）。
 
 > 用户显式裁决拒绝/跳过的项：按 `disposition=user_rejected` 从 `p*_merged` 中排除（**仅适用于 Step 2 阶段**的用户裁决；Step 4 阶段的用户拒绝按 SKILL.md Step 4 前置 Gate 的记账规则处理——不回改 disposition、不重算 `p*_merged`。）（**由口径本身承担**，不再需要额外的"扣除"操作）；被用户拒绝的项若在后续轮次再次被发现，则按新发现正常计入该轮。若主 Agent 在口径之外另做扣除（如认定某条与上轮重复），必须在 `[CONVERGENCE_CHECK]` 的 notes 中列明扣除明细——账本仍保留完整 `p*_raw` 与 `p*_merged` 原值，扣除仅影响触发计算，不改写账本记录。
 

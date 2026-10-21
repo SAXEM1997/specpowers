@@ -468,7 +468,7 @@ Step 5 完成后（加强审查子路径按分支：默认轮为轻量通读完�
 |---|---|---|
 | Step 0 路由 / 加强审查轮全程 | refs/routing.md | 协议 6、加强审查例外全集 |
 | 派发任何子 Agent 前 / Step 1 汇总 raw_count 前（含会话恢复续跑）/ Step 2 构建 sources 列前 / Step 4 修复前（含主 Agent 自执行）/ Step 5 兼并判定与复核前 | refs/dispatch.md | 协议 4+5、短名规范、RAW_COUNT、同文件不并发、兼并五项、注入模板 |
-| 每 Step 收尾输出标记块前 | refs/markers.md | 协议 3 字段注记与验证细则（格式模板在主体） |
+| Step 0 路由与 0c-pre 计算 file_count/line_count 前 / 每 Step 收尾输出标记块前 / Gate Token 输出前 / 独立调用 [SELF_VERIFY] 自检前 | refs/markers.md | 协议 3 全套（字段注记 + 验证细则 + 独立调用场景自检；标记块格式模板在主体） |
 | 读写账本 / review-cache | refs/ledger.md | 协议 1+2 |
 | 每轮收敛判定前 / 最终通读前 | refs/convergence.md | 协议 7+9 |
 | 路由到 UltraReview recipe | refs/ultrareview.md | 协议 8 |

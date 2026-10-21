@@ -24,7 +24,7 @@ ref: AgentId=<id>, tokens=<N>
 \`\`\`
 ```
 
-> **degradation 字段说明**: pipe 三段对应协议 4 退化声明三要素：(a) 具体原因（缺失能力+模型名），(b) 影响分析（尝试过的调用方式+失败信息），(c) 替代措施（降级路径选择依据）。`none` 表示无退化。
+> **degradation 字段说明**: pipe 三段对应 `refs/dispatch.md` 协议 4 退化声明三要素：(a) 具体原因（缺失能力+模型名），(b) 影响分析（尝试过的调用方式+失败信息），(c) 替代措施（降级路径选择依据）。`none` 表示无退化。
 
 > **mode 字段说明（仅 Step 3 必填）**: 取值 `standard`（独立监督 Agent，p0_raw≥3 或 N>15 完整 4 维）/ `transferred_to_step5`（不启动独立 Agent，合并验证转移 Step 5，degradation=none）/ `trivial`（N==0，主 Agent 自执行）。档位判据与覆盖规则见 SKILL.md Step 3（唯一权威）；本字段只描述部署形式，独立于 degradation。
 
@@ -42,7 +42,7 @@ ref: AgentId=<id>, tokens=<N>
 
 | Step | 输出者 | status 取值 | degradation 说明 |
 |------|--------|------------|-------------------|
-| Step 1 | 主 Agent（汇总三个子 Agent 完成状态） | complete / degraded | 某 Agent 未完成（原因+重试次数+替代措施）；汇总 raw_count_sum（含各 Agent 问题编号区间，供 Step 2 `sources` 引用与守恒等式核对） |
+| Step 1 | 主 Agent（汇总**recipe 声明的全部**子 Agent 完成状态——文档3Agent=3 / 文档2Agent=2 / 3视角=3 / 加强审查=2 / UltraReview=6） | complete / degraded | 某 Agent 未完成（原因+重试次数+替代措施）；汇总 raw_count_sum（含各 Agent 问题编号区间，供 Step 2 `sources` 引用与守恒等式核对） |
 | Step 2 | 主 Agent（自执行，无子 Agent） | complete | none（主 Agent 执行，无降级路径）——标记块由主 Agent 为自己执行的 Step 输出，ref 行 AgentId 填 `self`，tokens 为主 Agent 执行 Step 2 的估算消耗；输出 merged_count（`p*_merged` + rejected + supplement）与守恒等式自检结果 `conservation: pass/fail` |
 | Step 3 | 按 mode 分叉（见上方 mode 字段说明）：standard=必须启动独立监督 Agent；transferred_to_step5=主Agent自执行(转移至Step5)；trivial=主Agent自执行(N==0) | complete / degraded | mode=standard（p0_raw≥3 或 N>15 启动独立监督 Agent 完整4维，含守恒等式核对；单一模型时声明缺少独立视角）；mode=transferred_to_step5（主 Agent 自执行，agents=self，degradation=none，合并验证转移至 Step 5；p0_raw≥1 或 p0_rejected≥1 或 agent_rejected≥1 或 user_rejected≥1 时 Step 5 追加严重度校准抽查）；mode=trivial（N==0，主 Agent 自执行；p3_raw>0 时自修 P3 后走 Step 5）（例外：Step 2 检出 `[拒绝异常]` → 档位判定不适用，按覆盖规则处理）；输出 merged_count_final（终值，mode=standard 时） |
 | Step 4 | 修复子 Agent + 主 Agent | complete / degraded / failed | 子 Agent 不可用时声明"退回主 Agent 自行修复"；修复重试超限声明"修复失败" |
@@ -69,7 +69,7 @@ ref: AgentId=<id>, tokens=<N>
 - **例外**: Step 2（主 Agent 自执行）、Step 3 转移/trivial 路径（mode=transferred_to_step5|trivial，主 Agent 自执行）、最终通读（主 Agent 自执行路径）除外——主 Agent 为自己执行的 Step 输出标记块，ref 行 AgentId 填 `self`
 - 汇总方式: 将子 Agent 输出中的 `STEP<N>_EXECUTED` 块原样附加到审查报告中。标记块附加在审查报告的执行日志表格之后，统一以 `## 执行标记原始记录` 标题开头，按 Step 编号排序
 - 如果某 Step 的子 Agent 未输出标记块 → 主 Agent 标注 `STEP<N>_EXECUTED: missing`（不可补写内容）
-- 汇总时必须在每个标记块末尾追加 `ref` 行（AgentId 必填，从子 Agent 的 `Agent` 工具返回值中提取，格式: `a` 开头 + 16 位 hex，由系统生成；**上方「例外」列出的主 Agent 自执行路径（Step 2 / Step 3 transferred·trivial / 最终通读自执行）填字面量 `self`**——属规范允许的合法值，见下方父技能校验规则的例外子句）；tokens 为可选估算值，不可用时省略或填 `null`。格式: `ref: AgentId=<id>[, tokens=<N>]`
+- 汇总时必须在每个标记块末尾追加 `ref` 行（AgentId 必填，从子 Agent 的 `Agent`/`subagent` 工具返回值中提取，**格式由当前平台决定**：Claude Code 为 `a` 开头 + 16 位 hex、DSH 为 `subagent` 返回的 session 风格 id，均由系统生成、主 Agent 不得自造；**上方「例外」列出的主 Agent 自执行路径（Step 2 / Step 3 transferred·trivial / 最终通读自执行）填字面量 `self`**——属规范允许的合法值，见下方父技能校验规则的例外子句）；tokens 为可选估算值，不可用时省略或填 `null`。格式: `ref: AgentId=<id>[, tokens=<N>]`
 
 **父技能（验证者）规则**:
 - specpowers-review 返回后，父技能在 specpowers-review 的输出中检查每个应执行的 Step 的标记块是否存在
@@ -83,13 +83,13 @@ ref: AgentId=<id>, tokens=<N>
 
 > **动态检查规则**: 父技能（验证者）搜索 `[TIER_ROUTING]` 标记，提取 `expected_steps` 数组，以此作为应存在的 STEP 列表。`expected_steps` 必须为**离散 STEP 列表**（如 `[STEP1, STEP2]`（加强审查）、`[STEP1, STEP2, STEP3, STEP4, STEP5]`（全 STEP recipe，**含文档2Agent**））——**禁止区间记法**（recipe 表的 `[STEP1-5]`/`[STEP1-2]` 仅为编排简写，父技能按单个 STEP 机械匹配、无法展开区间，见 SKILL.md「STEP 集合记法约定」）。**多轮审查时以最后一个 `[TIER_ROUTING]` 的 `expected_steps` 为准**（每轮 Step 0d 均输出该标记，轮间 tier/recipe 可变；与 `[CONVERGENCE_CHECK]` 的「最后一个」规则、「多轮循环标记块保留策略」的仅检查最后一轮规则一致——取首轮会多要求/少要求 STEP）。无 TIER_ROUTING 标记时回退旧逻辑（上表"回退旧逻辑"列）以保证向前兼容。
 >
-> **TIER_SKIPPED 块识别规则**: `STEP<N>_TIER_SKIPPED` 块（见协议 6）表示 tier 裁剪主动跳过的 Step。**识别方法与 `STEP<N>_EXECUTED` 相同**：搜索以 `` ```STEP<N>_TIER_SKIPPED `` 开头的 fenced code block（行首 `` ``` `` 后紧跟 `STEP<N>_TIER_SKIPPED` 作为围栏起始标记，见下方检查方法；审查报告使用了非标准 code fence 如 `~~~` 时同规则搜索）——协议 6 的层级裁剪声明块必须以该围栏形式输出。**正文中以否定式/引述形式出现的裸串不构成标记块**：不在行首围栏起始标记位置的 `STEP<N>_TIER_SKIPPED` / `STEP<N>_EXECUTED` 字符串（如 SKILL.md 加强审查节「**且不输出 `STEP3_TIER_SKIPPED`**」这类否定句）仅为规则说明，字符串搜索不得误判为「已输出裁剪声明」。计数规则：(a) 该块既不计入已执行的 STEP，也不计入缺失；(b) 仅当对应 STEP 号在 expected_steps 中且未找到 STEP<N>_EXECUTED 时，才视为缺失；(c) TIER_SKIPPED 块本身不参与完整性判断——父技能在 expected_steps 检查之外可忽略之。
+> **TIER_SKIPPED 块识别规则**: `STEP<N>_TIER_SKIPPED` 块（见 `refs/routing.md` 协议 6）表示 tier 裁剪主动跳过的 Step。**识别方法与 `STEP<N>_EXECUTED` 相同**：搜索以 `` ```STEP<N>_TIER_SKIPPED `` 开头的 fenced code block（行首 `` ``` `` 后紧跟 `STEP<N>_TIER_SKIPPED` 作为围栏起始标记，见下方检查方法；审查报告使用了非标准 code fence 如 `~~~` 时同规则搜索）——`refs/routing.md` 协议 6 的层级裁剪声明块必须以该围栏形式输出。**正文中以否定式/引述形式出现的裸串不构成标记块**：不在行首围栏起始标记位置的 `STEP<N>_TIER_SKIPPED` / `STEP<N>_EXECUTED` 字符串（如 SKILL.md 加强审查节「**且不输出 `STEP3_TIER_SKIPPED`**」这类否定句）仅为规则说明，字符串搜索不得误判为「已输出裁剪声明」。计数规则：(a) 该块既不计入已执行的 STEP，也不计入缺失；(b) 仅当对应 STEP 号在 expected_steps 中且未找到 STEP<N>_EXECUTED 时，才视为缺失；(c) TIER_SKIPPED 块本身不参与完整性判断——父技能在 expected_steps 检查之外可忽略之。
 
 > **加强审查标记块均在 specpowers-review 内部产出，非跨 skill**: specpowers-apply 的 code-review 结果作为上下文**注入** specpowers-review 的对齐 Agent prompt。对齐 Agent 接收 code-review 结果后执行对齐检查，输出 `STEP1_EXECUTED`（标记块中记录 code-review 结果引用）；主 Agent 综合判断后输出 `STEP2_EXECUTED`。两个标记块均由 specpowers-review 内部 Agent 产出，父技能（specpowers-apply）在 Gate 3 返回后统一检查。
 
 - 缺失任一块 → 视为审查未完成，阻塞当前 Phase，要求重新执行 specpowers-review
 - 检查方法: 搜索以 `` ```STEP<N>_EXECUTED `` 开头的 fenced code block（即匹配行首的 `` ``` `` 后紧跟 `STEP<N>_EXECUTED`，作为 fenced code block 的起始标记）。此匹配方式利用标记块固定为 fenced code block 的事实，排除审查报告正文中的示例引用或讨论提及。如果审查报告使用了非标准 code fence（如 `~~~`），同时搜索 `~~~STEP<N>_EXECUTED`
-- 辅助真实度信号: 检查每个标记块末尾的 `ref: AgentId=<id>, tokens=<N>` 行——AgentId 格式必须匹配 `^a[0-9a-f]{16}$`，**或为字面量 `self`（仅限上方「主 Agent 规则」例外列出的自执行路径：Step 2 / Step 3 transferred·trivial / 最终通读自执行——`self` 为协议合法值，不记警告）**；其余格式不符或缺失 → 记录警告但仍以标记块存在性为主要判断依据
+- 辅助真实度信号: 检查每个标记块末尾的 `ref: AgentId=<id>, tokens=<N>` 行——AgentId **必须非空，且与父技能实际启动该子 Agent 时拿到的 id 一致**（**不校验格式**：Claude Code 为 `^a[0-9a-f]{16}$`、DSH 为 `session-*` 这类平台自有格式，硬编码任一平台的正则会在另一平台误报），**或为字面量 `self`（仅限上方「主 Agent 规则」例外列出的自执行路径：Step 2 / Step 3 transferred·trivial / 最终通读自执行——`self` 为协议合法值，不记警告）**；缺失 → 记录警告但仍以标记块存在性为主要判断依据
 
 **验证能力与限制**：能检测——主 Agent 遗忘标记块、子 Agent 未执行且主 Agent 不伪造（标注 `missing`）；**不能检测**——主 Agent 故意跳过并伪造标记块、伪造格式合法的 AgentId（`a`+16 hex 校验只提升门槛）。这是纯文本协议的固有边界：无进程隔离、无代码强制；双层验证只把"静默跳过"升级为需在两个时序分离角色中做出不一致行为，不声称技术性不可伪造。
 
@@ -138,7 +138,7 @@ tier=<critical|full>
 
 当 specpowers-review 被用户直接调用（非通过 specpowers-design/plan/apply/archive 的 Gate 路由）时，不存在父技能执行双层验证。此时主 Agent 在最后一个 STEP 完成后（加强审查为 STEP2，其他为 STEP5）自行执行标记块完整性检查：
 
-1. 从 `[TIER_ROUTING]` 标记中提取 `expected_steps`，动态确定应存在的 STEP 集合（无 `[TIER_ROUTING]` 标记时回退为全集 `[STEP1, STEP2, STEP3, STEP4, STEP5, STEP_FINAL_READTHROUGH]`）
+1. 从 `[TIER_ROUTING]` 标记中提取 `expected_steps`，动态确定应存在的 STEP 集合（无 `[TIER_ROUTING]` 标记时回退为全集 `[STEP1, STEP2, STEP3, STEP4, STEP5]`——**不含 `STEP_FINAL_READTHROUGH`**：最终通读是横切 Gate，独立于 `expected_steps` 检查，其存在性由下方 `readthrough_present` 单列承载）
 2. 搜索 `STEP<N>_EXECUTED` 和 `STEP<N>_TIER_SKIPPED` 标记块，确认 `expected_steps` 中的每个 STEP 要么已输出 `_EXECUTED` 标记块，要么已输出 `_TIER_SKIPPED` 标记块
 3. 确认最终通读标记块已输出（缺失时在 `[SELF_VERIFY]` 的 `readthrough_present` 字段填 `false`——即旧措辞"最终通读可能未执行"的承载字段）
 4. 确认 `[CONVERGENCE_CHECK]` 标记已输出（缺失时在 `[SELF_VERIFY]` 的 `convergence_present` 字段填 `false`——即旧措辞"收敛判定可能未执行"的承载字段）
@@ -159,19 +159,19 @@ convergence_present: true|false
 
 此自检与父技能验证处于同一信任域（同一 Agent），但至少确保标记块在独立调用场景下不会被完全忽略。独立调用场景下 `[GATE_BLOCKED]` 标记不触发外部阻塞（无父技能读取），仅作为信息性声明。
 
-> **注**: 独立调用 specpowers-review 时，`file_count`（变更文件数）与 `line_count` 由主 Agent 自行计算（一次性输出 files + lines 两条值）。**`line_count` 口径按对象类型固定（与 SKILL.md 0c-pre、协议 6 `bucket_doc` 一致，不得互换）**：文档类＝**审查对象总行数**（`wc -l`，多文件取合计——不依赖 git diff，空 diff 不影响其取值）；代码类＝**修改总行数**（git diff，下方命令）。**命令兜底（强制）**：任何情形下都必须输出数字，**不得输出空串**——当 `HEAD == merge-base(BASE, HEAD)`（在本分支 tip 上审查已提交的工作，最常见情形）时 `git diff --shortstat` 无输出，awk 无输入行故主块不执行，原 `if(s=="") s=0` 是死代码；且 `diff base..HEAD` 不含未提交改动：
+> **注**: 独立调用 specpowers-review 时，`file_count`（变更文件数）与 `line_count` 由主 Agent 自行计算（一次性输出 files + lines 两条值）。**`line_count` 口径按对象类型固定（与 SKILL.md 0c-pre、`refs/routing.md` 协议 6 `bucket_doc` 一致，不得互换）**：文档类＝**审查对象总行数**（`wc -l`，多文件取合计——不依赖 git diff，空 diff 不影响其取值）；代码类＝**修改总行数**（git diff，下方命令）。**命令兜底（强制）**：任何情形下都必须输出数字，**不得输出空串**——当 `HEAD == merge-base(BASE, HEAD)`（在本分支 tip 上审查已提交的工作，最常见情形）时 `git diff --shortstat` 无输出，awk 无输入行故主块不执行，原 `if(s=="") s=0` 是死代码；且 `diff base..HEAD` 不含未提交改动：
 > ```bash
 > BASE=$(git rev-parse --abbrev-ref origin/HEAD 2>/dev/null | sed 's|origin/||'); BASE=${BASE:-master}
 > MB=$(git merge-base "$BASE" HEAD 2>/dev/null) || MB=""
 > OUT=$([ -n "$MB" ] && git diff --shortstat "$MB"..HEAD)
 > FILES=$(printf '%s\n' "$OUT" | awk 'NR==1{f=$1} END{print f+0}')       # file_count＝变更文件数（shortstat 首字段）
 > LINES=$(printf '%s\n' "$OUT" | awk 'NR==1{s=$4+$6} END{print s+0}')   # line_count＝修改总行数；END 兜底：无输入行时输出 0
-> echo "file_count=$FILES line_count=$LINES"
+> echo "file_count=$FILES line_count=$LINES"; [ -z "$OUT" ] && echo "[DEGRADED] 空diff回退:git 无法推断审查范围（HEAD==merge-base），file_count 须按审查对象手工清点"
 > ```
 > - **`file_count` 算法**：`git diff --shortstat` 输出的首字段（"N files changed" 的 N；单文件时 git 输出 "1 file changed" 同样取首字段）。空 diff 回退见下条。
+> - **Windows 载体**：本块是 bash（`$(...)`/`sed`/`awk`）。Windows 上须用 **Git Bash** 执行；只有 PowerShell 时改用 `git diff --shortstat <base>..HEAD` 并手工解析 `N files changed, X insertions(+), Y deletions(-)`，或按审查对象手工清点并输出 `[DEGRADED] 空diff回退:手动清点`。
 > - **空 diff 的回退算法**（`OUT` 为空时）：**文档类** → `line_count` 主算法即 `wc -l`（不受空 diff 影响），仅需补 `file_count`——按审查对象文件数直接清点（不依赖 git diff）；**代码类** → `file_count` 回退为 `git status --porcelain | wc -l` 计数（覆盖未提交改动），`line_count` 记 0。
-> - **file_count=0 的分桶归属**：所有回退执行后仍为 0 时，**归入微小**（协议 6 代码类 bucket 的下界延拓；不判为「不可判定」，tier 路由正常进行）。
+> - **file_count=0 的分桶归属**：所有回退执行后仍为 0 时，**归入微小**（`refs/routing.md` 协议 6 代码类 bucket 的下界延拓；不判为「不可判定」，tier 路由正常进行）。
 > - **[DEGRADED] 声明（强制）**：任一回退发生时，在 `[TIER_ROUTING]` 的 notes 与审查报告中输出 `[DEGRADED] 空diff回退:<所用回退算法>`，注明所用回退算法（`wc-l-total`＝文档类 wc -l / `porcelain-count`＝代码类 porcelain 计数）。
-> （与 specpowers-apply Step 0 同款逻辑；specpowers-apply「降级声明」中的"与 review 独立调用同款降级策略"即指此处）
-> 若无 git 历史可用（如新项目），回退为手动估算文件行数。
+> （与 specpowers-apply Step 0 同款逻辑——其「降级声明」中的"与 review 独立调用同款降级策略"即指此处；若无 git 历史可用（如新项目），回退为手动估算文件行数）
 

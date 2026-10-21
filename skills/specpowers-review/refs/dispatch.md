@@ -61,7 +61,7 @@
 
 > **标记块格式**: 见 `refs/markers.md` 协议 3「标记块格式」节（`STEP<N>_EXECUTED` fenced code block 完整定义 + 字段说明）。注入时将 `\`\`\`` 还原为普通三反引号（```），否则父技能无法匹配标记块。
 
-注入指令要点（基于协议 3 格式）：
+注入指令要点（基于 `refs/markers.md` 协议 3 格式）：
 - 子 Agent 完成审查/修复/检查后，必须在输出末尾附加 `STEP<N>_EXECUTED` 标记块
 - `ref: AgentId=<id>, tokens=<N>` 行由**主 Agent 在汇总时追加**（非子 Agent 输出）
 - **无论 issues_found 是否为 0，每个执行的 Step 必须输出此标记块**
@@ -86,7 +86,7 @@
 |---|---|---|
 | 全部审查 Agent 原始报告全文 | Step 1 各 Agent 的完整审查报告（含**问题编号 `#1…#k`** 与 RAW_COUNT 行；加强审查路径下 `alignment` 报告的编号与 RAW_COUNT **连续覆盖 code-review 与对齐两部分的全部条目**——守恒核对按该合并序列数，见 SKILL.md Step 1 RAW_COUNT 强制） | 溯源检查 + 遗漏检测 + 守恒等式核对 |
 | 最终合并判断表 | Step 2 输出的合并表（含 **`sources` 来源映射列**、**未纳入清单**与 disposition 列） | 溯源/遗漏对照基准 + 守恒等式左侧 |
-| 账本上轮有效轮次的 `p*_merged`（及 `p*_raw`） | 上一轮合并后问题数（上轮 = 协议 6 的 `effective` 序列最后一个，跳过被中止轮；**首轮无有效上轮时（`effective` 为空，如 Round 1 即落入 transferred_to_step5 档）填 `n/a` 并说明**——⑤ 按 SKILL.md 收敛判定节「首轮无上轮基准时⑤不参与判定」处理，不视为注入缺失） | 趋势对照（⑤用 merged；缺 merged 时按协议 1「⑤（差值型条件）特殊处理」的三差值规则计算） |
+| 账本上轮有效轮次的 `p*_merged`（及 `p*_raw`） | 上一轮合并后问题数（上轮 = `refs/routing.md` 协议 6 的 `effective` 序列最后一个，跳过被中止轮；**首轮无有效上轮时（`effective` 为空，如 Round 1 即落入 transferred_to_step5 档）填 `n/a` 并说明**——⑤ 按 SKILL.md 收敛判定节「首轮无上轮基准时⑤不参与判定」处理，不视为注入缺失） | 趋势对照（⑤用 merged；缺 merged 时按 `refs/ledger.md` 协议 1「⑤（差值型条件）特殊处理」的三差值规则计算） |
 | Step 1 raw_count_sum | STEP1_EXECUTED 中汇总的各 Agent 计数求和 | 守恒等式右侧基线（与重新数出的编号总数比对） |
 
 强制指令（追加到 Quick Review Agent prompt）：

@@ -25,7 +25,7 @@ session_ledger = {
                 "p1_raw": 5,        // 原始发现 P1
                 "p2_raw": 3,        // 原始发现 P2
                 "p3_raw": 2,        // 原始发现 P3
-                // p*_merged = 合并后问题数（判定口径）：五个收敛触发条件默认由它计算（**加强审查子路径例外，按 raw——见 SKILL.md「问题数口径权威定义」**），具体条件见协议 7
+                // p*_merged = 合并后问题数（判定口径）：五个收敛触发条件默认由它计算（**加强审查子路径例外，按 raw——见 SKILL.md「问题数口径权威定义」**），具体条件见 `refs/convergence.md` 协议 7
                 "p0_merged": 1,     // 合并后问题数 P0（Step 2 记录，Step 3 结束后冻结终值）
                 "p1_merged": 3,     // 合并后问题数 P1
                 "p2_merged": 2,     // 合并后问题数 P2
@@ -73,6 +73,7 @@ session_ledger = {
 | 操作 | 时机 | 执行者 |
 |------|------|--------|
 | 写入 rounds（原始发现数 + 合并后问题数 + 未纳入数 + 监督补充数；Step 2 时 supplement 恒为 0） | 每轮 Step 2 汇总完成后 | 主 Agent |
+| 写入 rounds（修复后剩余 `p0`/`p1`/`p2`） | 每轮 Step 5 完成后（加强审查子路径见下方专用行；`p3` 不追踪） | 主 Agent |
 | 写入 rounds（caliber + `user_rejected`） | 每轮 Step 2 汇总 / 收敛判定时（加强审查轮 caliber=raw） | 主 Agent |
 | 写入 rounds（`user_exempt_p0`） | Step 4 前置 Gate 用户豁免 P0 后（如发生；**不更新 `user_rejected`**——该字段仅记 Step 2 未纳入清单的用户裁决拒绝数） | 主 Agent |
 | 写入 rounds（merged 终值 + 监督补充数） | 每轮 Step 3 完成后（监督调整过合并表或有 [补充] 项时） | 主 Agent |
@@ -82,8 +83,7 @@ session_ledger = {
 | 写入 rounds（修复后剩余）+ lessons_learned【加强审查子路径】 | 该子路径**轻量通读 + 收敛判定输出后**（**默认子路径无 Step 5——`[拒绝异常]` N==0 例外除外**（该分支例外启动独立 Step 5）；执行顺序写死：STEP2 合并 → 内联修复 + 对齐复检（P0 清零）→ 轻量通读 → 收敛判定 → Gate Token，见 SKILL.md「加强审查」节——内联修复先于轻量通读与收敛判定；**检出 `[拒绝异常]` 的例外分支**：N>0 的账本写入时机在例外 Step 3（口径冻结）→ 内联修复 + 轻量通读之后，N==0 在例外独立 Step 5 复核输出之后——`supplement/rejected/conservation` 取终值，见 SKILL.md「收敛判定（按分支锚定）」） | 主 Agent |
 | 读取 rounds | 下一轮审查开始前（Step 0），构建上轮对比数据 | 主 Agent |
 | 读取 lessons_learned | 下一 Gate 加载时，注入对齐 Agent prompt（Step 0） | 主 Agent |
-| 写入 final_readthrough | 最终通读完成后 | 主 Agent |
-| 读取 final_readthrough | 最终通读执行前，判断是否需要执行 | 主 Agent |
+| 写/读 final_readthrough | 写：最终通读完成后；读：最终通读执行前（判断是否需要执行） | 主 Agent |
 
 > **final_readthrough 同名说明**: 会话上下文账本（协议 1）的 `final_readthrough` 与会话内审查状态绑定（每 Gate 独立 key），review-cache.json（协议 2）的 `final_readthrough` 为跨会话持久化缓存。两者同名但存储位置不同、生命周期不同——账本随会话消亡，缓存跨会话持久化。读取优先级：账本优先（反映当前会话最新状态），缓存作为跨会话恢复的 fallback。
 

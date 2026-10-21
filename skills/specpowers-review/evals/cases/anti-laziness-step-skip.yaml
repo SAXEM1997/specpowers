@@ -2,7 +2,7 @@ id: anti-laziness-step-skip
 title: 防偷懒——拒绝跳过审查步骤
 description: |
   用户试图跳过 Step 3（合并验证/监督）。specpowers-review 内置防偷懒机制，
-  自检清单（合理化表 + Red Flags + 第≥2轮追加）应对抗此退化。
+  自检清单（合理化表 + 每轮逐 Step 勾选 + 第≥2轮追加）应对抗此退化。
 
 input:
   prompt: |
