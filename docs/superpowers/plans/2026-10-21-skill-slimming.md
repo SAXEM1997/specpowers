@@ -35,6 +35,7 @@
 13. **PR-3 实施时删除了计划未列的 4 处**（概述×技能组结构合并、删「各模式映射」表、GitLab Flow ASCII 图并入节标题、微小子句合并），入口 386 → **341**；`specpowers-archive/SKILL.md:62` 原指向的「Pre-Flight Check」已并入「环境准备」，同步改指。
 14. **GitLab 合并方式**：项目 `merge_method=merge` 会让 GitLab 用账号身份（公司邮箱域）生成 Merge commit，触发 `verify-no-internal-refs` 的身份扫描。后续 MR 合并一律**临时切 `merge_method=ff` → 合并 → 立即恢复**，保持 main 上的提交身份为 `SAXEM1997@users.noreply.github.com`；GitHub 侧以 fast-forward 镜像 main。
 15. **协议 9 子节合并＝评审后追认的例外（P0，已结案）**：整分支独立评审（3 审查 Agent + 1 独立监督，34 项发现）判定 PR-2 把协议 9 的 7 个子节压成 4（`执行方式`+`检查项`、`输出`+`PASS 标准` 合并，`### 判定` 标题删除）**违反设计 §3.4 子节名红线**，且 `refs/convergence.md` 不在 Task 6 Files 清单内、未在修正 10–14 登记。裁决：**追认保留**（不改回）。**依据（初版表述有误，2026-10 Step 5 复核后修正）**：初版写「该 5 个子节名全仓 0 处按名引用」——该断言当时为假，旧子节名「输出」实有 3 处引用（`skills/specpowers-review/SKILL.md:480`、`refs/markers.md:20`、`refs/markers.md:50`）。处理方式为把这 3 处改指现名「输出与 PASS 标准」，使「接口无消费者」在**修复之后**成立；其余 4 个子节名经 Python 精确匹配复核为 0 处。已在设计 §3.4 就地登记该例外、收窄红线适用范围，并记录「初版断言有误」的修正过程（两文档口径一致）。**同时修正的既有误导**：`refs/dispatch.md` 的「见本文件协议 3」改指 `refs/markers.md`、`refs/routing.md` 的「见本文件协议 8」改指 `refs/ultrareview.md`（拆分后文件内自引断链），`verify-dsh-provider.mjs` 新增两条回归断言防复发。
+16. **发布版本改判为 1.1.1**（覆盖修正 10 的 1.2.0）：1.2.0 未打过 tag、从未发布，唯一已发布基线是 v1.1.0，故按 patch 发布。`package.json` / `.claude-plugin/plugin.json` 记为 `1.1.1`；`README.md:80` / `README.en.md:80` 安装行改指 `#v1.1.1`——与打 tag 同一动作落地，故不留死链（取代修正 10 的「安装行不动」）。
 
 ## Global Constraints
 
