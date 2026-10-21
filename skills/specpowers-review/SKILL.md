@@ -68,7 +68,7 @@ description: >-
 
 > bucket_class 映射（与 `refs/routing.md` 协议 6 对齐）：{微小, 中等且file_count<10}→小代码（加强审查 recipe）；{中等且file_count≥10, 复杂, 大规模}→大代码（UltraReview recipe）
 
-> **STEP 集合记法约定**：本表 `[STEP1-5]`/`[STEP1-2]` **仅为编排说明的简写**；`[TIER_ROUTING]` 标记的 `expected_steps` 字段**必须写离散 STEP 列表，禁止区间记法**——如 `expected_steps=[STEP1, STEP2]`（文档2Agent / 加强审查）与 `expected_steps=[STEP1, STEP2, STEP3, STEP4, STEP5]`（全 STEP recipe）。父技能按单个 STEP 逐项匹配，无法机械展开区间记法。
+> **STEP 集合记法约定**：本表 `[STEP1-5]`/`[STEP1-2]` **仅为编排说明的简写**；`[TIER_ROUTING]` 标记的 `expected_steps` 字段**必须写离散 STEP 列表，禁止区间记法**——如 `expected_steps=[STEP1, STEP2]`（加强审查）与 `expected_steps=[STEP1, STEP2, STEP3, STEP4, STEP5]`（全 STEP recipe，**含文档2Agent**）。父技能按单个 STEP 逐项匹配，无法机械展开区间记法。
 
 > **STEP→阶段映射（所有 tier 共用）**：
 > - STEP1 = 审查 Agent 并行执行（数量由 tier recipe 决定）
@@ -477,4 +477,4 @@ Step 5 完成后（加强审查子路径按分支：默认轮为轻量通读完�
 
 ## 最终通读 Gate（横切，全 Gate 适用）
 
-最终通读 Gate 是横切 Gate，不参与 Gate 0-4 编号体系，适用于所有审查（文档类 Gate 0/1/2 与代码类 Gate 3），不可跳过、不设自动循环上限。触发时机：单轮审查在 Step 5 完成后立即执行（加强审查子路径在内联修复 + 对齐复检（P0 清零）后以轻量通读替代——非 STEP2 合并后立即，顺序见「加强审查」节）；多轮审查在最后一轮 Step 5 完成后执行。执行后输出 `STEP_FINAL_READTHROUGH` 标记块（`status` 一律取通用枚举 complete|degraded|failed，通读结果由独立字段 `result: pass|fail` 表达——映射见协议 9「输出」节），PASS 方可进入下一环节（Gate 0-4 编号体系之外的横切 Gate，父技能不跨边界验证，由 review 内部主 Agent 自执行）。执行方式（独立子 Agent 通读 / 单模型降级声明 / 跨会话缓存 staleness 检查）、检查项、PASS 四条件（正确应用/无冲突/术语格式一致/无废弃引用）与 FAIL 重通读规则详见 `refs/convergence.md` 协议 9。
+最终通读 Gate 是横切 Gate，不参与 Gate 0-4 编号体系，适用于所有审查（文档类 Gate 0/1/2 与代码类 Gate 3），不可跳过、不设自动循环上限。触发时机：单轮审查在 Step 5 完成后立即执行（加强审查子路径在内联修复 + 对齐复检（P0 清零）后以轻量通读替代——非 STEP2 合并后立即，顺序见「加强审查」节）；多轮审查在最后一轮 Step 5 完成后执行。执行后输出 `STEP_FINAL_READTHROUGH` 标记块（`status` 一律取通用枚举 complete|degraded|failed，通读结果由独立字段 `result: pass|fail` 表达——映射见 `refs/convergence.md` 协议 9「输出与 PASS 标准」节），PASS 方可进入下一环节（Gate 0-4 编号体系之外的横切 Gate，父技能不跨边界验证，由 review 内部主 Agent 自执行）。执行方式（独立子 Agent 通读 / 单模型降级声明 / 跨会话缓存 staleness 检查）、检查项、PASS 四条件（正确应用/无冲突/术语格式一致/无废弃引用）与 FAIL 重通读规则详见 `refs/convergence.md` 协议 9。

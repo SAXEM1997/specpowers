@@ -17,7 +17,7 @@ conservation: pass|fail   # 仅 Step 2/3 必填（守恒等式自检/核对结�
 merged_count_final: p0=N p1=N p2=N p3=N, rejected=N, supplement=N   # 仅 Step 3 必填（mode=standard 时；transferred/trivial 可省略（终值等于 Step 2 值）；口径冻结后的终值，含监督补充行）
 agents: [<agent_name>(<model>), ...]
 issues_found: <N>
-result: pass|fail   # 仅 STEP_FINAL_READTHROUGH 必填（通读结果，独立字段——status 仍取通用枚举 complete|degraded|failed，不承载通读结论；FAIL 时 status 取 degraded（修复后可重新通读）或 failed（不可继续），映射见协议 9「输出」）
+result: pass|fail   # 仅 STEP_FINAL_READTHROUGH 必填（通读结果，独立字段——status 仍取通用枚举 complete|degraded|failed，不承载通读结论；FAIL 时 status 取 degraded（修复后可重新通读）或 failed（不可继续），映射见 `refs/convergence.md` 协议 9「输出与 PASS 标准」）
 degradation: none|<具体原因>|<影响分析>|<替代措施>
 notes: <自由文本>   # 可选（如 Step 5 兼并合并验证声明、回退标注等）
 ref: AgentId=<id>, tokens=<N>
@@ -47,7 +47,7 @@ ref: AgentId=<id>, tokens=<N>
 | Step 3 | 按 mode 分叉（见上方 mode 字段说明）：standard=必须启动独立监督 Agent；transferred_to_step5=主Agent自执行(转移至Step5)；trivial=主Agent自执行(N==0) | complete / degraded | mode=standard（p0_raw≥3 或 N>15 启动独立监督 Agent 完整4维，含守恒等式核对；单一模型时声明缺少独立视角）；mode=transferred_to_step5（主 Agent 自执行，agents=self，degradation=none，合并验证转移至 Step 5；p0_raw≥1 或 p0_rejected≥1 或 agent_rejected≥1 或 user_rejected≥1 时 Step 5 追加严重度校准抽查）；mode=trivial（N==0，主 Agent 自执行；p3_raw>0 时自修 P3 后走 Step 5）（例外：Step 2 检出 `[拒绝异常]` → 档位判定不适用，按覆盖规则处理）；输出 merged_count_final（终值，mode=standard 时） |
 | Step 4 | 修复子 Agent + 主 Agent | complete / degraded / failed | 子 Agent 不可用时声明"退回主 Agent 自行修复"；修复重试超限声明"修复失败" |
 | Step 5 | Quick Review Agent | complete / degraded | 单一 Agent 时声明"缺少独立视角"；Step 4 退化时声明"执行两轮补偿验证"；mode=transferred_to_step5 **或检出 `[拒绝异常]`（含加强审查子路径 N==0 例外启动的独立 Step 5）**时经 notes 字段输出"兼并 Step 3 合并验证（溯源+遗漏+守恒等式核对+误合抽查；p0_raw≥1 或 p0_rejected≥1 或 agent_rejected≥1 或 user_rejected≥1 时含严重度校准抽查）"（非 degradation——与 SKILL.md Step 5 统一） |
-| 最终通读 | 独立子 Agent 或主 Agent（自执行） | complete / degraded / failed（**通读结果另由 `result: pass\|fail` 字段表达**——`status` 不承载通读结论，仍取通用枚举；`PASS → result: pass`（status: complete）；`FAIL → result: fail`，status 取 `degraded`（修复后可重新通读）或 `failed`（不可继续），映射见协议 9「输出」节） | 沿用通用标记块格式（STEP_FINAL_READTHROUGH）。agents 填子 Agent 模型名或 self（主 Agent 自执行）。issues_found 填残余问题数。子 Agent 工具不可用时由主 Agent 自执行，degradation 声明"单一模型，最终通读缺少独立视角" |
+| 最终通读 | 独立子 Agent 或主 Agent（自执行） | complete / degraded / failed（**通读结果另由 `result: pass\|fail` 字段表达**——`status` 不承载通读结论，仍取通用枚举；`PASS → result: pass`（status: complete）；`FAIL → result: fail`，status 取 `degraded`（修复后可重新通读）或 `failed`（不可继续），映射见 `refs/convergence.md` 协议 9「输出与 PASS 标准」节） | 沿用通用标记块格式（STEP_FINAL_READTHROUGH）。agents 填子 Agent 模型名或 self（主 Agent 自执行）。issues_found 填残余问题数。子 Agent 工具不可用时由主 Agent 自执行，degradation 声明"单一模型，最终通读缺少独立视角" |
 
 > **`issues_found` 逐 Step 语义（同字段多义的正名；父技能按标记块存在性检查、不解析该字段，本注仅供审计与人类阅读）**：
 > - **Step 1** = 审查发现总数（= `raw_count_sum` 四值合计）
