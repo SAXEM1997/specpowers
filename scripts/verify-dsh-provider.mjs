@@ -3,8 +3,10 @@
 // 零依赖（纯 Node.js 标准库）。用法：node scripts/verify-dsh-provider.mjs
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -36,7 +38,7 @@ assert.deepEqual(
 console.log('PASS manifests: package.json + cordis.patch.yml')
 
 // ---- provider list() 契约 ----
-const mod = await import(join(root, 'lib', 'index.js'))
+const mod = await import(pathToFileURL(join(root, 'lib', 'index.js')).href)
 assert.equal(mod.name, 'specpowers', 'provider 名必须为 specpowers')
 assert.deepEqual(mod.inject, ['skills'], 'provider 必须注入 skills 服务')
 
@@ -106,6 +108,43 @@ for (const [skillName] of EXPECTED) {
   )
 }
 console.log(`PASS get(): ${EXPECTED.length} 技能正文与 resourceBase 全部正确`)
+
+// ---- CRLF / BOM 回归（#2） ----
+// Windows 检出会把 SKILL.md 转成 CRLF；编辑器可能写 UTF-8 BOM。
+// 两者都不应让 frontmatter 解析出空 name，也不应让正文残留 CR。
+const lfSource = readFileSync(join(root, 'skills', 'specpowers', 'SKILL.md'), 'utf8').replace(
+  /\r\n/g,
+  '\n'
+)
+const regressionDir = await mkdtemp(join(tmpdir(), 'specpowers-eol-'))
+try {
+  for (const [label, text] of [
+    ['CRLF', lfSource.replace(/\n/g, '\r\n')],
+    ['BOM', '\uFEFF' + lfSource],
+    ['BOM+CRLF', '\uFEFF' + lfSource.replace(/\n/g, '\r\n')]
+  ]) {
+    const skillDir = join(regressionDir, label)
+    await mkdir(skillDir, { recursive: true })
+    const skillFile = join(skillDir, 'SKILL.md')
+    await writeFile(skillFile, text, 'utf8')
+    const full = await provider.get({ path: skillFile, locator: skillDir }, {})
+    assert.ok(full, `${label}: get() 应返回技能定义`)
+    assert.equal(full.name, 'specpowers', `${label}: name 不应为空`)
+    assert.ok(full.description.length > 40, `${label}: description 过短`)
+    assert.ok(
+      full.description.includes('Do NOT use for: single-file bugfixes'),
+      `${label}: description 缺末句锚点`
+    )
+    assert.equal(
+      (full.content.match(/\r/g) || []).length,
+      0,
+      `${label}: content 不应含 CR`
+    )
+    console.log(`PASS ${label}: name/description/content 正确`)
+  }
+} finally {
+  await rm(regressionDir, { recursive: true, force: true })
+}
 
 // ---- 相对资源可达性 ----
 // 技能正文用 <SKILL_BASE> 引用 refs/ 与 scripts/；插件从缓存路径加载时，
