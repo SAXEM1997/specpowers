@@ -26,7 +26,7 @@ ref: AgentId=<id>, tokens=<N>
 
 > **degradation 字段说明**: pipe 三段对应协议 4 退化声明三要素：(a) 具体原因（缺失能力+模型名），(b) 影响分析（尝试过的调用方式+失败信息），(c) 替代措施（降级路径选择依据）。`none` 表示无退化。
 
-> **mode 字段说明（仅 Step 3 必填）**: 描述 Step 3 合并验证的部署形式，独立于 degradation（能力损失）。下文 N=p0_raw+p1_raw+p2_raw（**raw 口径**——验证强度类判定一律取保守值，见 SKILL.md「问题数口径权威定义」；不计 p3_raw，定义见 SKILL.md Step 3；轮次编号（协议 6 的 round / SKILL.md 防偷懒协议的 N）与问题总数 N 同名不同义）。取值：`standard`=独立监督 Agent 执行（p0_raw≥3 或 N>15，完整 4 维）；`transferred_to_step5`=不启动独立 Agent，合并验证转移至 Step 5 兼并执行（N∈[1,15] 且 p0_raw≤2，结构重组非能力损失，故 degradation=none；Step 5 兼并执行溯源+遗漏+守恒等式核对+误合抽查，p0_raw≥1 或 p0_rejected≥1 或 agent_rejected≥1 或 user_rejected≥1 时追加严重度校准抽查）；`trivial`=无 P0/P1/P2 问题特判（N==0；p3_raw>0 时主 Agent 自修 P3 后走 Step 5 常规验证，防零进展循环）。**覆盖规则**：Step 2 检测到 `[拒绝异常]`（未纳入清单中**计入 `Σp*_raw` 的**被拒项（`agent_rejected` 与 `user_rejected`）合计 > 3 条，或占 `Σp*_raw` 比例 > 30%——被否决的监督 `sup3` 项不在 `Σp*_raw` 内、不占分子，由 `[补充否决异常]` 单独承接；`user_rejected` 部分仅核验「用户裁决记录是否存在且理由已如实记录」，不质疑用户判断）（**分母口径**：`Σp*_raw` = `p0_raw + p1_raw + p2_raw + p3_raw` **四项合计**，与判档用的 `N`（不计 `p3_raw`）**不是同一个数**——占比一律用四项合计。）时无视上述档位强制 `standard`——merged 口径排除了被拒项，拒绝是唯一能直接压低收敛判定的通道，不得靠 Step 5 兼并复核（兼并模式不含"合并合理性/判断充分性"维度，查不出误拒）。详见 SKILL.md Step 3。（**例外**：N==0 且触发 `[拒绝异常]` 时不启动 Step 3 监督，改为独立 Step 5 复核拒绝理由与守恒等式，见 SKILL.md Step 3 覆盖规则；**加强审查子路径（recipe=[STEP1-2]）检出 `[拒绝异常]` 时按 N 分叉**——N>0 强制 `standard` 且不输出 `STEP3_TIER_SKIPPED`，N==0 不启动 Step 3、例外启动独立 Step 5（不输出 `STEP5_TIER_SKIPPED`，须输出 `STEP5_EXECUTED`），见 SKILL.md「加强审查」节例外条）（**代触发**：`Σp*_raw` 不可得（如原始报告被截断）时，占比判据失效 → 以「被拒项（`agent_rejected + user_rejected`）≥ 1」**代触发** `[拒绝异常]`，强制独立 Step 3（mode=standard），并在报告中标注分母不可得；见 SKILL.md Step 2 的 `[拒绝异常]` 检测条。）
+> **mode 字段说明（仅 Step 3 必填）**: 取值 `standard`（独立监督 Agent，p0_raw≥3 或 N>15 完整 4 维）/ `transferred_to_step5`（不启动独立 Agent，合并验证转移 Step 5，degradation=none）/ `trivial`（N==0，主 Agent 自执行）。档位判据与覆盖规则见 SKILL.md Step 3（唯一权威）；本字段只描述部署形式，独立于 degradation。
 
 > **merged_count_final 字段说明（仅 Step 3 必填，mode=standard 时）**: merged_count_final 是 Step 3 冻结后的判定口径终值；**mode=standard 时必填**（Step 3 可能调整合并表），**transferred/trivial 档位可省略**（终值等于 Step 2 的 merged_count；若填则应与 Step 2 值一致，差异须在 notes 说明）；未调整合并表时，**`p0`–`p3` 分量**等于 Step 2 的 `merged_count`，**`supplement` / `rejected` 分量仍按 Step 3 终值填写**（被否决的监督补充计入 `supplement` 与 `rejected`，不改变 merged 分量）。
 
@@ -60,6 +60,8 @@ ref: AgentId=<id>, tokens=<N>
 
 **多修复子 Agent 合并规则（Step 4）**: 当修复项涉及 ≥ 2 个无依赖文件时，拆分为多个修复子 Agent 并行执行（以文件为分组维度，无修复项数量阈值）；单文件内 > 10 条时分批顺序执行（见 SKILL.md Step 4 "同文件不并发"硬约束），主 Agent 收集所有修复子 Agent 的输出后，合并为**单个** STEP4_EXECUTED 标记块。issues_found 汇总所有修复子 Agent 发现的新问题数。agents 列表包含所有修复子 Agent 的名称和模型。degradation 取所有修复子 Agent 中最严重的退化状态（严重度序: `failed` > `degraded` > `complete`；多个 `degraded` 时保留覆盖范围最广的一条，如同时有 '子Agent不可用' 和 '环境不支持并行'，保留前者因其覆盖范围更广）。
 
+> 字段语义与判定规则的唯一权威：SKILL.md「问题数口径权威定义」与 Step 3/5。
+
 ### 标记块验证规则
 
 **主 Agent 规则**:
@@ -89,18 +91,7 @@ ref: AgentId=<id>, tokens=<N>
 - 检查方法: 搜索以 `` ```STEP<N>_EXECUTED `` 开头的 fenced code block（即匹配行首的 `` ``` `` 后紧跟 `STEP<N>_EXECUTED`，作为 fenced code block 的起始标记）。此匹配方式利用标记块固定为 fenced code block 的事实，排除审查报告正文中的示例引用或讨论提及。如果审查报告使用了非标准 code fence（如 `~~~`），同时搜索 `~~~STEP<N>_EXECUTED`
 - 辅助真实度信号: 检查每个标记块末尾的 `ref: AgentId=<id>, tokens=<N>` 行——AgentId 格式必须匹配 `^a[0-9a-f]{16}$`，**或为字面量 `self`（仅限上方「主 Agent 规则」例外列出的自执行路径：Step 2 / Step 3 transferred·trivial / 最终通读自执行——`self` 为协议合法值，不记警告）**；其余格式不符或缺失 → 记录警告但仍以标记块存在性为主要判断依据
 
-**验证能力与限制（显式声明）**:
-
-标记块验证机制能检测和不能检测的场景:
-
-| 场景 | 能否检测 | 说明 |
-|------|---------|------|
-| 主 Agent 遗忘输出标记块 | 能 | 父技能搜索 `STEP<N>_EXECUTED` 字符串，缺失即发现 |
-| 子 Agent 未执行但主 Agent 不伪造 | 能 | 子 Agent 未输出标记块 → 主 Agent 标注 `missing` → 父技能检测到缺失 |
-| 主 Agent 故意跳过 Step 后伪造标记块 | 不能 | 主 Agent 可输出虚假的 `STEP<N>_EXECUTED` 块，父技能的字符串搜索无法区分真伪 |
-| 主 Agent 伪造 AgentId | 不能（但有门槛） | AgentId 格式可验证（`a` + 16 hex），但无法验证是否为系统真实分配——主 Agent 可生成格式合法的虚假 AgentId。此信号提升伪造门槛但非技术性防伪 |
-
-**这是纯 SKILL.md 文本协议的固有边界**: 所有指令均为文本指令，无进程隔离、无代码强制。Agent 若选择忽略指令，无技术手段阻止。双层验证的设计目标是将"静默跳过审查"从单 Agent 的疏忽/违规升级为需要在审查阶段和验证阶段中做出不一致行为（同一 Agent 的两个时序分离角色），显著提升跳过门槛，但不声称技术性不可伪造。
+**验证能力与限制**：能检测——主 Agent 遗忘标记块、子 Agent 未执行且主 Agent 不伪造（标注 `missing`）；**不能检测**——主 Agent 故意跳过并伪造标记块、伪造格式合法的 AgentId（`a`+16 hex 校验只提升门槛）。这是纯文本协议的固有边界：无进程隔离、无代码强制；双层验证只把"静默跳过"升级为需在两个时序分离角色中做出不一致行为，不声称技术性不可伪造。
 
 **多轮循环标记块保留策略**: 多轮修复-重审循环产生多套标记块时，主 Agent 按轮次分组（`## Round N 执行标记`）。父技能在搜索标记块时，如存在多轮标记块，仅检查**最后一轮**（以最大的 Round N 标题为准）的标记块完整性。前轮标记块因修复重审已过时，不参与完整性判断。
 
@@ -108,18 +99,7 @@ ref: AgentId=<id>, tokens=<N>
 
 ### 双层验证原理
 
-```
-审查阶段（specpowers-review Skill 上下文）
-  └── 输出 STEP<N>_EXECUTED 标记块（子 Agent 产生，主 Agent 汇总）
-  └── 附带 ref: AgentId=<id>, tokens=<N>（辅助真实度信号）
-        │
-        │  Skill 边界（时序分离验证，非进程隔离）
-        │
-验证阶段（父技能 Skill 上下文，同一 Agent 的独立验证角色）
-  └── 检查标记块完整性 + AgentId 格式 → 通过/阻塞
-```
-
-这构成了**双层验证**: 审查 Agent 无法自我声明"已完成"——必须由父技能验证阶段（同一 Agent 的独立验证角色，时序分离）检查标记块的存在性。审查阶段与验证阶段在同一 Agent 的不同 Skill 上下文中执行，虽非进程级隔离，但将"静默跳过"从单一步骤的疏忽升级为需要在两个阶段中做出不一致行为。
+审查阶段由子 Agent 产出 `STEP<N>_EXECUTED`（主 Agent 汇总并追加 `ref: AgentId=...`），验证阶段由父技能在 Skill 边界另一侧检查标记块完整性与 AgentId 格式。两者是同一 Agent 的两个时序分离角色（非进程隔离），审查 Agent 无法自我声明"已完成"。
 
 ### Gate Token 输出（Gate 通过后）
 

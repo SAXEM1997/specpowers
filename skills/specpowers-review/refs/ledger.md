@@ -72,13 +72,10 @@ session_ledger = {
 
 | 操作 | 时机 | 执行者 |
 |------|------|--------|
-| 写入 rounds | 每轮审查 Step 5 完成后 | 主 Agent |
-| 写入 rounds（原始发现数 + 合并后问题数 + 未纳入数 + **监督补充数（Step 2 恒为 0）**） | 每轮审查 Step 2 汇总完成后 | 主 Agent |
-| 写入 rounds（caliber） | 每轮审查 Step 2 / 收敛判定时（加强审查子路径轮填 raw） | 主 Agent |
-| 写入 rounds（`user_rejected`） | 每轮审查 Step 2 汇总完成后 | 主 Agent |
+| 写入 rounds（原始发现数 + 合并后问题数 + 未纳入数 + 监督补充数；Step 2 时 supplement 恒为 0） | 每轮 Step 2 汇总完成后 | 主 Agent |
+| 写入 rounds（caliber + `user_rejected`） | 每轮 Step 2 汇总 / 收敛判定时（加强审查轮 caliber=raw） | 主 Agent |
 | 写入 rounds（`user_exempt_p0`） | Step 4 前置 Gate 用户豁免 P0 后（如发生；**不更新 `user_rejected`**——该字段仅记 Step 2 未纳入清单的用户裁决拒绝数） | 主 Agent |
-| 写入 rounds（合并后问题数终值） | 每轮审查 Step 3 完成后（监督 Agent 调整过合并判断表时） | 主 Agent |
-| 写入 rounds（监督补充数） | 每轮审查 Step 3 完成后（监督有 [补充] 项时） | 主 Agent |
+| 写入 rounds（merged 终值 + 监督补充数） | 每轮 Step 3 完成后（监督调整过合并表或有 [补充] 项时） | 主 Agent |
 | 写入 rounds（`p*_merged` 误合拆行修正值） | Step 5 误合抽查发现误合、拆行之后，或加强审查子路径轻量通读之后（如发生）；加强审查子路径**检出 `[拒绝异常]` 的例外轮**——N>0 的例外 Step 3（监督第③维合并去重合理性）或 N==0 的例外独立 Step 5 发现误合并拆行之后（如发生） | 主 Agent |
 | 写入 rounds（中止标记 `aborted`） | 用户在本轮 Step 1-5 进行中终止时 | 主 Agent |
 | 写入 lessons_learned | 每轮审查 Step 5 完成后，追加本轮新教训 | 主 Agent |

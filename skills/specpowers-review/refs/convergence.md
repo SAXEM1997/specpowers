@@ -80,43 +80,18 @@
 
 ### 与 Step 5 的关系
 
-Step 5 检查本轮修复质量（单轮范围），最终通读 Gate 检查跨轮累积一致性（全局范围）。在多轮审查的最后一轮，Step 5 和最终通读 Gate 先后执行，Step 5 先（本轮修复验证），最终通读 Gate 后（全局一致性检查）。单轮审查中，Step 5 完成后立即执行最终通读 Gate。
+Step 5 检查本轮修复质量（单轮），最终通读检查跨轮累积一致性（全局）。最后一轮中两者先后执行；单轮审查中 Step 5 后立即通读。
 
 ### 触发时机
 
-当审查进入最终通读环节，**在进入下一环节（如下一 Phase、Gate 3 进入 Phase 4 等）之前**，必须执行最终通读。触发时机按 tier 分支：
-- **加强审查子路径（STEP5 被裁剪）**：最终通读以主 Agent 在**内联修复 + 对齐复检（P0 清零）之后**执行的轻量通读形式完成（执行顺序写死：`STEP2 合并 → 内联修复 + 对齐复检（P0 清零）→ 轻量通读（记录拆行差值）→ 收敛判定 → Gate Token`，见 SKILL.md「加强审查」节——不得在 STEP2 合并后立即通读，否则 PASS 条件 (a) 不可满足）——即 SKILL.md 质量底线第④条所指的"轻量替代"。PASS 四条件相同，但通读范围为变更区域+关联上下文（非全文逐行）。仍须输出 STEP_FINAL_READTHROUGH 标记块（**`notes` 注明「轻量替代」**——`status` 仍取通用枚举 complete|degraded|failed、不承载「轻量替代」；通读结果由 `result: pass|fail` 字段表达）。**轻量替代的附加检查**：对照 `STEP2` 合并判断表，抽取 `sources` 条数 ≥2 的行，逐行判断被合并的各条是否确为同一问题（文档类＝同一段落/章节/代码块且类型相同；代码类＝同一文件+同一符号+同一类型）。发现误合 → 拆行并重算 `p*_merged`，并在 `STEP_FINAL_READTHROUGH` 中记录。**拆行后的记账与留痕**：拆行后更新账本 `rounds` 的 `p*_merged`，并在 `STEP_FINAL_READTHROUGH` 中记录拆行前后的差值；`[CONVERGENCE_CHECK]` **不重出**（该子路径触发口径为 raw，拆行不影响触发结论），差值随标记块留痕。**注意本检查由主 Agent 自执行，无独立复核**——协议 6 `fallback_coverage` 中的「已知残留」表述保持
-- **关键/完整层**：单轮审查在 Step 5 完成后执行标准最终通读；多轮审查在 [CONVERGENCE_CHECK] action=exit（5 触发条件全不满足或用户显式终止）且 Step 5 完成后执行标准最终通读。通读触发与收敛判定 action 单一对应，不另设数值条件——原"P0≤1 且 P1≤5 且新增 P1≤3"数值表述已废止，其语义分别由触发条件①②⑤承接
+进入下一环节之前必须执行。**加强审查子路径（STEP5 被裁剪）**：以主 Agent 在**内联修复 + 对齐复检（P0 清零）之后**的轻量通读完成（顺序：`STEP2 合并 → 内联修复 + 对齐复检 → 轻量通读 → 收敛判定 → Gate Token`，不得在 STEP2 合并后立即通读）；通读范围为变更区域+关联上下文，仍须输出 STEP_FINAL_READTHROUGH（`notes` 注明「轻量替代」，`status` 仍取通用枚举）。附加检查：抽取 `sources` ≥2 的行判断是否误合（文档类＝同一段落/章节/代码块且类型相同；代码类＝同一文件+同一符号+同一类型），发现即拆行并重算 `p*_merged`，记录拆行前后差值；`[CONVERGENCE_CHECK]` 不重出（raw 口径不受影响）。本检查由主 Agent 自执行，无独立复核（已知残留）。**关键/完整层**：单轮在 Step 5 后；多轮在 `[CONVERGENCE_CHECK]` action=exit 且 Step 5 后执行标准通读（触发与 action 单一对应，不另设数值条件）。
 
-### 执行方式
+### 执行方式与检查项
 
-- 启动独立子 Agent（非实施者，使用可用模型），通读审查对象全文。由 specpowers-review 主 Agent 在 Step 5 完成后、向父技能返回结果前启动。
-- 仅单一模型可用时：由主 Agent 自行执行最终通读（无法获取独立视角），在最终通读报告中声明"单一模型，最终通读缺少独立视角交叉验证"。
-- **跨会话状态**: 跨会话重启后，主 Agent 从 `.specpowers/review-cache.json` 的 `final_readthrough` 字段读取状态：status === "pass" 时检查 `file_hashes`（如存在）判断 staleness——当前审查对象文件 hash 与缓存不一致 → 缓存过期，重置为 pending 并重新执行。hash 不可用时仅输出警告，继续使用缓存状态。缓存读取的完整规则见本文件协议 2（跨会话缓存）的 `final_readthrough` 读写规则。
+启动独立子 Agent（非实施者）通读审查对象全文；仅单一模型时由主 Agent 自执行并声明"缺少独立视角"。跨会话重启后从 `.specpowers/review-cache.json` 的 `final_readthrough` 读取状态，`status==="pass"` 时用 `file_hashes` 判断 staleness（不一致 → 重置 pending；hash 不可用 → 仅警告）。检查项：修复是否正确应用、修复间是否冲突、术语与格式是否一致、是否有废弃引用或残留旧术语。
 
-### 检查项
+### 输出与 PASS 标准
 
-- 所有已确认修复是否正确应用？
-- 修复之间是否存在冲突？
-- 全文术语和格式是否一致？
-- 是否有废弃引用或残留旧术语？
-
-### 输出
-
-最终通读结果以标记块的 **`result: pass|fail` 字段**表达 + 残余问题清单（如有）。映射：**PASS → `result: pass`（`status: complete`）**；**FAIL → `result: fail`（`status` 取 `degraded`——存在残余问题、修复后可重新通读；或 `failed`——不可继续、须提请用户裁决）**。`status` 一律取通用枚举 complete|degraded|failed，「轻量替代」「单一模型」等限定一律写 `notes`，不得写进 `status`。
-
-### PASS 标准
-
-（四条全部满足）：
-- (a) 所有已确认修复均已正确应用（加强审查子路径：指主 Agent 内联修复 + 对齐复检（P0 清零）后的状态——轻量通读在该修复之后执行，见上方触发时机）
-- (b) 无修复间冲突
-- (c) 全文术语和格式一致
-- (d) 无废弃引用或残留旧术语
-
-### 判定
-
-- `result: pass`（即 PASS）→ 允许进入下一环节（`status: complete`）
-- `result: fail`（即 FAIL，存在残余问题）→ 修复后重新通读，直到 pass（FAIL 轮 `status: degraded`；不可继续/重通读不可行时 `status: failed` 并提请用户裁决）
-- 此 Gate 不可跳过，不设自动循环上限
+`result: pass|fail` 表达结果 + 残余问题清单。PASS（`status: complete`）需四条全满足：(a) 已确认修复均正确应用（加强审查指内联修复+复检后的状态）(b) 无修复间冲突 (c) 术语与格式一致 (d) 无废弃引用/残留旧术语。FAIL → 修复后重通读直到 pass（`status` 取 degraded；不可继续时 failed 并提请用户裁决）。`status` 只取通用枚举，限定语一律写 `notes`。此 Gate 不可跳过、不设自动循环上限。
 
 目的：防止多轮修复累积后在文档中留下残余不一致（如术语两写、废弃引用残留、修复冲突）。多轮审查中每次修复只关注局部，最终通读提供全局一致性检查。
