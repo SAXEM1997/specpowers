@@ -45,7 +45,7 @@ specpowers-review 的多模型渐进式审查按**能力等级**选模型，不�
 | 快速 | 落地审查 Agent（可执行性/边界/兼容性） | 如 `deepseek-flash`、`glm-5.3-flash` | 如 Haiku 级 |
 | 中等 / 不同厂商 | 对齐审查 Agent（逐条对照/错漏检测）；修复子 Agent（须与审查 Agent 不同模型） | 如 `kimi-for-coding`（与前两者不同厂商） | 如 Sonnet 级或另一厂商模型 |
 
-**降级**：仅 2 个模型可用 → 结构+对齐用不同模型，落地与对齐共用；仅 1 个模型可用 → 串行执行（落地→对齐→结构）并在 `degradation` 中声明「缺少独立视角」。细则见 `skills/specpowers-review/refs/protocols.md` 协议 4。
+**降级**：仅 2 个模型可用 → 结构+对齐用不同模型，落地与对齐共用；仅 1 个模型可用 → 串行执行（落地→对齐→结构）并在 `degradation` 中声明「缺少独立视角」。细则见 `skills/specpowers-review/refs/dispatch.md` 协议 4。
 
 ## DSH 特有工具（值得 specpowers 利用）
 
