@@ -167,4 +167,61 @@ for (const relative of [
 }
 console.log('PASS resourceBase: refs/ 与 scripts/ 相对资源可达')
 
+// ---- 解析失败 warn-and-skip（#4） ----
+// 一个缺 name 的 SKILL.md 不应拖垮整个 provider：告警、跳过，其余技能继续注册。
+const skipRoot = await mkdtemp(join(tmpdir(), 'specpowers-skip-'))
+const warnings = []
+const originalWarn = console.warn
+try {
+  await mkdir(join(skipRoot, 'lib'), { recursive: true })
+  await mkdir(join(skipRoot, 'skills', 'good'), { recursive: true })
+  await mkdir(join(skipRoot, 'skills', 'bad'), { recursive: true })
+  await mkdir(join(skipRoot, 'skills', 'unparseable'), { recursive: true })
+  await writeFile(join(skipRoot, 'package.json'), '{"type":"module"}\n', 'utf8')
+  await writeFile(
+    join(skipRoot, 'lib', 'index.js'),
+    readFileSync(join(root, 'lib', 'index.js'), 'utf8'),
+    'utf8'
+  )
+  await writeFile(
+    join(skipRoot, 'skills', 'good', 'SKILL.md'),
+    '---\nname: good\ndescription: A healthy skill that must survive a sibling parse failure.\n---\n\n# good\n',
+    'utf8'
+  )
+  await writeFile(
+    join(skipRoot, 'skills', 'bad', 'SKILL.md'),
+    '---\ndescription: Missing name on purpose.\n---\n\n# bad\n',
+    'utf8'
+  )
+  await writeFile(
+    join(skipRoot, 'skills', 'unparseable', 'SKILL.md'),
+    '# no frontmatter\n',
+    'utf8'
+  )
+
+  console.warn = (...args) => warnings.push(args.join(' '))
+  const skipMod = await import(pathToFileURL(join(skipRoot, 'lib', 'index.js')).href)
+  let skipProvider
+  skipMod.apply({ skills: { registerProvider(fn) { skipProvider = fn() } } })
+  const skipRows = await skipProvider.list({})
+  assert.equal(skipRows.length, 1, `warn-and-skip: 应只注册 1 个健康技能，实测 ${skipRows.length}`)
+  assert.equal(skipRows[0].name, 'good', 'warn-and-skip: 健康技能应保留')
+  assert.equal(warnings.length, 2, `warn-and-skip: 应输出 2 条告警，实测 ${warnings.length}`)
+  for (const badName of ['bad', 'unparseable']) {
+    assert.ok(
+      warnings.some((warning) => warning.includes(join(skipRoot, 'skills', badName, 'SKILL.md'))),
+      `warn-and-skip: 告警应包含 ${badName} 的路径：${warnings.join(' | ')}`
+    )
+  }
+  const badFull = await skipProvider.get(
+    { path: join(skipRoot, 'skills', 'bad', 'SKILL.md'), locator: join(skipRoot, 'skills', 'bad') },
+    {}
+  )
+  assert.equal(badFull, undefined, 'warn-and-skip: get() 对坏文件应返回 undefined')
+} finally {
+  console.warn = originalWarn
+  await rm(skipRoot, { recursive: true, force: true })
+}
+console.log('PASS warn-and-skip: 坏文件与不可解析文件告警并跳过，健康技能保留')
+
 console.log('ALL PASS')
