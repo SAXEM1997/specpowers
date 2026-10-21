@@ -21,6 +21,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Convert skills to CRLF (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: node scripts/convert-skills-to-crlf.mjs
       - name: Run provider self-check
         run: node scripts/verify-dsh-provider.mjs
 
@@ -32,8 +36,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Convert SKILL.md files to CRLF and assert the conversion
-        run: |
-          node -e "const fs=require('fs');for(const d of fs.readdirSync('skills')){const p='skills/'+d+'/SKILL.md';const lf=fs.readFileSync(p,'utf8').replace(/\r\n/g,'\n');fs.writeFileSync(p,lf.replace(/\n/g,'\r\n'));if(!fs.readFileSync(p,'utf8').includes('\r\n'))throw new Error('not CRLF: '+p)}"
+      - name: Convert skills to CRLF
+        run: node scripts/convert-skills-to-crlf.mjs
       - name: Run provider self-check on CRLF copies
         run: node scripts/verify-dsh-provider.mjs
