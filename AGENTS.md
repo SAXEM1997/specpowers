@@ -102,3 +102,17 @@ specpowers (入口, 决策模式+路由+状态机)
 - `refs/` 下的文件是技能的 bundled resources，通过 `Skill` 工具加载技能时一并可用。
 - 入口技能的 "7 个常见 Pitfalls" 和 "故障排查" 表是跨所有子技能的共享知识，修改时需评估对子技能的影响。
 - **推送前必跑** `node scripts/verify-no-internal-refs.mjs`：扫描内网 TLD / 私网 IPv4 / 凭据 / 私钥。项目专属主机名放在 gitignore 的 `.internal-refs.txt`（脚本本身不含内网字面量，故可公开）。提交信息同样在扫描范围内。
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in this repo's GitHub Issues, operated with the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical triage roles, each label string equal to its role name (`needs-triage` / `needs-info` / `ready-for-agent` / `ready-for-human` / `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+single-context — one repository-wide `GLOSSARY.md` at the root, architecture decisions in `docs/adr/`. See `docs/agents/domain.md`.
