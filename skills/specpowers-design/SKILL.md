@@ -214,11 +214,6 @@ specpowers-plan Phase 2 衔接时需适配此场景：无 openspec/ 产物时，
 
 ### Gate 返回后验证协议（Phase 0-1 Gate 通用）
 
-> 执行入口 `specpowers` SKILL.md「Gate 返回后验证协议（横切）」节（参数：Gate=<N>, Phase=<N>）。本 Gate 特化：Gate 0/1, Phase 0/1, tiny 跳过全部验证（验证 0 返回跳过）。
-
-| Gate | Phase | 标记块检查方式 |
-|------|-------|-------------|
-| Gate 0 | Phase 0 | 按 `[TIER_ROUTING] expected_steps` 动态检查；无 TIER_ROUTING 回退 STEP1-5 |
-| Gate 1 | Phase 1 | 同上 |
+> 执行入口 `specpowers` SKILL.md「Gate 返回后验证协议（横切）」节（参数：Gate=<N>, Phase=<N>）。本 Gate 特化：Gate 0/1, Phase 0/1, tiny 跳过全部验证（验证 0 返回跳过）；验证 1 的标记块检查按 `[TIER_ROUTING] expected_steps` 动态判定，无 TIER_ROUTING 时回退 STEP1-5（Gate 0 与 Gate 1 规则相同）。
 
 > **下一步**: 设计+propose 阶段完成后，加载 `specpowers-plan` 进入 Phase 2（衔接阶段）。

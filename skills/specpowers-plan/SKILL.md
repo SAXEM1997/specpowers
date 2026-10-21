@@ -81,12 +81,8 @@ node <SKILL_BASE>/scripts/workflow-guard.mjs exit phase2 --apply
 
 ### Gate 返回后验证协议（Phase 2 Gate）
 
-> 执行入口 `specpowers` SKILL.md「Gate 返回后验证协议（横切）」节（参数：Gate=2, Phase=2）。本 Gate 特化：Gate 2, Phase 2, tiny 跳过全部验证（验证 0 返回跳过）。
+> 执行入口 `specpowers` SKILL.md「Gate 返回后验证协议（横切）」节（参数：Gate=2, Phase=2）。本 Gate 特化：Gate 2, Phase 2, tiny 跳过全部验证（验证 0 返回跳过）；验证 1 的标记块检查按 `[TIER_ROUTING] expected_steps` 动态判定，无 TIER_ROUTING 时回退 STEP1-5。
 
-| Gate | Phase | 标记块检查方式 |
-|------|-------|-------------|
-| Gate 2 | Phase 2 | 按 `[TIER_ROUTING] expected_steps` 动态检查；无 TIER_ROUTING 回退 STEP1-5 |
-
-> **注**: Gate 3 验证由 specpowers-apply 负责（见 specpowers-apply SKILL.md 的 "审查（Gate 3）" 节）。本表仅覆盖 specpowers-plan 管辖的 Phase 2 Gate。Phase 0/1 Gate 对应协议见 specpowers-design。
+> **注**: Gate 3 验证由 specpowers-apply 负责（见 specpowers-apply SKILL.md 的 "审查（Gate 3）" 节）。本节仅覆盖 specpowers-plan 管辖的 Phase 2 Gate。Phase 0/1 Gate 对应协议见 specpowers-design。
 
 > **下一步**: 完成后，加载 `specpowers-apply` 进入 Phase 3（实现阶段）。
