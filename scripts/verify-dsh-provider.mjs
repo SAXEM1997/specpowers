@@ -6,7 +6,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -38,7 +38,7 @@ assert.deepEqual(
 console.log('PASS manifests: package.json + cordis.patch.yml')
 
 // ---- provider list() 契约 ----
-const mod = await import(join(root, 'lib', 'index.js'))
+const mod = await import(pathToFileURL(join(root, 'lib', 'index.js')).href)
 assert.equal(mod.name, 'specpowers', 'provider 名必须为 specpowers')
 assert.deepEqual(mod.inject, ['skills'], 'provider 必须注入 skills 服务')
 
