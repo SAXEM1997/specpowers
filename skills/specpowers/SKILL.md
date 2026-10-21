@@ -220,7 +220,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 | **TEST_COMMAND** | 全量测试 | 项目实际测试命令（见下方） | ⚠️ 需手动配置 |
 | **Node.js** | 状态机脚本 | `node --version`（≥18） | ✅（脚本依赖；缺失时回退到 Phase 自动检测，状态机功能不可用） |
 
-> **TEST_COMMAND**: 在项目初始化时配置（**QTDIR** 同理：Qt 项目需设置）。specpowers-archive 全量测试门使用此命令；如未配置，archive 会自动检测：`xmake build` → `make test` → `npm test`。
+> **TEST_COMMAND**: 在项目初始化时配置（**QTDIR** 同理：Qt 项目需设置）。**配置方式**：设为环境变量 `TEST_COMMAND`，或在入口 skill 上下文/会话中手动定义——specpowers-archive Step 1 以 `$TEST_COMMAND` 读取。specpowers-archive 全量测试门使用此命令；如未配置，archive 会自动检测：`xmake build` → `make test` → `npm test`。
 
 ## Git Flow + Code Intelligence
 

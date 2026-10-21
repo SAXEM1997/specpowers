@@ -270,7 +270,7 @@ description: >-
 [TIER_ROUTING] tier=<critical|full>, round=<N>, file_count=<N>, bucket=<微小|中等|复杂|大规模>, line_count=<N>, floor=<tier>, convergence=<passed|failed|n/a>, recipe=<加强审查|UltraReview|3视角|文档3Agent|文档2Agent>, reason=<路由路径简述>, expected_steps=[...]
 ```
 
-`expected_steps` 由 recipe 决定，**必须写离散 STEP 列表**（禁区间记法）：`[STEP1, STEP2]`（文档2Agent / 加强审查）、`[STEP1, STEP2, STEP3, STEP4, STEP5]`（全 STEP）。
+`expected_steps` 由 recipe 决定，**必须写离散 STEP 列表**（禁区间记法）：`[STEP1, STEP2]`（加强审查）、`[STEP1, STEP2, STEP3, STEP4, STEP5]`（全 STEP）。注意 `文档2Agent` 属**全 STEP**（recipe 表标 `[STEP1-5]`，关键层 Step 5 同样强制），不得写成两步。
 > expected_steps 仅含 tier recipe 的 STEP（STEP1-5）；STEP_FINAL_READTHROUGH 为横切 Gate，独立于 expected_steps 检查（父技能**不**跨边界验证此横切 Gate；由 review 内部主 Agent 自执行 + 独立调用场景 [SELF_VERIFY] 兜底，自检细则见 `refs/markers.md` 协议 3「独立调用场景自检」）。
 
 > 在启动审查 Agent 前，主 Agent 先完成以下自检——以下列出的每一项合理化都是实际审查中观察到的 Agent 跳过模式。

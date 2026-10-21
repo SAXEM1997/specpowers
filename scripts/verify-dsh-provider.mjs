@@ -231,19 +231,55 @@ const reviewFull = await provider.get(
   candidates.find((entry) => entry.name === reviewName),
   {}
 )
-for (const relative of [
+const reviewRefs = [
   'refs/ledger.md',
   'refs/markers.md',
   'refs/dispatch.md',
   'refs/routing.md',
   'refs/ultrareview.md',
   'refs/convergence.md'
-]) {
+]
+for (const relative of reviewRefs) {
   assert.ok(
     existsSync(join(reviewFull.resourceBase.path, relative)),
     `resourceBase 下缺相对资源：${reviewName}/${relative}`
   )
 }
 console.log('PASS resourceBase: review refs 6 文件可达')
+
+// ---- review refs 内部「本文件协议 N」自引校验 ----
+// 文件存在 ≠ 引用指对。拆分后同一段文字可能被移进别的 refs 文件，而原文里的
+// 「见本文件协议 3」没跟着改（dispatch.md 只含协议 4-5、routing.md 只含协议 6），
+// 这类断链不产生缺失文件，只能按协议号逐文件比对。
+let selfRefsChecked = 0
+for (const relative of reviewRefs) {
+  const text = readFileSync(join(reviewFull.resourceBase.path, relative), 'utf8')
+  const present = new Set([...text.matchAll(/^##\s+协议\s*(\d+)/gm)].map((m) => m[1]))
+  for (const hit of text.matchAll(/本文件协议\s*(\d+)/g)) {
+    assert.ok(
+      present.has(hit[1]),
+      `${reviewName}/${relative} 自引断链：「本文件协议 ${hit[1]}」但该文件只含协议 ${[...present].join('/') || '（无）'}`
+    )
+    selfRefsChecked++
+  }
+}
+console.log(`PASS refs 自引: 「本文件协议 N」全部指向本文件（校验 ${selfRefsChecked} 处）`)
+
+// ---- review refs 文件名引用回归守卫 ----
+// 拆分删除了 refs/protocols.md；改写不全时残留的旧文件名不会让任何断言失败。
+// 允许 platform-tools.md——它属入口技能，经 <SKILL_BASE>/refs/ 引用。
+const knownRefs = new Set([...reviewRefs, 'refs/platform-tools.md'])
+let refsMentions = 0
+for (const relative of ['SKILL.md', ...reviewRefs]) {
+  const text = readFileSync(join(reviewFull.resourceBase.path, relative), 'utf8')
+  for (const hit of text.matchAll(/refs\/([a-z][a-z-]*)\.md/g)) {
+    assert.ok(
+      knownRefs.has(`refs/${hit[1]}.md`),
+      `${reviewName}/${relative} 引用了不存在的 refs 文件：refs/${hit[1]}.md`
+    )
+    refsMentions++
+  }
+}
+console.log(`PASS refs 文件名: 无已删除/拼错的 refs 引用（校验 ${refsMentions} 处）`)
 
 console.log('ALL PASS')
