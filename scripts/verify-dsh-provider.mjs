@@ -120,7 +120,8 @@ const regressionDir = await mkdtemp(join(tmpdir(), 'specpowers-eol-'))
 try {
   for (const [label, text] of [
     ['CRLF', lfSource.replace(/\n/g, '\r\n')],
-    ['BOM', '\uFEFF' + lfSource]
+    ['BOM', '\uFEFF' + lfSource],
+    ['BOM+CRLF', '\uFEFF' + lfSource.replace(/\n/g, '\r\n')]
   ]) {
     const skillDir = join(regressionDir, label)
     await mkdir(skillDir, { recursive: true })
