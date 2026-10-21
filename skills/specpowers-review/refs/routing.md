@@ -44,7 +44,7 @@
   prev_raw = (effective.length >= 1) ? effective[effective.length-1] : null   # 上轮基准取有效轮次序列的最后一个（rounds 0-indexed 语义由 effective 序列继承）
 1. 护栏1(安全优先, early-return): if !ledger || !ledger[gate_id] → return tier=完整, reason="ledger缺失,保守完整"   # 最先, 覆盖手动覆盖
 2a. 手动 tier 覆盖: if 用户指定"完整/关键审查" → base_tier=指定值, reason+="用户指定"; else base_tier=null
-2b. 文档类 UltraReview 特殊路径: if 文档类且用户指定"UltraReview" → 跳过步骤 3-5, 直接 recipe=完整层多模型渐进式(3-agent), 但仍须经护栏1。**该路径的字段取值（不得留空）**：tier=完整、bucket=bucket_doc(line_count)、floor=floor(line_count)、convergence=n/a（未执行步骤 5 闸门）、expected_steps=[STEP1, STEP2, STEP3, STEP4, STEP5]、reason 注明"文档类 UltraReview→完整层 3-agent（跳过 2a-5）"
+2b. 文档类 UltraReview 特殊路径: if 文档类且用户指定"UltraReview" → 跳过步骤 3-5, 直接 recipe=完整层多模型渐进式(3-agent), 但仍须经护栏1。**该路径的字段取值（不得留空）**：tier=完整、bucket=bucket_doc(line_count)、floor=floor(line_count)、convergence=n/a（未执行步骤 5 闸门）、expected_steps=[STEP1, STEP2, STEP3, STEP4, STEP5]、reason 注明"文档类 UltraReview→完整层 3-agent（跳过步骤 3-5）"
 3. 矩阵: matrix_tier = MATRIX[bucket][round]; tier = (base_tier!=null) ? max(base_tier, matrix_tier) : matrix_tier; if matrix_tier>base_tier reason+="矩阵升级"
 4. 行数地板: floor_tier = floor(line_count); if floor_tier>tier → tier=floor_tier, reason+="行数地板升级"
 5. 收敛闸门(仅 prev_raw!=null 时执行):
