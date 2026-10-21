@@ -223,5 +223,27 @@ try {
   await rm(skipRoot, { recursive: true, force: true })
 }
 console.log('PASS warn-and-skip: 坏文件与不可解析文件告警并跳过，健康技能保留')
+// ---- review 技能 refs 可达性 ----
+// review 的 6 个协议文件按「按需加载表」在运行时读取；改名/拆分后
+// 若无校验，残留旧路径或缺失文件不会被任何自检发现。
+const reviewName = 'specpowers-review'
+const reviewFull = await provider.get(
+  candidates.find((entry) => entry.name === reviewName),
+  {}
+)
+for (const relative of [
+  'refs/ledger.md',
+  'refs/markers.md',
+  'refs/dispatch.md',
+  'refs/routing.md',
+  'refs/ultrareview.md',
+  'refs/convergence.md'
+]) {
+  assert.ok(
+    existsSync(join(reviewFull.resourceBase.path, relative)),
+    `resourceBase 下缺相对资源：${reviewName}/${relative}`
+  )
+}
+console.log('PASS resourceBase: review refs 6 文件可达')
 
 console.log('ALL PASS')
