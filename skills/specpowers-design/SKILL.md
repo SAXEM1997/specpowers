@@ -123,7 +123,7 @@ mode 取值：medium（中等）/ complex（复杂）/ large（大规模）
 - 审批通过 → 进入 Phase 1
 
 **审批通过后，执行 Gate 0 审查**:
-`Skill({skill: "specpowers-review"})` — 对齐检查：design.md vs clarifications/<name>.md。审查层级边界由 specpowers-review 横切注入（design 层面，不涉代码实现）。
+`Skill({skill: "specpowers-review", args: "Gate 0, file_count=1, line_count=<N>"})`（`<N>` = design.md 总行数 `wc -l`；**必传 args**，否则 review 判为独立调用、不写 Gate Token）— 对齐检查：design.md vs clarifications/<name>.md。审查层级边界由 specpowers-review 横切注入（design 层面，不涉代码实现）。
 Gate 0 返回后，执行 Gate 返回后验证协议（参数: Gate=0, Phase=0）。
 
 验证链通过后（token 已由 review 写入 `.superpowers/.gate-passed-0`），执行节点出口守卫（中等+；微小无 state.json，不调用）：
@@ -188,7 +188,7 @@ node <SKILL_BASE>/scripts/workflow-guard.mjs exit phase0 --apply
 ```
 
 **人工审核通过后，执行 Gate 1 审查**:
-`Skill({skill: "specpowers-review"})` — 对齐检查：OpenSpec 四件套（proposal/design/specs/tasks）vs Phase 0 design.md + clarifications。审查层级边界由 specpowers-review 横切注入（各文档对应抽象层级，不涉代码实现）。
+`Skill({skill: "specpowers-review", args: "Gate 1, file_count=<N>, line_count=<M>"})`（`<N>`/`<M>` = 四件套合计文件数与总行数；**必传 args**，否则 review 判为独立调用、不写 Gate Token）— 对齐检查：OpenSpec 四件套（proposal/design/specs/tasks）vs Phase 0 design.md + clarifications。审查层级边界由 specpowers-review 横切注入（各文档对应抽象层级，不涉代码实现）。
 Gate 1 返回后，执行 Gate 返回后验证协议（参数: Gate=1, Phase=1）。
 
 验证链通过后（token 已写入 `.superpowers/.gate-passed-1`，或 `.superpowers/.phase1-skipped` 内容==name 豁免），执行节点出口守卫（中等+）：

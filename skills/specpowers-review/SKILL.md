@@ -256,7 +256,7 @@ description: >-
 
 **0c-pre. 解析调用参数（args）**
 
-父技能（specpowers-apply/design/plan）调用 specpowers-review 时通过 `args` 传递参数。主 Agent 从 args 提取：`gate_id`（Gate 0-3 / standalone）、`file_count`（待审查文件数）、`line_count`（**口径按对象类型固定**：文档类＝审查对象总行数 `wc -l`；代码类＝修改总行数 git diff——与协议 6 `bucket_doc` 及协议 3「独立调用场景自检」一致，父技能按同一口径传入）、code-review 结果（代码类 Gate 3 由 apply 注入，作为对齐 Agent 的代码质量维度输入）。这些值用于下方 0c gate_id 确定 + 0d tier 路由（file_count/line_count 是路由算法输入）。无 args 时（独立调用）由主 Agent 自行计算 file_count/line_count（files + lines 一次性输出算法、空 diff 回退与 file_count=0 的分桶归属，见 `refs/markers.md` 协议 3「独立调用场景自检」）。
+父技能（specpowers-apply/design/plan）调用 specpowers-review 时通过 `args` 传递参数。主 Agent 从 args 提取：`gate_id`（Gate 0-3 / standalone）、`file_count`（待审查文件数）、`line_count`（**口径按对象类型固定**：文档类＝审查对象总行数 `wc -l`；代码类＝修改总行数 git diff——与协议 6 `bucket_doc` 及协议 3「独立调用场景自检」一致，父技能按同一口径传入）、code-review 结果（代码类 Gate 3 由 apply 注入，作为对齐 Agent 的代码质量维度输入）。这些值用于下方 0c gate_id 确定 + 0d tier 路由（file_count/line_count 是路由算法输入）。无 args 时（独立调用）由主 Agent 自行计算 file_count/line_count（files + lines 一次性输出算法、空 diff 回退与 file_count=0 的分桶归属，见 `refs/markers.md` 协议 3「独立调用场景自检」）。**判定口径（消歧义）**：只有「既无 args、也无任何 Gate 上下文」才判独立调用（gate_id=standalone）；父技能调用即便漏传 args，只要调用上下文指明了触发的 Gate（如「执行 Gate 1 审查」），即按 0c 以该 Gate 确定 gate_id 并正常输出 Gate Token——**漏传 args 不得静默降级为 standalone**（丢失 Gate Token 会让父技能的产物依赖链断掉）。
 
 **0c. 确定 gate_id（轮次隔离）**
 

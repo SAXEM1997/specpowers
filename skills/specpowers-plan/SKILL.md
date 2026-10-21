@@ -64,7 +64,7 @@ description: Use when the user says "plan the implementation", "bridge OpenSpec 
 
 **衔接阶段完成后，强制执行 Gate 2 审查**：
 
-`Skill({skill: "specpowers-review"})` — 对齐检查：plan vs Phase 1 OpenSpec specs + Phase 0 design。
+`Skill({skill: "specpowers-review", args: "Gate 2, file_count=1, line_count=<N>"})`（`<N>` = plan 文档总行数 `wc -l`；**必传 args**，否则 review 判为独立调用、不写 Gate Token）— 对齐检查：plan vs Phase 1 OpenSpec specs + Phase 0 design。
 Gate 2 返回后，执行 Gate 返回后验证协议（参数: Gate=2, Phase=2）。
 
 验证链通过后（token 已写入 `.superpowers/.gate-passed-2`），执行节点出口守卫（中等+）：
