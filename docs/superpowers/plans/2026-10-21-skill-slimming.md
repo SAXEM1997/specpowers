@@ -15,6 +15,18 @@
 1. **仓库无 CHANGELOG.md**（已实测 `ls CHANGELOG.md` 为空）。设计 §6 的「CHANGELOG」项取消——不新建文件，版本变更写入 MR 描述与 GitHub Release。
 2. **PR-1 后 refs 合计为 779 行**，非设计所估 772：拆分丢弃 L1–L16（标题 + 目录 + 空行）共 16 行，保留 761 行正文，每文件加 3 行头（标题 + 导航 + 空行）×6 = 18 行 ⇒ 779。验收改为 **779 ± 3**；PR-2 去重后 ≤820 不变。
 
+## 已确认的执行决策（grilling Round 1–2）
+
+1. **执行方式**：Native（本会话逐 Task 执行），每 PR 停下确认；全部完成后起独立子 Agent 做整分支评审。
+2. **节奏**：先只做 PR-1（Task 1–3），验收后停下。
+3. **evals**：本机无 `skill-up`/`claude` ⇒ 接受降级，MR 记录 `[DEGRADED]`，**不得**声称 evals 通过。
+4. **合理化表**：删 4 行（保留 `[新口径] 多拒绝` 那条）→ **10 行**（原计划 9 行，按决策 4 调整）。
+5. **分支**：每 PR 独立分支——PR-1 = `feat/skill-slimming-1`（设计/计划/ADR 随此 PR 合入），后续 `-2/-3/-4` 从最新 main 拉。
+6. **版本号**：PR-4 bump 到 **1.1.0**（minor：布局变更，语义不变）。
+7. **摘要侧时机**：AGENTS.md 两行节名同步**前移到 PR-2**（与改名同一 PR），PR-4 只做四技能去重与其余摘要项。
+8. **ADR**：写 1 个 `docs/adr/0001-adaptive-disclosure-over-dual-track.md`（随 PR-1）；**不建 GLOSSARY.md**（术语正本已在 AGENTS.md 与 review SKILL.md）。
+9. **推送时机**：PR-1 本地完成后先给用户看 diff 与验收输出，确认后再推送开 MR。
+
 ## Global Constraints
 
 以下为 spec §5 红线，逐字适用；每个 task 的要求隐含包含本节：
@@ -262,6 +274,14 @@ for (const relative of [
 console.log('PASS resourceBase: review refs 6 文件可达')
 ```
 
+- [ ] **Step 2b: 创建 ADR（决策 8，随 PR-1 合入）**
+
+```bash
+mkdir -p docs/adr
+```
+
+写入 `docs/adr/0001-adaptive-disclosure-over-dual-track.md`（已由本轮 grilling 定稿，内容为单段：为什么选择渐进披露而不是 comet 式双轨，以及 460 行地板的原因）。
+
 - [ ] **Step 3: 跑两条强制自检**
 
 ```bash
@@ -271,18 +291,18 @@ node scripts/verify-no-internal-refs.mjs
 ```
 Expected: 两者均输出含 `ALL PASS` / 无违规命中（后者 0 hits）。
 
-- [ ] **Step 4: Commit 并推送分支（推送前用户确认）**
+- [ ] **Step 4: Commit 本体改动（**不推送**——决策 9：先给用户看 diff 与验收输出，确认后再推送）**
 
 ```bash
 git add scripts/verify-dsh-provider.mjs
 git commit -m "chore(verify): 自检覆盖 review 的 6 个 refs 资源"
-git push origin feat/skill-slimming
+git log --oneline -1
 ```
-Expected: 分支推送成功；随后开 MR（PR-1），描述含「纯结构拆分，重复删除 = 0」。
+Expected: 提交成功；**停在本地**。推送与开 MR 由 Task 10 在用户确认后执行。
 
 ---
 
-## Task 4（PR-2）: S1 合理化表 14→9 + S2 自检清单合并
+## Task 4（PR-2）: S1 合理化表 14→10 + S2 自检清单合并
 
 **Files:**
 - Modify: `skills/specpowers-review/SKILL.md`（377–446 区域）
@@ -307,20 +327,19 @@ echo "--- 已实测预期：仅 anti-laziness-step-skip.yaml 的 description 含
 ```
 Expected: 无 HIT（description 中的两个节名由 Task 9 处理）。
 
-- [ ] **Step 2: 删除 5 行合理化表（保留 9 行）**
+- [ ] **Step 2: 删除 4 行合理化表（保留 10 行）**
 
-精确删除以下 5 个表格行（整行，含行尾 `|`）：
+精确删除以下 4 个表格行（整行，含行尾 `|`）：
 
 | 现行号 | 行首文本 | 吸收去向 |
 |---|---|---|
 | 390 | `\| "[多轮] 这是第N轮审查，只需快速过一遍 / 只查修改部分"` | 自检清单「第≥2轮追加」的轮次提醒 |
 | 391 | `\| "[多轮] 尽快进入收敛状态，少一轮是一轮"` | 同上（收敛加速提醒） |
-| 393 | `\| "[新口径] 这些发现多是噪声/重复，我合并时多拒绝几条` | 「问题数口径权威定义」反偷懒硬约束①②③④ |
-| 394 | `\| "[新口径] 同一个问题多个 Agent 都报了` | 同上（口径分配表「收敛触发条件」行） |
+| 394 | `\| "[新口径] 同一个问题多个 Agent 都报了` | 「问题数口径权威定义」口径分配表「收敛触发条件」行 |
 | 395 | `\| "上下文太长了，简化流程省 token"` | 自检清单「第≥2轮追加」的上下文提醒 |
 
-保留：383–389（7 行）、392（merged 口径陷阱）、396（tier 搭便车）= 9 行。
-在「问题数口径权威定义」反偷懒硬约束段末尾追加一行（补偿可见性）：
+保留：383–389（7 行）、392（merged 口径陷阱）、**393（`[新口径] 多拒绝`，按决策 4 保留）**、396（tier 搭便车）= 10 行。
+在「问题数口径权威定义」反偷懒硬约束段末尾追加一行（补偿「按原始条数」的可见性）：
 
 ```markdown
 > **常见合理化对照**：「多拒绝几条就能压低问题数」见 ①②④；「按原始条数更保险」见口径分配表。二者均不构成放行理由。
@@ -356,12 +375,12 @@ Expected: 无 HIT（description 中的两个节名由 Task 9 处理）。
 ```bash
 cd /workspace/specpowers
 S=skills/specpowers-review/SKILL.md
-echo "合理化表数据行: $(sed -n '/#### 合理化表/,/^#### /p' $S | grep -c '^| "')"   # 期望 9
+echo "合理化表数据行: $(sed -n '/#### 合理化表/,/^#### /p' $S | grep -c '^| "')"   # 期望 10
 echo "自检清单条目: $(grep -c '^□' $S)"                                          # 期望 ≥12
 grep -q 'ANTI_LAZINESS_SELF_CHECK' $S && echo "PASS 标记保留"
 grep -n '多轮审查防偷懒协议' $S || echo "PASS 旧节名已消失"
 ```
-Expected: 9 / ≥12 / PASS / PASS。
+Expected: 10 / ≥12 / PASS / PASS。
 
 - [ ] **Step 5: Commit**
 
@@ -460,6 +479,7 @@ git commit -m "refactor(review): Step1-5 骨架化并将执行细则下放 dispa
 - Modify: `skills/specpowers-review/SKILL.md`（196–211、584–631）
 - Modify: `skills/specpowers-review/refs/markers.md`（S3 去重 + S5 压缩）
 - Modify: `skills/specpowers-review/refs/ledger.md`（S3 注释瘦身）
+- Modify: `AGENTS.md:34`、`AGENTS.md:48`（节名同步，自 PR-4 前移）
 
 **Interfaces:**
 - Consumes: Task 5 下放到 routing.md 的「细则 F」。
@@ -495,6 +515,11 @@ git commit -m "refactor(review): Step1-5 骨架化并将执行细则下放 dispa
 - `ledger.md` 账本结构注释：每字段保留一句语义，重复的守恒/拒绝异常解释改为 `见 SKILL.md「问题数口径权威定义」`。
 - 追加在协议 3「各 Step 标记块定义」后一行：`字段语义与判定规则的唯一权威：SKILL.md「问题数口径权威定义」`。
 
+- [ ] **Step 3b: AGENTS.md 节名同步（决策 7：与改名同一 PR，不留陈旧窗口）**
+
+- L34 目录表 review 行：`审查纪律自检 + 防偷懒协议` → `自检清单（合理化表 + Red Flags + 多轮追加）`。
+- L48 决策 7：`三层防退化防御——审查纪律自检（合理化表 + Red Flags）、多轮审查防偷懒协议（主 Agent 自检）、审查层级边界` → `三层防退化防御——自检清单（合理化表 + Red Flags + 第≥2轮追加）、审查层级边界（两层边界原则）`。
+
 - [ ] **Step 4: 全文件行数与红线校验**
 
 ```bash
@@ -505,8 +530,9 @@ echo "refs: $(cat skills/specpowers-review/refs/*.md | wc -l) 行"   # 期望 �
 grep -q 'p0_merged > 1' $S && grep -q 'p1_merged > 5' $S && echo "PASS 5 触发条件原文"
 grep -q 'Σ(所有行的 sources 条数) + Σp\*_rejected == Σp\*_raw + Σp\*_supplement' $S && echo "PASS 守恒等式"
 grep -c 'STEP.*_TIER_SKIPPED' $S                                # 例外表 4 行均含标记
+grep -n '多轮审查防偷懒协议\|审查纪律自检（合理化表' AGENTS.md || echo "PASS AGENTS 旧节名已清除"
 ```
-Expected: ≤480 / ≤820 / PASS / PASS / ≥4。
+Expected: ≤480 / ≤820 / PASS / PASS / ≥4 / PASS。
 
 - [ ] **Step 5: 例外分支矩阵人工推演并记录**
 
@@ -520,7 +546,7 @@ Expected: ≤480 / ≤820 / PASS / PASS / ≥4。
 - [ ] **Step 6: Commit**
 
 ```bash
-git add -A skills/specpowers-review/
+git add -A skills/specpowers-review/ AGENTS.md
 git commit -m "refactor(review): 加强审查例外表格化、收敛节去重并收口行数"
 ```
 
@@ -580,15 +606,14 @@ git commit -m "refactor(entry): 合并重复节，入口技能收口至345行内
 
 ---
 
-## Task 8（PR-4）: 四子技能轻度去重 + 摘要侧四项同步
+## Task 8（PR-4）: 四子技能轻度去重
 
 **Files:**
 - Modify: `skills/specpowers-design/SKILL.md`、`skills/specpowers-plan/SKILL.md`、`skills/specpowers-apply/SKILL.md`、`skills/specpowers-archive/SKILL.md`
-- Modify: `AGENTS.md:34`、`AGENTS.md:48`
 
 **Interfaces:**
-- Consumes: Task 4 的新节名「自检清单」。
-- Produces: 四技能合计 ≤608 行（−20 起）；AGENTS.md 不再引用旧节名。
+- Consumes: Task 4 的新节名「自检清单」（AGENTS.md 已在 Task 6 同步，本任务只做回归核对）。
+- Produces: 四技能合计 ≤608 行（−20 起）。
 
 - [ ] **Step 1: 定位重复复述**
 
@@ -606,27 +631,22 @@ Expected: 列出各技能的复述行；只处理**与 review 正本重复的规
 2. `specpowers-design`：Gate 0/1 说明中与 review「各 Gate 详细定义表」重复的列 → 保留 1 行 `见 specpowers-review「各 Gate 详细定义表」`。
 3. `specpowers-plan`/`specpowers-archive`：仅删除逐字重复的 1–2 行，无重复则不改（**不得为凑行数删有效内容**）。
 
-- [ ] **Step 3: 摘要侧同步（AGENTS.md）**
-
-- L34 目录表 review 行：`审查纪律自检 + 防偷懒协议` → `自检清单（合理化表 + Red Flags + 多轮追加）`。
-- L48 决策 7：`三层防退化防御——审查纪律自检（合理化表 + Red Flags）、多轮审查防偷懒协议（主 Agent 自检）、审查层级边界` → `三层防退化防御——自检清单（合理化表 + Red Flags + 第≥2轮追加）、审查层级边界（两层边界原则）`。
-
-- [ ] **Step 4: 校验**
+- [ ] **Step 3: 校验**
 
 ```bash
 cd /workspace/specpowers
 wc -l skills/specpowers-design/SKILL.md skills/specpowers-plan/SKILL.md \
       skills/specpowers-apply/SKILL.md skills/specpowers-archive/SKILL.md | tail -1   # 期望 ≤608
-grep -n '多轮审查防偷懒协议\|审查纪律自检（合理化表' AGENTS.md || echo "PASS 摘要侧旧节名已清除"
+grep -n '多轮审查防偷懒协议\|审查纪律自检（合理化表' AGENTS.md || echo "PASS AGENTS 无旧节名（PR-2 已同步）"
 grep -rn 'protocols\.md' AGENTS.md README.md README.en.md || echo "PASS 摘要侧无旧路径"
 ```
 Expected: ≤608 / PASS / PASS。
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add skills/specpowers-*/SKILL.md AGENTS.md
-git commit -m "refactor: 子技能去重并同步 AGENTS.md 的防退化结构描述"
+git add skills/specpowers-*/SKILL.md
+git commit -m "refactor: 四子技能去重（重复规则改引用 review 正本）"
 ```
 
 ---
