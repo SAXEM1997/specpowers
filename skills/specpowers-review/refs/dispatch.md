@@ -99,3 +99,37 @@
 >
 > 截断策略同协议 5 通用规则：原始报告超长时优先保留"问题清单+编号+严重度+证据+RAW_COUNT 行"，截断分析过程。**问题编号与 RAW_COUNT 行不得截断**——截断即无法核对守恒等式，此时必须声明退化并把核对降级为"抽样比对 + 显式记录抽样范围"。
 
+## 细则 A: sources 短名规范与编号空间隔离
+
+> **`sources` 短名规范（Step 5 溯源核对的命名空间基准）**：文档类完整层 `structure` / `landing` / `alignment`；关键层 `alignment` / `supervisor1`（Step 1 监督审查 Agent）；代码类 UltraReview `build` / `code` / `specs` / `docs` / `deps` / `alignment`；代码类加强审查（recipe=[STEP1-2]）`alignment`（对齐 Agent 单审）——**code-review 结论并入 `alignment` 报告的编号序列**（不单独编号），`sources` 引用 `alignment#k` 即涵盖两者（**跨 Agent 不可变约定：加强审查路径下 `alignment` 的 `RAW_COUNT` 必须包含 code-review 结论的条数，且其问题编号连续覆盖 code-review 与对齐两部分的全部条目**——否则该路径 `Σp*_raw` 漏计、守恒等式右侧基线失真，见 Step 1 RAW_COUNT 强制）；加强审查的 `code`（specpowers-apply 的 code-review 结论）**不是 sources 短名、不产生 `code#k` 引用**（其结论已并入 `alignment` 编号序列）——**仅用于 `STEP1_EXECUTED` 的 `agents` 字段**（记录 code-review 执行主体），列入 sources 清单徒增误引风险，故移出；主 Agent 自执行 `self`（Step 2 合并表由主 Agent 产出，不产生 `#k` 编号；`self` 仅用于 `STEP<N>_EXECUTED` 的 `agents` 字段，不作为 `sources` 短名）；监督补充 `sup3`（Step 3 监督 Agent 的 `[补充]` 项）。`STEP1_EXECUTED` 标记块的 `agents` 列表**必须使用同一套短名**，否则 Step 5 无法核对 sources 真实性。
+>
+> **编号空间隔离（三个互不相关的编号空间）**：① `supervisor1`——关键层 **Step 1** 的监督**审查** Agent（其 `#k` 指向该 Agent 的审查报告，计入 `Σp*_raw`，走 `sources: supervisor1#k`）；② `alignment` / `code`（**仅 UltraReview 维度**——加强审查路径的 code-review 结论并入 `alignment` 编号序列，不产生 `code#k`）/ `structure` / `landing` / `build` / `specs` / `docs` / `deps`——各审查 Agent（计入 `Σp*_raw`）；③ `sup3`——**Step 3** 独立监督 Agent 的 `[补充]` 项（其 `#k` 指向监督报告的 `[补充]` 清单，计入 `p*_supplement`）。溯源核对时须分别对照对应报告，不得混用；**监督 Agent 在 Step 3 阶段不产出计入 Σraw 的编号报告——其一切新发现均走 sup3 通道计入 `p*_supplement`**。
+- **未纳入清单（强制）**：**不构成合并表行**的原始发现逐条登记（`<Agent名>#<编号>（原始严重度 P0-P3）——原因：……｜disposition: agent_rejected|user_rejected`），构成 `p*_rejected`。原因分两类：`agent_rejected`（主 Agent 判定不成立）/ `user_rejected`（用户裁决为非问题或跳过）。**严重度取该 Agent 原始报告值，不由主 Agent 改判**（改判属严重度校准问题，须走降级理由流程）。**判为重复而被合并行吸收的项不进未纳入清单**（它们已计入对应行的 `sources`）。
+
+## 细则 B: RAW_COUNT 强制与守恒校验
+
+**RAW_COUNT 强制（反偷懒）**：每个审查 Agent 输出末尾必须带一行结构化计数 `RAW_COUNT: p0=N p1=N p2=N p3=N`（该 Agent 本轮发现的问题数），且其报告中的问题必须**连续编号**（`#1`、`#2`、…），编号总数必须等于 `RAW_COUNT` 四值之和。**加强审查路径特则（硬约定）**：`alignment` 的 `RAW_COUNT` **必须包含 code-review 结论的条数**，且其问题编号连续覆盖 code-review 与对齐两部分的全部条目（code-review 结论并入 `alignment` 编号序列，见下方 `sources` 短名规范）——该路径的 `Σp*_raw`（收敛触发与守恒等式右侧基线）不得因 code-review 并入而漏计。主 Agent 在 STEP1_EXECUTED 标记块中汇总为 `raw_count_sum: p0=N p1=N p2=N p3=N`（所有 Agent 计数求和）（此处的 p0/p1/p2/p3 均为**原始发现数**，对应账本 p*_raw 语义——非修复后剩余的 p0/p1/p2，也非合并后问题数 p*_merged）。编号是 Step 2 `sources` 来源映射列的引用依据，`RAW_COUNT` 求和是守恒等式的右侧基线——两者共同把"合并后问题数"变成可算术校验的导出量（见「问题数口径权威定义」）。**raw 计数不参与收敛触发计算**（**加强审查子路径除外**：该路径按 raw 口径触发，见「问题数口径权威定义」），仅作审计基线；Step 5 兼并合并验证对照的是守恒等式而非简单计数比对（见 Step 3 转移规则）。
+
+## 细则 C: 同文件不并发判定
+
+ - **⚠️ 硬约束 — 同文件不并发**: 不同修复子 Agent **禁止**修改同一文件。即使修改项分布在文件的不同章节/行号，并发写入同一文件将导致编辑冲突和内容丢失。分组时以文件为最小粒度——同一文件的所有修复项必须分配给**同一个**修复子 Agent。具体规则：
+   - 单文件变更 → 仅启动 1 个修复子 Agent（无论修复项多少）
+   - 单文件修复项 > 10 条时 → 单个修复子 Agent 仍负责该文件，但按批次（每批 ≤10 条）顺序执行，每批完成后主 Agent 校验，确认无误后再执行下一批
+   - 多文件变更 → 按文件分组，每文件 1 个修复子 Agent
+   - 跨文件语义依赖（如同一术语替换、交叉引用同步）→ 将依赖文件合并到同一修复子 Agent
+   - 仅当修复项涉及 ≥2 个无依赖文件时方可并行启动多个修复子 Agent
+   - **"无依赖"判定标准**: 两个文件满足以下全部条件视为无依赖，可分配给不同修复子 Agent 并行执行：
+     - 无共享符号/术语替换（如同一函数/变量/类名需要同步改名）
+     - 无交叉引用（如文件 A 的修改引用了文件 B 的新增/删除内容）
+     - 无共享配置值（如两个文件使用同一常量/配置项，需同步修改）
+     - 不属同一 import/include 链（如文件 A import 文件 B，修改 B 的导出会影响 A）
+     任一条件不满足 → 合并为同一修复子 Agent
+
+## 细则 D: Step 5 兼并合并验证五项
+
+1. 溯源检查：合并表每条问题能否在原始报告找到来源（逐条核对 `sources` 列的 `<Agent名>#<编号>` 是否真实存在且语义对应）？无法溯源 → 标记 `[无法溯源]`，**按 `[问题数存疑]` 升级路径处理**（补独立 Step 3（mode=standard）交叉验证 → 对新发现问题重修复（Step 4）→ 重 Step 5；不重跑 Step 1-2——审查报告不变）
+2. 遗漏检测：原始报告有但合并表缺失的发现（含未纳入清单中无书面理由的项）？逐条标注（区分 disposition=user_adjudicated 的用户裁决项 vs agent_rejected 的主 Agent 拒绝项；**计入 `Σp*_raw` 的**被拒项（agent_rejected 与 user_rejected）合计 >3 条或占比 >30% 时标记 [拒绝异常]（被否决 `sup3` 项不占分子——由 [补充否决异常] 承接）——**该情形本应已在 Step 3 强制走独立监督路径，若在此处才发现，说明档位走错，按 [问题数存疑] 升级处理**）
+3. **守恒等式核对（反偷懒，强制）**：重新计算 `Σ(所有行的 sources 条数) + Σp*_rejected` 与 `各 Agent RAW_COUNT 求和 + Σp*_supplement`（从注入的原始报告**重新数编号**，不从 STEP1_EXECUTED 的 raw_count_sum 直接取信——防止主 Agent 篡改），**比对总量**：总量等式不成立 → 标记 [问题数存疑]，触发重审：补独立 Step3（mode=standard）交叉验证 → 对新发现问题重修复（Step4）→ 重 Step5。不重跑 Step1-2（审查报告不变）。此核对为**精确算术，无容差**——多 Agent 报同一问题属合法去重，其去向由 `sources` 列承载，故"计数小于 raw"本身不构成异常，"有发现没有去向"才构成异常
+4. **误合抽查＋降级理由存在性核对（恒查项——兼并模式下无论如何都执行，不受第 5 项触发面约束）**：抽取 `sources` 条数 ≥2 的行，按**当前 recipe 的合并判据**逐行判断：文档类＝同一文件的同一段落/章节/代码块内且问题类型相同；代码类 UltraReview＝同一文件+同一符号+同一问题类型（见 `refs/ultrareview.md` 协议 8）——把不同问题误合为一条会同时压低 merged 计数并掩盖问题，是 merged 口径下的主要新增风险。发现误合 → 要求拆行并标记 [误合]，拆行后重算 `p*_merged`。**同时核对每条非 P0 行的最终严重度是否低于其任一 source 的原始严重度——若有降级，必须存在书面降级理由（用户裁决记录或具体事实依据），否则标记 [问题数存疑]**（跨阈值降级即使第 5 项触发面四轴全为零也由此恒查项兜底，细则见 refs/dispatch.md 协议 5 强制指令「兼并执行合并验证 4 项」条目的 ④）
+5. **严重度校准抽查（触发条件为上方独立 bullet 的判定，非兼并包含条件——兼并模式下在此执行）**：逐项执行细则（对照范围、事实前提核对、跨阈值降级、`user_rejected` 项的专门标准、`[拒绝存疑]` 升级路径）见 `refs/dispatch.md` 协议 5「Step 5 合并验证模式注入模板」**强制指令中「`p0_raw≥1` 或 … 时追加第 5 项严重度校准抽查」条目**。
+STEP5_EXECUTED 中新增 `notes: 兼并 Step 3 合并验证（溯源+遗漏+守恒等式核对+误合抽查；p0_raw≥1 或 p0_rejected≥1 或 agent_rejected≥1 或 user_rejected≥1 时含严重度校准抽查）` 字段（独立于 degradation）
