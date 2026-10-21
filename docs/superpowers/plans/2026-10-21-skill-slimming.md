@@ -27,6 +27,14 @@
 8. **ADR**：写 1 个 `docs/adr/0001-adaptive-disclosure-over-dual-track.md`（随 PR-1）；**不建 GLOSSARY.md**（术语正本已在 AGENTS.md 与 review SKILL.md）。
 9. **推送时机**：PR-1 本地完成后先给用户看 diff 与验收输出，确认后再推送开 MR。
 
+## 执行期修正（PR-3/PR-4 实施时确认，覆盖上文对应条目）
+
+10. **版本号改为 1.2.0**（覆盖决策 6 的 1.1.0）：`chore/release: v1.1.0` 已先于本计划合入 main，1.1.0 被占用。`README.md:80` / `README.en.md:80` 的安装行**不动**——它指向已发布的 tag `v1.1.0`（v1.2.0 tag 尚未创建，改指会变成死链）。
+11. **PR-4 的「四子技能去重 −20 行」目标取消（实测若无重复）**：跨 6 个 `SKILL.md` 按 ≥25 字符逐字比对，**与 review 正本重复的规则全文 0 条**（子技能早已是 `执行入口 specpowers SKILL.md「Gate 返回后验证协议」节（参数：Gate=N, Phase=N）` 式一行引用）；跨技能逐字重复的 8 条中 6 条是「平台适配」块（每个技能必须自带，否则被单独加载时调不动其他技能）、2 条是两张小 Gate 表的表头。故 Task 8 的 ≤608 验收项**改判为不可达**，PR-4 实际只做两处：并入两张 Gate 小表（−9 行 → **619**），evals 描述校准。
+12. **CRLF 无需处理**：`.gitattributes` 为 `* text=auto eol=lf`；CI 的 `convert-skills-to-crlf.mjs` 只就地转换 6 个 `SKILL.md`（**不含 `refs/`**）并在同一 job 内跑校验。已本地复跑该 leg 通过。
+13. **PR-3 实施时删除了计划未列的 4 处**（概述×技能组结构合并、删「各模式映射」表、GitLab Flow ASCII 图并入节标题、微小子句合并），入口 386 → **341**；`specpowers-archive/SKILL.md:62` 原指向的「Pre-Flight Check」已并入「环境准备」，同步改指。
+14. **GitLab 合并方式**：项目 `merge_method=merge` 会让 GitLab 用账号身份（公司邮箱域）生成 Merge commit，触发 `verify-no-internal-refs` 的身份扫描。后续 MR 合并一律**临时切 `merge_method=ff` → 合并 → 立即恢复**，保持 main 上的提交身份为 `SAXEM1997@users.noreply.github.com`；GitHub 侧以 fast-forward 镜像 main。
+
 ## Global Constraints
 
 以下为 spec §5 红线，逐字适用；每个 task 的要求隐含包含本节：
