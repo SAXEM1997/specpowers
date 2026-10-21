@@ -188,7 +188,7 @@ description: >-
 | **落地审查 Agent** | 可执行性/兼容性/边界/平台差异 | 快速模型 |
 | **对齐审查 Agent** | 对齐原始需求/设计；错漏项检测；模糊歧义识别 | 与前两者不同模型 |
 
-**模型多样性**：三 Agent 用不同模型以最大化视角差异（品牌取决于环境，按能力等级匹配；支持子 Agent 的环境优先分配不同模型，平台对照见 `refs/platform-tools.md`）。单一/双模型降级细则见 `refs/dispatch.md` 协议 4。对齐 Agent 的检查维度、对照方法与 COVERED/MISSING/DRIFT 语义见 `refs/dispatch.md` 细则 E。
+**模型多样性**：三 Agent 用不同模型以最大化视角差异（品牌取决于环境，按能力等级匹配；支持子 Agent 的环境优先分配不同模型，平台对照见 `<SKILL_BASE>/refs/platform-tools.md`）。单一/双模型降级细则见 `refs/dispatch.md` 协议 4。对齐 Agent 的检查维度、对照方法与 COVERED/MISSING/DRIFT 语义见 `refs/dispatch.md` 细则 E。
 
 ---
 
