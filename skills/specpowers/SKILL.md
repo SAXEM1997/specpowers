@@ -23,24 +23,14 @@ description: >
 
 ## 概述
 
-specpowers 融合 OpenSpec（规范驱动开发）+ Superpowers（测试驱动纪律）+ Checklist/Hooks（自动化检查）：
-
-- **OpenSpec** 防止需求偏离（做了不需要的东西）
-- **Superpowers** 防止实现缺陷（需要的东西做错了）
-- **specpowers** 防止三者脱节，以状态机驱动 Phase 流转：通过衔接指令集（bridge）将 OpenSpec 产物转换为 Superpowers 输入
-
-### 职责分工
+specpowers 融合 OpenSpec（规范驱动开发）+ Superpowers（测试驱动纪律）+ Checklist/Hooks（自动化检查），以状态机驱动 Phase 流转，通过衔接指令集（bridge）把 OpenSpec 产物转换为 Superpowers 输入：
 
 | 维度 | OpenSpec | Superpowers | specpowers（衔接阶段） |
 |------|----------|-------------|---------------------|
-| 回答的问题 | 做什么、为什么做 | 怎么做、按什么标准 | 何时切换、如何衔接 |
+| 回答的问题 | 做什么、为什么做（防需求偏离） | 怎么做、按什么标准（防实现缺陷） | 何时切换、如何衔接（防三者脱节） |
 | 核心产物 | proposal/design/specs/tasks | 代码/测试/审查报告 | checklist/hooks/bridge |
 
-> 当前架构：1 入口 + 5 子技能（design/plan/apply/review/archive）。
-
-## 技能组结构
-
-specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能组，按 Phase 按需加载：
+### 技能组结构（**1 入口 + 5 子技能**，覆盖 Phase 0-4，按 Phase 按需加载）
 
 | 技能 | Phase | 加载时机 |
 |------|-------|---------|
@@ -105,7 +95,6 @@ specpowers 是一个 **1 入口 + 5 子技能（覆盖 Phase 0-4）**的技能�
 | 产物文件都在，这个 Phase 算完成 | 无 gate token = 未通过 |
 | state.json completedPhases 有它，直接走下一步 | state 可能过期；gate 文件缺失按未完成 |
 | 状态机脚本失败，流程卡死 | 回退到 Phase 自动检测表 |
-| 收敛判定问用户是否继续 | 默认继续制：通知不是询问 |
 | 换话题继续记到当前 name 下 | 污染 Gate 链：先确认继续还是新任务 |
 | 全量测试没过，手动 mv change 到 archive | 硬 Gate 链不可降级 |
 | task 简单，内联做掉 | Phase 3 必须每 task 独立子代理 |
@@ -190,9 +179,7 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 
 > **Gate 标记检查（产物依赖链最终执行点）**：Phase 自动检测在匹配产物状态后，额外检查对应 Gate 的 `.gate-passed-<N>` 文件（`name=<当前任务>` 匹配）。Gate 标记缺失 → 该 Phase 判定无效，回退到上一 Phase 执行 Gate。Gate 0→检查 `.gate-passed-0`（Phase 0 完成且 Gate 0 通过才能进入 Phase 1）；Gate 1→`.gate-passed-1`（Phase 1 完成且 Gate 1 通过才能进入 Phase 2，`.phase1-skipped` 存在时跳过此项）；以此类推。微小任务跳过 Gate 0/1/2（与验证 0 一致），Gate 3 仍检查。
 
-**微小任务不加载子技能** — 直接在入口 skill 上下文中子代理执行。
-
-> 注：微小任务不加载 design/plan/apply/archive 业务子技能，但 specpowers-review（审查横切）仍加载执行 Gate 3（见 specpowers-apply 前置检查）。
+**微小任务不加载业务子技能（design/plan/apply/archive）** — 直接在入口 skill 上下文中子代理执行；但 specpowers-review（审查横切）仍加载执行 Gate 3（见 specpowers-apply 前置检查）。
 
 | 当前 Phase | 模式 | 加载 | 命令 |
 |-----------|------|------|------|
@@ -210,28 +197,17 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 
 需要审查时，加载 `Skill({skill: "specpowers-review"})`，由 specpowers-review 内部两级路由矩阵自动判定审查层级（按评审轮数×待评审物规模×行数地板路由到关键/完整审查），防退化机制全部保留并为 tier 路由补充防护；用户可手动覆盖（关键/完整审查）。
 
-### 各模式映射
-
-| 执行模式 | Phase 0 | Phase 1 | Phase 2 | Phase 3 | Phase 4 | 审查 |
-|---------|---------|---------|---------|---------|---------|------|
-| **微小** | 轻量上下文探索 | 跳过 | 跳过 | 子代理直接执行 | 跳过 | → specpowers-review 内部判定 |
-| **中等** | brainstorming | 格式转换+对照 | 衔接+Plan Gate | TDD 逐 task | 硬 Gate 链 | → specpowers-review 内部判定 |
-| **复杂** | brainstorming | 格式转换+对照 | UltraPlan | TDD+子代理 | 硬 Gate 链 | → specpowers-review 内部判定 |
-| **大规模** | brainstorming | 格式转换+对照 | Workflow | Workflow+子代理 | 硬 Gate 链 | → specpowers-review 内部判定 |
+> 各模式 × 各 Phase 的加载映射见「执行模式选择」决策树与「阶段路由」表（本节不再重复）。
 
 ## 适用场景
 
-### 必须使用 specpowers
-- 团队协作项目 / 长期维护项目 / 复杂功能开发
-- 已有代码库的增量开发 / 跨会话的多步骤任务
+| 场景 | 用法 |
+|---|---|
+| 团队协作 / 长期维护 / 复杂功能 / 已有代码库增量 / 跨会话多步骤 | 完整 specpowers |
+| 改按钮颜色、修 typo 等小改动、需求很明确 | 只用 OpenSpec |
+| 一次性脚本、需求明确但不需要长期规范的小功能 | 只用 Superpowers |
 
-### 只用 OpenSpec（不用 specpowers）
-- 改按钮颜色、修 typo 等小改动 / 需求很明确
-
-### 只用 Superpowers（不用 specpowers）
-- 一次性脚本 / 需求明确但不需要长期规范的小功能
-
-**判断标准**: 代码生命周期 × 协作人数。生命周期 < 1 天且单人 → 无需。生命周期 > 1 月且多人 → 完整 specpowers。
+**判断标准**: 代码生命周期 × 协作人数。生命周期 < 1 天且单人 → 无需；生命周期 > 1 月且多人 → 完整 specpowers。
 
 ## 环境准备
 
@@ -244,17 +220,11 @@ Description 层的 Do NOT use 为第一层过滤，本决策树为第二层路�
 | **TEST_COMMAND** | 全量测试 | 项目实际测试命令（见下方） | ⚠️ 需手动配置 |
 | **Node.js** | 状态机脚本 | `node --version`（≥18） | ✅（脚本依赖；缺失时回退到 Phase 自动检测，状态机功能不可用） |
 
-> **TEST_COMMAND**: 在项目初始化时配置。specpowers-archive 全量测试门使用此命令。
-> 如未配置，archive 会自动检测：`xmake build` → `make test` → `npm test`。
+> **TEST_COMMAND**: 在项目初始化时配置（**QTDIR** 同理：Qt 项目需设置）。specpowers-archive 全量测试门使用此命令；如未配置，archive 会自动检测：`xmake build` → `make test` → `npm test`。
 
 ## Git Flow + Code Intelligence
 
-### GitLab Flow（横切 — 所有 Phase 遵守）
-
-```
-master (main) ← 始终可部署
-  └── feature/* ← 功能分支，MR/PR 合并
-```
+### GitLab Flow（横切 — 所有 Phase 遵守；`main` 始终可部署）
 
 | 场景 | 分支策略 |
 |------|---------|
@@ -274,19 +244,6 @@ master (main) ← 始终可部署
 |------|---------|-------------|------------------|---------|
 | **CodeGraph** | `codegraph_explore` 理解代码（符号源码+调用路径） | `codegraph_explore` 影响分析（含 blast radius 受影响调用方） | —（file watcher 自动同步图谱，无需手动命令） | `codegraph_explore` 复查关键符号依赖 |
 | **Graphify** | `/graphify` 构建图谱 + `/graphify explain` 理解架构 | — | — | `/graphify` 重建/更新图谱（可提交团队共享） |
-
-## Pre-Flight Check
-
-首次使用 specpowers 的项目需配置以下项：
-
-```
-□ TEST_COMMAND: 全量测试命令（见上方环境准备节，如未配置 archive 自动检测）
-□ QTDIR: Qt 项目需设置（如有）
-□ openspec --version: 确认 OpenSpec CLI 可用
-□ node --version: 状态机脚本依赖（≥18）。缺失时状态机不可用，回退到 Phase 自动检测表（状态机功能降级但不阻塞流程）
-```
-
-> 配置方式：在入口 skill 上下文或会话中手动定义。TEST_COMMAND 由 specpowers-archive Step 1 读取。
 
 ## Checklist + Hooks
 
@@ -361,14 +318,12 @@ master (main) ← 始终可部署
 
 | 步骤 | 命令 | 详见 |
 |------|------|------|
-| brainstorming | `Skill({skill: "specpowers-design"})`（Phase 0，需求澄清+方案设计） | specpowers-design |
-| propose | `Skill({skill: "specpowers-design"})`（Phase 1，格式转换+强制对照） | specpowers-design |
+| design（Phase 0+1） | `Skill({skill: "specpowers-design"})`（Phase 0 需求澄清+方案设计 → Phase 1 格式转换+强制对照） | specpowers-design |
 | Plan 审查 | 执行 Gate 2 审查（强制执行，见 specpowers-plan） | specpowers-plan |
 | 衔接 | "读取 openspec changes/, 用 writing-plans 拆 TDD 计划" | specpowers-plan |
 | 实现 | `Skill({skill: "subagent-driven-development"})`（每个 task 一个独立子 Agent） | specpowers-apply |
 | 审查 | `Skill({skill: "specpowers-review"})`（两级路由自动判定） | specpowers-review |
-| 验证 | `openspec validate --change <name>` + test | specpowers-archive |
-| 归档 | `/opsx:archive`（硬 Gate 链；命令不可用时走 specpowers-archive Step 3 载体降级链——降级的是执行载体，归档步骤本身不可跳过） | specpowers-archive |
+| 验证+归档 | `openspec validate --change <name>` + test → `/opsx:archive`（硬 Gate 链；命令不可用时走 specpowers-archive Step 3 载体降级链——降级的是执行载体，归档步骤本身不可跳过） | specpowers-archive |
 
 > 小改动无需 specpowers 全流程："帮我修复 xxx.cpp 的编译错误" → 直接子代理执行。
 

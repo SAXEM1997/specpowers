@@ -59,7 +59,7 @@ fi
 ```
 > **结果核查（原始输出）**: 判定本 Gate 通过/失败必须读测试命令的原始输出，不得以摘要代理输出为准——摘要工具（如 rtk）可能吞掉输出尾部的 `, N errors`/`FAILED` 后缀。输出尾部含 `N errors`/`FAILED` 或退出码非 0 → 一律视为失败，走 Gate 回退；不确定时用原始命令重跑或读完整输出文件。
 > **xmake 多 target 项目**: `xmake build` 使用默认构建规则；如项目有多个 target，需在 `TEST_COMMAND` 中显式指定（如 `TEST_COMMAND="xmake build <target> && xmake test"`）。
-> 如自动检测失败，在 specpowers entry skill 的 Pre-Flight Check 中手动定义 TEST_COMMAND。
+> 如自动检测失败，在 specpowers entry skill 的「环境准备」节手动定义 TEST_COMMAND（该节同时给出 QTDIR 等其余配置项）。
 
 ### Step 2: OpenSpec validate Gate
 
