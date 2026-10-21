@@ -77,7 +77,7 @@ npx @deepseek-ai/dsh plugin --profile web add github:SAXEM1997/specpowers
 To pin a **reproducible** version, append a tag after `#` (recommended for production):
 
 ```sh
-npx @deepseek-ai/dsh plugin --profile web add github:SAXEM1997/specpowers#v1.1.0
+npx @deepseek-ai/dsh plugin --profile web add github:SAXEM1997/specpowers#v1.1.1
 ```
 
 > Without `#`, the current `main` HEAD is installed — what you get today may differ from what you get later. `dsh plugin` is backed by pnpm, so a commit SHA works after `#` too.

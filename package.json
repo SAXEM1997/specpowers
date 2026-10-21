@@ -1,7 +1,7 @@
 {
   "name": "specpowers",
   "description": "SpecPowers for the DeepSeek Harness and Claude Code: a spec-driven + test-driven engineering skill group fusing OpenSpec and Superpowers",
-  "version": "1.2.0",
+  "version": "1.1.1",
   "private": false,
   "type": "module",
   "main": "lib/index.js",
